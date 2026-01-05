@@ -40,9 +40,9 @@ export default function WelcomeScreen() {
       <View className="bg-secondary h-1/3 min-h-[250px]">
         <View className="flex-1 px-6 pt-20">
           {/* Arrow in its own container */}
-          <View className="relative top-14 left-26">
+          <View className="relative left-26">
             <TouchableOpacity
-              className="w-10 h-10 bg-white/80 rounded-full shadow-lg"
+              className="w-10 h-10 rounded-full shadow-lg"
               onPress={handleBack}
             >
               <ArrowLeft size={28} color="#fff" />
