@@ -3,6 +3,7 @@ import images from '@/constants/images';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Image, Text, TouchableOpacity, View } from 'react-native';
+import { CheckCircle } from "lucide-react-native"
 
 const SetupStore: React.FC = () => {
     const router = useRouter();
@@ -36,12 +37,8 @@ const SetupStore: React.FC = () => {
             <View className="flex-1 bg-white -mt-8 rounded-t-3xl px-6 pt-12">
                 {/* Success Checkmark/Icon */}
                 <View className="items-center">
-                    <View className="flex-1 items-center justify-center mt-12 mb-20">
-                        <Image
-                            source={images.successIcon}
-                            className="w-24 h-24"
-                            resizeMode="contain"
-                        />
+                    <View className="w-20 h-20 rounded-full bg-green-100 items-center justify-center mb-6">
+                        <CheckCircle size={42} color="#16A34A" />
                     </View>
 
                     {/* Success Message */}

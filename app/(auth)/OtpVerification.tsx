@@ -71,21 +71,22 @@ const OtpVerification: React.FC = () => {
             return;
         }
 
-        // Mock successful verification (replace with real API call later)
         console.log('OTP Verified:', enteredCode);
-        console.log('User Data:', { 
-            firstName, 
-            lastName, 
-            phoneNumber, 
-            email, 
-            method, 
-            isCustomer,
-            source 
-        });
+        console.log('Source:', source);
 
-        // Determine where to navigate next based on the registration source
+        // ✅ PASSWORD RESET FLOW - Navigate to CreatePassword with reset mode
+        if (source === 'reset-password') {
+            router.push({
+                pathname: '/(auth)/CreatePassword',
+                params: { 
+                    mode: 'reset'
+                }
+            });
+            return;
+        }
+
+        // Email registration flow
         if (isEmailVerification) {
-            // Email registration already has password, go to success/store setup
             router.push({
                 pathname: '/(auth)/SuccessSetup',
                 params: {
@@ -98,10 +99,11 @@ const OtpVerification: React.FC = () => {
                 },
             });
         } else {
-            // Phone registration needs to create password
+            // Phone registration flow
             router.push({
                 pathname: '/(auth)/CreatePassword',
                 params: {
+                    mode: 'create',
                     firstName,
                     lastName,
                     phoneNumber,
@@ -110,7 +112,7 @@ const OtpVerification: React.FC = () => {
                 },
             });
         }
-    }, [otp, firstName, lastName, phoneNumber, email, method, isCustomer, isEmailVerification, router, source]);
+    }, [otp, source, firstName, lastName, phoneNumber, email, method, isCustomer, isEmailVerification, router]);
 
     // Auto-submit when all digits are filled (optional UX improvement)
     React.useEffect(() => {
@@ -124,7 +126,7 @@ const OtpVerification: React.FC = () => {
         if (!contactInfo) return '';
         
         if (isEmailVerification) {
-            // Mask email: johndoe@example.com → j***e@example.com
+            // Mask email: [johndoe@example.com](mailto:johndoe@example.com) → [j***e@example.com](mailto:j***e@example.com)
             const [localPart, domain] = contactInfo.split('@');
             if (localPart && domain) {
                 const firstChar = localPart[0];
@@ -143,6 +145,9 @@ const OtpVerification: React.FC = () => {
 
     // Get appropriate title and message
     const getVerificationTitle = () => {
+        if (source === 'reset-password') {
+            return 'Reset your password';
+        }
         if (isEmailVerification) {
             return 'Verify your email';
         }
@@ -151,6 +156,9 @@ const OtpVerification: React.FC = () => {
 
     const getVerificationMessage = () => {
         const displayContact = getDisplayContact();
+        if (source === 'reset-password') {
+            return `Enter the 6-digit code sent to ${displayContact}`;
+        }
         if (isEmailVerification) {
             return `Enter the 6-digit code sent to ${displayContact}`;
         }
@@ -217,7 +225,7 @@ const OtpVerification: React.FC = () => {
                 {/* Optional: Resend Code Section */}
                 <View className="items-center mb-8">
                     <Text className="text-gray-500 text-sm mb-2">
-                        Didn&apos;t receive the code?
+                        Didn't receive the code?
                     </Text>
                     <TouchableOpacity>
                         <Text className="text-secondary font-semibold text-sm">
