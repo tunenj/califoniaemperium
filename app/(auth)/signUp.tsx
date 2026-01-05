@@ -13,6 +13,14 @@ const BusinessRegisterScreen: React.FC = () => {
     router.push('/(auth)/signIn');
   };
 
+  const handlePhoneSignUp = () => {
+    router.push('/(auth)/RegisterForm/PhoneSignUp');
+  };
+
+  const handleEmailSignUp = () => {
+    router.push('/(auth)/RegisterForm/EmailSignUp');
+  };
+
   return (
     <View className="flex-1 bg-white">
       {/* Top Image Section */}
@@ -49,13 +57,17 @@ const BusinessRegisterScreen: React.FC = () => {
           </View>
 
           {/* Phone Sign-up */}
-          <TouchableOpacity className="flex-row items-center mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+          <TouchableOpacity 
+            className="flex-row items-center mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200"
+            onPress={handlePhoneSignUp}
+          >
             <PhoneCall color="#AD2831" size={24} style={{ marginRight: 16 }} />
             <Text className="text-lg text-gray-900 flex-1 pl-8">
               Sign up with phone number
             </Text>
           </TouchableOpacity>
 
+          {/* Rest of your existing code remains the same */}
           {/* Google Sign-up */}
           <TouchableOpacity className="flex-row items-center mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
             <Image source={images.googleIcon} className="w-6 h-6 mr-4" />
@@ -75,7 +87,9 @@ const BusinessRegisterScreen: React.FC = () => {
 
           {/* Email Option */}
           {showMoreOptions && (
-            <TouchableOpacity className="flex-row items-center mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+            <TouchableOpacity className="flex-row items-center mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200"
+             onPress={handleEmailSignUp}
+            >
               <Mail color="#AD2831" size={24} style={{ marginRight: 16 }} />
               <Text className="text-lg text-gray-900 flex-1 pl-14">
                 Email and Password
