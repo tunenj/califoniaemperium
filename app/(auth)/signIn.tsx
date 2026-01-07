@@ -59,7 +59,7 @@ const BusinessLoginScreen: React.FC = () => {
                     >
                         <PhoneCall color="#AD2831" size={24} style={{ marginRight: 16 }} />
                         <Text className="text-lg text-gray-900 flex-1 pl-8">
-                            Sign up with phone number
+                            Login with phone number
                         </Text>
                     </TouchableOpacity>
 
@@ -67,7 +67,7 @@ const BusinessLoginScreen: React.FC = () => {
                     <TouchableOpacity className="flex-row items-center mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
                         <Image source={images.googleIcon} className="w-6 h-6 mr-4" />
                         <Text className="text-lg text-gray-900 flex-1 pl-14">
-                            Sign up with Google
+                            Login with Google
                         </Text>
                     </TouchableOpacity>
 

@@ -29,6 +29,7 @@ const BusinessLoginScreen: React.FC = () => {
     const handleLogin = () => {
         // Handle login logic here
         // For now, just navigate or log
+        router.push('/(tabs)/home');
         console.log('Logging in as', isBusiness ? 'Business' : 'Customer');
     };
 
