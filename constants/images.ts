@@ -8,18 +8,12 @@ import googleIcon from '../assets/icons/googleIcon.png';
 import switchIcon from '../assets/icons/switch.png';
 import whatsappIcon from '../assets/icons/whatsapp.png';
 import successIcon from '../assets/icons/successIcon.png';
-
-
 import electronicsBg from "@/assets/images/electronicsBg.png";
 import electronicsIcon  from "@/assets/images/electronicsIcon.png";
-
 import computerBg from "@/assets/images/computerBg.png";
 import computerIcon from "@/assets/images/computerIcon.png";
-
 import fashionBg from "@/assets/images/fashionBg.png";
 import fashionIcon from "@/assets/images/fashionIcon.png";
-
-
 import groceryBg from "@/assets/images/groceryBg.png";
 import groceryIcon from "@/assets/images/groceryIcon.png";
 

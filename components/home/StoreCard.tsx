@@ -9,8 +9,7 @@ interface Props {
 
 const StoreCard: React.FC<Props> = ({ title, bg, front }) => {
   return (
-    <View className="bg-white w-[48%] rounded-xl mb-4 shadow relative overflow-hidden">
-
+    <View className="bg-white w-[48%] rounded-xl mb-2 shadow relative overflow-hidden">
       {/* Background image */}
       <Image
         source={bg}
@@ -18,14 +17,14 @@ const StoreCard: React.FC<Props> = ({ title, bg, front }) => {
         resizeMode="cover"
       />
 
-      {/* Front image */}
+      {/* Front image - Adjusted positioning */}
       <Image
         source={front}
-        className="w-16 h-16 rounded-xl absolute bottom-28 left-3 z-10"
+        className="w-14 h-14 rounded-xl relative bottom-4 left-3 z-10"
         resizeMode="cover"
       />
 
-      <View className="p-6 pt-6">
+      <View className="p-4 pt-3">
         <Text className="font-semibold">{title}</Text>
 
         <Text className="text-xs text-gray-500 mt-1">
