@@ -3,6 +3,8 @@ import { useRouter } from 'expo-router';
 import { ChevronDown, ChevronUp, Mail, PhoneCall } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Image, Text, TouchableOpacity, View } from 'react-native';
+import { colors } from "@/constants/color";
+
 
 const BusinessLoginScreen: React.FC = () => {
     const [showMoreOptions, setShowMoreOptions] = useState(false);
@@ -57,7 +59,7 @@ const BusinessLoginScreen: React.FC = () => {
                     <TouchableOpacity className="flex-row items-center mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200"
                         onPress={handlePhoneSignIn}
                     >
-                        <PhoneCall color="#AD2831" size={24} style={{ marginRight: 16 }} />
+                        <PhoneCall color={colors.darkRed} size={24} style={{ marginRight: 16 }} />
                         <Text className="text-lg text-gray-900 flex-1 pl-8">
                             Login with phone number
                         </Text>
@@ -85,7 +87,7 @@ const BusinessLoginScreen: React.FC = () => {
                         <TouchableOpacity className="flex-row items-center mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200"
                             onPress={handleEmailSignIn}
                         >
-                            <Mail color="#AD2831" size={24} style={{ marginRight: 16 }} />
+                            <Mail color={colors.darkRed} size={24} style={{ marginRight: 16 }} />
                             <Text className="text-lg text-gray-900 flex-1 pl-14">
                                 Email and Password
                             </Text>

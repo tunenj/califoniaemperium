@@ -1,7 +1,10 @@
 import React from "react";
-import { View, Text } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import StoreCard from "./StoreCard";
 import images from "@/constants/images";
+import { ChevronRight } from "lucide-react-native";
+import { colors } from "@/constants/color";
+
 
 const FeaturedStores = () => {
   const cardData = [
@@ -28,16 +31,18 @@ const FeaturedStores = () => {
   ];
 
   return (
-    <View className="mt-6 px-4">
-      <View className="flex-row justify-between mb-3">
+    <View className="mt-2 px-4  bg-white rounded-2xl mx-2">
+      <View className="flex-row justify-between mb-3 mt-6">
         <View>
           <Text className="font-semibold text-base">Featured Stores</Text>
           <Text className="text-xs text-gray-500">
             Discover top-rated vendors
           </Text>
         </View>
-
-        <Text className="text-red-500 text-sm">View more</Text>
+        <TouchableOpacity className="flex-row items-center space-x-1">
+          <Text className="text-darkRed text-sm">View more</Text>
+          <ChevronRight size={16} color={colors.darkRed} />
+        </TouchableOpacity>
       </View>
 
       <View className="flex-row flex-wrap justify-between">

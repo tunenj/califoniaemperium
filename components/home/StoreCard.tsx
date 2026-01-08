@@ -1,13 +1,15 @@
 import React from 'react';
-import { View, Text, Image } from 'react-native';
+import { View, Text, Image, TouchableOpacity } from 'react-native';
 
 interface Props {
   title: string;
   bg: any;
   front: any;
+  onVisitStore?: () => void;
+  onFollow?: () => void;
 }
 
-const StoreCard: React.FC<Props> = ({ title, bg, front }) => {
+const StoreCard: React.FC<Props> = ({ title, bg, front, onVisitStore, onFollow }) => {
   return (
     <View className="bg-white w-[48%] rounded-xl mb-2 shadow relative overflow-hidden">
       {/* Background image */}
@@ -17,7 +19,7 @@ const StoreCard: React.FC<Props> = ({ title, bg, front }) => {
         resizeMode="cover"
       />
 
-      {/* Front image - Adjusted positioning */}
+      {/* Front image */}
       <Image
         source={front}
         className="w-14 h-14 rounded-xl relative bottom-4 left-3 z-10"
@@ -36,13 +38,21 @@ const StoreCard: React.FC<Props> = ({ title, bg, front }) => {
           <Text className="text-xs text-gray-400 ml-2">2,240</Text>
         </View>
 
+        {/* Clickable buttons */}
         <View className="flex-row justify-between mt-3">
-          <Text className="text-xs bg-red-100 text-red-500 px-3 py-1 rounded-full">
-            Visit Store
-          </Text>
-          <Text className="text-xs bg-gray-100 px-3 py-1 rounded-full">
-            Follow
-          </Text>
+          <TouchableOpacity
+            className="bg-darkRed px-3 py-1 rounded-full"
+            onPress={onVisitStore}
+          >
+            <Text className="text-xs text-white">Visit Store</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            className="bg-lightPink px-3 py-1 rounded-full"
+            onPress={onFollow}
+          >
+            <Text className="text-xs text-secondary">Follow</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </View>

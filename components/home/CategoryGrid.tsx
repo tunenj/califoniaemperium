@@ -16,13 +16,13 @@ const categories = [
   { id: 11, label: 'Electronics', icon: images.electronics },
   { id: 12, label: 'Beauty', icon: images.beauty },
   { id: 13, label: 'Fashion', icon: images.fashion },
-  { id: 14, label: 'Watches', icon: images.watch },
+  { id: 14, label: 'Watches', icon: images.watches },
   { id: 15, label: 'Gadgets', icon: images.gadget },
 ];
 
 const CategoryGrid = () => {
   return (
-    <View className="mt-6 px-4">
+    <View className="mt-6 px-4 bg-white p-4 rounded-2xl mx-2">
       <View className="flex-row flex-wrap justify-between">
         {categories.map(item => (
           <View
@@ -32,7 +32,7 @@ const CategoryGrid = () => {
             <View className="w-14 h-14 rounded-full bg-white items-center justify-center shadow">
               <Image
                 source={item.icon}
-                className="w-8 h-8"
+                className="w-14 h-14"
                 resizeMode="contain"
               />
             </View>
