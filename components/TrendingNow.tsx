@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, ScrollView } from "react-native";
+import { View, Text } from "react-native";
 import ProductCard from "./home/ProductCard";
 
 interface Props {
@@ -8,23 +8,19 @@ interface Props {
 
 const TrendingNow: React.FC<Props> = ({ products }) => {
   return (
-    <View className="mt-4">
-      <View className="flex-row justify-between px-4 mb-3">
-        <Text className="font-semibold text-base">Trending Now</Text>
-        <Text className="text-red-500 text-sm">View more</Text>
+    <View className="mt-2 bg-white rounded-2xl mx-2">
+      {/* Header */}
+      <View className="mb-2 px-4 mt-6">
+        <Text className="font-semibold text-base text-black">Trending Now</Text>
+        <Text className="text-xs text-black">Best sellers this week</Text>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        className="pl-4"
-      >
+      {/* Grid layout instead of scroll */}
+      <View className="flex-row flex-wrap justify-between px-4 mt-4">
         {products.map((item) => (
-          <View key={item.id} className="mr-4 w-48">
-            <ProductCard item={item} />
-          </View>
+          <ProductCard key={item.id} item={item} />
         ))}
-      </ScrollView>
+      </View>
     </View>
   );
 };

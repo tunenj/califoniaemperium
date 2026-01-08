@@ -3,7 +3,6 @@ import { SafeAreaView, View, ScrollView } from "react-native";
 import DashboardHeader from "@/components/home/DashboardHeader";
 import PromoBadges from "@/components/home/PromoBadges";
 import CategoryList from "@/components/home/CategoryGrid";
-import ProductCard from "@/components/home/ProductCard";
 import FeaturedStores from "@/components/home/FeaturedStores";
 import ProductSection from "@/components/home/ProductSection";
 
@@ -15,7 +14,7 @@ const HomeScreen = () => {
 
       {/* SCROLLABLE CONTENT */}
       <ScrollView
-        className="flex-1 bg-[#FFB6C1]"
+        className="flex-1 bg-lightPink"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
       >

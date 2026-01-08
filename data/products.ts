@@ -32,7 +32,7 @@ export const products = [
     rating: 4.7,
     category: 'Accessories',
     image: require('@/assets/images/yoga.png'),
-    trending: false,
+    trending: true,
   },
   {
     id: '4',
@@ -42,5 +42,23 @@ export const products = [
     category: 'Speakers',
     image: require('@/assets/images/speaker.png'),
     trending: true,
+  },
+   {
+    id: '5',
+    title: 'Professional Yoga Mat',
+    price: '₦22,000',
+    rating: 4.7,
+    category: 'Accessories',
+    image: require('@/assets/images/yoga.png'),
+    trending: false,
+  },
+   {
+    id: '6',
+    title: 'Professional Yoga Mat',
+    price: '₦22,000',
+    rating: 4.7,
+    category: 'Accessories',
+    image: require('@/assets/images/yoga.png'),
+    trending: false,
   },
 ];
