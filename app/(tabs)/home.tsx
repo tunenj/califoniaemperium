@@ -1,5 +1,5 @@
 import React from "react";
-import { SafeAreaView, View, ScrollView } from "react-native";
+import { SafeAreaView, ScrollView } from "react-native";
 import DashboardHeader from "@/components/home/DashboardHeader";
 import PromoBadges from "@/components/home/PromoBadges";
 import CategoryList from "@/components/home/CategoryGrid";
@@ -8,7 +8,7 @@ import ProductSection from "@/components/home/ProductSection";
 
 const HomeScreen = () => {
   return (
-    <SafeAreaView className="flex-1 bg-gray-100">
+    <SafeAreaView className="flex-1">
       {/* STATIC DASHBOARD */}
       <DashboardHeader />
 

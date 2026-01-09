@@ -35,6 +35,11 @@ import fashion from '@/assets/images/fashion.png';
 import watches from '@/assets/images/watches.png';
 import gadget from '@/assets/images/gadget.png';
 
+//Dashboard images
+import jacket from '@/assets/images/jacket.png';
+import pairShoe from '@/assets/images/pairShoe.png';
+import dashboardIcon from '@/assets/icons/dashboardIcon.png';
+
 const images: Record<string, ImageSourcePropType> = {
   onboarding,
   businessIcon,
@@ -71,6 +76,11 @@ const images: Record<string, ImageSourcePropType> = {
   fashion,
   watches,
   gadget,
+
+  // Dashboard images
+  jacket,
+  pairShoe,
+  dashboardIcon
 };
 
 export default images;
