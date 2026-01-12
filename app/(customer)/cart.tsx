@@ -9,8 +9,6 @@ const CategoryScreen = () => {
     <View className="flex-1 bg-lightPink">
       <Dashboard />
       <View className="flex-row flex-1">
-        {/* LEFT SIDEBAR */}
-        <SidebarMenu />
 
         {/* RIGHT CONTENT */}
         <View className="flex-1">
