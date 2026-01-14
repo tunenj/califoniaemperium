@@ -40,6 +40,12 @@ import jacket from '@/assets/images/jacket.png';
 import pairShoe from '@/assets/images/pairShoe.png';
 import dashboardIcon from '@/assets/icons/dashboardIcon.png';
 
+<<<<<<< HEAD
+// Profile icon on account
+import profileAvater from '@/assets/icons/profile-avatar.png'
+
+=======
+>>>>>>> origin/main
 const images: Record<string, ImageSourcePropType> = {
   onboarding,
   businessIcon,
@@ -81,6 +87,10 @@ const images: Record<string, ImageSourcePropType> = {
   jacket,
   pairShoe,
   dashboardIcon
+<<<<<<< HEAD
+
+=======
+>>>>>>> origin/main
 };
 
 export default images;
