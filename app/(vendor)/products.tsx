@@ -9,6 +9,7 @@ import {
     Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from "expo-router";
 
 const { width } = Dimensions.get('window');
 const ITEM_WIDTH = (width - 40) / 2; // tighter spacing like screenshot
@@ -116,9 +117,6 @@ const ProductsScreen: React.FC = () => {
                     {item.stock} in stock
                 </Text>
             </View>
-
-
-
         </TouchableOpacity>
     );
 
@@ -135,8 +133,10 @@ const ProductsScreen: React.FC = () => {
                             {mockProducts.length} Products in your store
                         </Text>
                     </View>
-
-                    <TouchableOpacity className="bg-white border border-red-500 px-4 py-2 rounded-full">
+                    <TouchableOpacity
+                        onPress={() => router.push("/addProductScreen")}
+                        className="bg-white border border-red-500 px-4 py-2 rounded-full"
+                    >
                         <Text className="text-red-500 text-xs font-semibold">
                             + Add Product
                         </Text>
@@ -167,7 +167,7 @@ const ProductsScreen: React.FC = () => {
             </View>
 
             {/* Product Grid */}
-            <View className="px-4 flex-1">
+            <View className="px-4 flex-1 bg-orange-50 pt-2 border border-orange-300 rounded-xl">
                 <FlatList
                     data={mockProducts}
                     renderItem={renderProduct}

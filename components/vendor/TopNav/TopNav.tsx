@@ -8,7 +8,7 @@ const TopNav: React.FC = () => {
   const navigation = useNavigation();
 
   return (
-    <SafeAreaView className="bg-white">
+    <SafeAreaView className="bg-white max-h-24">
       <View className="flex-row items-center justify-between px-4 shadow-sm">
 
         {/* Menu Button */}
@@ -25,7 +25,7 @@ const TopNav: React.FC = () => {
         </TouchableOpacity>
 
         {/* Right Icons */}
-        <View className="flex-row items-center space-x-4">
+        <View className="flex-row items-center space-x-4 shadow-md shadow-gray-300 p-2 rounded-full">
           <TouchableOpacity className="p-1">
             <Ionicons name="settings-outline" size={22} color="#1F2937" />
           </TouchableOpacity>
