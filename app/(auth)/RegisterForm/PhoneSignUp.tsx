@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import images from "@/constants/images";
 import { useRouter } from "expo-router";
 import { ArrowLeft, Phone } from "lucide-react-native";
@@ -43,52 +42,11 @@ const BusinessRegisterForm: React.FC = () => {
         lastName,
         phoneNumber: `${selectedCountry?.code}${phoneNumber}`,
         method: selectedMethod,
-=======
-import images from '@/constants/images';
-import { useRouter } from 'expo-router';
-import { ArrowLeft, Phone } from 'lucide-react-native';
-import React, { useState } from 'react';
-import { Image, Text, TextInput, TouchableOpacity, View } from 'react-native';
-
-const BusinessRegisterForm: React.FC = () => {
-  const router = useRouter();
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [selectedMethod, setSelectedMethod] = useState<'whatsapp' | 'sms'>('sms');
-  const [isCustomer, setIsCustomer] = useState(false);
-
-  const handleBack = () => {
-    router.back();
-  };
-
-  const handleSignIn = () => {
-    router.push('/(auth)/signIn');
-  };
-
-  // New: Handle proceeding to OTP verification
-  const handleProceedToVerification = () => {
-    // Basic validation
-    if (!firstName.trim() || !lastName.trim() || !phoneNumber.trim()) {
-      alert('Please fill in all fields');
-      return;
-    }
-
-    // Navigate to OTP screen, passing necessary data
-    router.push({
-      pathname: '/(auth)/OtpVerification',
-      params: {
-        firstName,
-        lastName,
-        phoneNumber,
-        method: selectedMethod, // 'whatsapp' or 'sms'
->>>>>>> origin/main
         isCustomer: isCustomer.toString(),
       },
     });
   };
 
-<<<<<<< HEAD
   // Close modal on Android back button
   useEffect(() => {
     const backAction = () => {
@@ -108,11 +66,6 @@ const BusinessRegisterForm: React.FC = () => {
   return (
     <View className="flex-1 bg-white">
       {/* Header */}
-=======
-  return (
-    <View className="flex-1 bg-white">
-      {/* Top Red Header with Bag Icon - maintaining original curved/overlap style */}
->>>>>>> origin/main
       <View className="bg-secondary h-1/3 min-h-[250px] relative">
         <View className="flex-1 items-center justify-center">
           <Image
@@ -123,17 +76,9 @@ const BusinessRegisterForm: React.FC = () => {
         </View>
       </View>
 
-<<<<<<< HEAD
       {/* Form */}
       <View className="flex-1 bg-white -mt-8 rounded-t-3xl px-6 pt-8">
         <View className="relative mb-8">
-=======
-      {/* Bottom Curved White Section */}
-      <View className="flex-1 bg-white -mt-8 rounded-t-3xl px-6 pt-8">
-        {/* Title and Switch */}
-        <View className="relative mb-8">
-          {/* Back Arrow at top-left corner */}
->>>>>>> origin/main
           <TouchableOpacity
             className="absolute top-0 left-0 p-2 z-10"
             onPress={handleBack}
@@ -143,25 +88,15 @@ const BusinessRegisterForm: React.FC = () => {
 
           <View className="mb-8 items-center">
             <Text className="text-lg font-semibold text-black mb-1">
-<<<<<<< HEAD
               {isCustomer ? "Register as Customer" : "Register as Business"}
             </Text>
-=======
-              {isCustomer ? 'Register as Customer' : 'Register as Business'}
-            </Text>
-
->>>>>>> origin/main
             <TouchableOpacity
               className="flex-row"
               onPress={() => setIsCustomer(!isCustomer)}
             >
               <Image source={images.switchIcon} className="w-6 h-6 mr-2" />
               <Text className="text-lg text-gray-400 font-medium underline">
-<<<<<<< HEAD
                 {isCustomer ? "Switch to Business" : "Switch to customer"}
-=======
-                {isCustomer ? 'Switch to Business' : 'Switch to customer'}
->>>>>>> origin/main
               </Text>
             </TouchableOpacity>
           </View>
@@ -194,7 +129,6 @@ const BusinessRegisterForm: React.FC = () => {
             </View>
           </View>
 
-<<<<<<< HEAD
           {/* Phone Input with Country Picker */}
           <View>
             <Text className="text-gray-600 text-sm mb-1">Phone Number</Text>
@@ -251,26 +185,10 @@ const BusinessRegisterForm: React.FC = () => {
           </TouchableWithoutFeedback>
         </Modal>
 
-=======
-          <View>
-            <Text className="text-gray-600 text-sm mb-1">Phone Number</Text>
-            <TextInput
-              className="bg-gray-100 rounded-lg px-4 py-4 text-base border-b border-secondary"
-              placeholder="Enter phone number"
-              placeholderTextColor="black"
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
-              keyboardType="phone-pad"
-            />
-          </View>
-        </View>
-
->>>>>>> origin/main
         {/* Verification Method */}
         <View className="p-2 mb-6">
           <Text className="text-lg text-gray-400 mb-4">Verify to continue</Text>
           <View className="flex-row">
-<<<<<<< HEAD
             <TouchableOpacity
               className={`flex-1 flex-row items-center p-4 mr-3 rounded-xl border ${
                 selectedMethod === "whatsapp"
@@ -279,17 +197,6 @@ const BusinessRegisterForm: React.FC = () => {
               }`}
               onPress={() => {
                 setSelectedMethod("whatsapp");
-=======
-            {/* WhatsApp */}
-            <TouchableOpacity
-              className={`flex-1 flex-row items-center p-4 mr-3 rounded-xl border ${
-                selectedMethod === 'whatsapp'
-                  ? 'bg-secondary border-secondary'
-                  : 'bg-white border-secondary'
-              }`}
-              onPress={() => {
-                setSelectedMethod('whatsapp');
->>>>>>> origin/main
                 handleProceedToVerification();
               }}
             >
@@ -300,18 +207,13 @@ const BusinessRegisterForm: React.FC = () => {
               />
               <Text
                 className={`text-sm font-medium ${
-<<<<<<< HEAD
                   selectedMethod === "whatsapp" ? "text-white" : "text-gray-600"
-=======
-                  selectedMethod === 'whatsapp' ? 'text-white' : 'text-gray-600'
->>>>>>> origin/main
                 }`}
               >
                 WhatsApp
               </Text>
             </TouchableOpacity>
 
-<<<<<<< HEAD
             <TouchableOpacity
               className={`flex-1 flex-row items-center p-4 rounded-xl border-2 ${
                 selectedMethod === "sms"
@@ -320,36 +222,17 @@ const BusinessRegisterForm: React.FC = () => {
               }`}
               onPress={() => {
                 setSelectedMethod("sms");
-=======
-            {/* SMS */}
-            <TouchableOpacity
-              className={`flex-1 flex-row items-center p-4 rounded-xl border-2 ${
-                selectedMethod === 'sms'
-                  ? 'bg-secondary border-secondary'
-                  : 'bg-gray-50 border-gray-200'
-              }`}
-              onPress={() => {
-                setSelectedMethod('sms');
->>>>>>> origin/main
                 handleProceedToVerification();
               }}
             >
               <Phone
                 size={24}
-<<<<<<< HEAD
                 color={selectedMethod === "sms" ? "white" : "#666666"}
-=======
-                color={selectedMethod === 'sms' ? 'white' : '#666666'}
->>>>>>> origin/main
                 style={{ marginRight: 8 }}
               />
               <Text
                 className={`text-sm font-medium ${
-<<<<<<< HEAD
                   selectedMethod === "sms" ? "text-white" : "text-gray-600"
-=======
-                  selectedMethod === 'sms' ? 'text-white' : 'text-gray-600'
->>>>>>> origin/main
                 }`}
               >
                 SMS
@@ -362,11 +245,7 @@ const BusinessRegisterForm: React.FC = () => {
         <View className="items-center">
           <TouchableOpacity onPress={handleSignIn}>
             <Text className="text-gray-600 text-base text-center">
-<<<<<<< HEAD
               Already have an account?{" "}
-=======
-              Already have an account?{' '}
->>>>>>> origin/main
               <Text className="text-secondary font-semibold">Log in</Text>
             </Text>
           </TouchableOpacity>
@@ -376,8 +255,4 @@ const BusinessRegisterForm: React.FC = () => {
   );
 };
 
-<<<<<<< HEAD
 export default BusinessRegisterForm;
-=======
-export default BusinessRegisterForm;
->>>>>>> origin/main

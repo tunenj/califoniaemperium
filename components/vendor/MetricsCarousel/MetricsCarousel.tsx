@@ -3,7 +3,7 @@ import { MetricCard } from "../MetricCard/MetricCard";
 
 export default function MetricsCarousel() {
     return (
-        <View className="bg-orange-50 -mt-6 mb-4 py-6">
+        <View className="bg-orange-50/40 -mt-6 mb-4 py-6">
             {/* Header Text */}
             <View className="items-center justify-center mb-4 px-4">
                 <Text className="text-sm text-center">
