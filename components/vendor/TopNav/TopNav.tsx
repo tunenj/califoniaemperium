@@ -9,7 +9,7 @@ const TopNav: React.FC = () => {
 
   return (
     <SafeAreaView className="bg-white max-h-24">
-      <View className="flex-row items-center justify-between px-4 shadow-sm">
+      <View className="flex-row items-center justify-between px-4 shadow-2xl">
 
         {/* Menu Button */}
         <TouchableOpacity

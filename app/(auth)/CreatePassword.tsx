@@ -1,17 +1,34 @@
+// app/(auth)/CreatePassword.tsx
 import images from "@/constants/images";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft, Eye, EyeOff, ShoppingBag } from "lucide-react-native";
+import { ArrowLeft, Eye, EyeOff } from "lucide-react-native";
 import React, { useCallback, useEffect, useState } from "react";
 import { Alert, Text, TextInput, TouchableOpacity, View, Image } from "react-native";
+
+type UserRole = 'business' | 'customer';
 
 const CreatePassword: React.FC = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
 
-  const {
-    mode = "create", // 'create' | 'reset'
-    firstName = "User",
-  } = params;
+  // Helper function to get string value from params
+  const getParamString = (param: any): string => {
+    if (!param) return '';
+    return Array.isArray(param) ? param[0] || '' : param;
+  };
+
+  // Extract ALL parameters properly
+  const mode = getParamString(params.mode) || "create"; // 'create' | 'reset'
+  const firstName = getParamString(params.firstName) || "User";
+  const lastName = getParamString(params.lastName) || "";
+  const email = getParamString(params.email) || "";
+  const phoneNumber = getParamString(params.phoneNumber) || "";
+  const method = getParamString(params.method) || "sms";
+  const role = (getParamString(params.role) || 'business') as UserRole;
+  const isCustomerParam = getParamString(params.isCustomer);
+
+  // Determine the actual role
+  const userRole: UserRole = role === 'customer' || isCustomerParam === 'true' ? 'customer' : 'business';
 
   const isCreate = mode === "create";
   const isReset = mode === "reset";
@@ -65,8 +82,30 @@ const CreatePassword: React.FC = () => {
       return;
     }
 
-    router.replace("/(auth)/SuccessSetup");
-  }, [password, confirmPassword, isButtonEnabled, isReset, router]);
+    // Navigate to SuccessSetup with ALL parameters including role
+    router.replace({
+      pathname: "/(auth)/SuccessSetup",
+      params: {
+        firstName,
+        lastName,
+        email,
+        phoneNumber,
+        role: userRole,
+        isCustomer: userRole === 'customer' ? 'true' : 'false',
+      },
+    });
+  }, [
+    password, 
+    confirmPassword, 
+    isButtonEnabled, 
+    isReset, 
+    router, 
+    firstName, 
+    lastName, 
+    email, 
+    phoneNumber, 
+    userRole
+  ]);
 
   return (
     <View className="flex-1 bg-white">

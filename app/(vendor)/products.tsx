@@ -134,7 +134,7 @@ const ProductsScreen: React.FC = () => {
                         </Text>
                     </View>
                     <TouchableOpacity
-                        onPress={() => router.push("/addProductScreen")}
+                        onPress={() => router.push("/Products/addProductScreen")}
                         className="bg-white border border-red-500 px-4 py-2 rounded-full"
                     >
                         <Text className="text-red-500 text-xs font-semibold">

@@ -2,7 +2,7 @@ import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
-  Image, ScrollView,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
