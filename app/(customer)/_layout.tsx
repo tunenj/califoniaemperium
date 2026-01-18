@@ -11,6 +11,7 @@ export default function CustomerLayout() {
         tabBarInactiveTintColor: "#9e9e9e"
       }}
     >
+      {/* Regular tab screens */}
       <Tabs.Screen
         name="home"
         options={{
@@ -58,6 +59,26 @@ export default function CustomerLayout() {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person-circle-outline" size={size} color={color} />
           )
+        }}
+      />
+
+      {/* Store - shows tabs but NOT in tab bar */}
+      <Tabs.Screen
+        name="store"
+        options={{
+          href: null, // This hides it from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="store-reviews"
+        options={{
+          href: null, // This hides it from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="profile-setup"
+        options={{
+          href: null, // This hides it from tab bar
         }}
       />
     </Tabs>

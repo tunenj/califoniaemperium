@@ -39,19 +39,25 @@ const StoreCard: React.FC<Props> = ({ title, bg, front, onVisitStore, onFollow }
         </View>
 
         {/* Clickable buttons */}
-        <View className="flex-row justify-between mt-3">
+        <View className="flex-row justify-between mt-3 gap-1">
           <TouchableOpacity
             className="bg-darkRed px-3 py-1 rounded-full"
             onPress={onVisitStore}
           >
-            <Text className="text-xs text-white">Visit Store</Text>
+            <TouchableOpacity
+              className="bg-darkRed px-2 py-1 rounded-full"
+              onPress={onVisitStore}
+            >
+              <Text className="text-xs text-white">Visit Store</Text>
+            </TouchableOpacity>
+
           </TouchableOpacity>
 
           <TouchableOpacity
             className="bg-lightPink px-3 py-1 rounded-full"
             onPress={onFollow}
           >
-            <Text className="text-xs text-secondary">Follow</Text>
+            <Text className="text-xs text-secondary pt-1">Follow</Text>
           </TouchableOpacity>
         </View>
       </View>

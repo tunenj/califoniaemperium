@@ -2,33 +2,39 @@
 import images from '@/constants/images';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Alert, Image, Text, TextInput, TouchableOpacity, View } from 'react-native';
+
+type UserRole = 'business' | 'customer';
 
 const OtpVerification: React.FC = () => {
     const router = useRouter();
     const params = useLocalSearchParams();
 
-    // Helper function to get string value from params (could be string or string[])
+    // Helper function to get string value from params
     const getParamString = (param: any): string => {
         if (!param) return '';
         return Array.isArray(param) ? param[0] || '' : param;
     };
 
-    // Extract passed data from registration form
+    // Extract passed data
     const firstName = getParamString(params.firstName) || 'User';
-    const lastName = getParamString(params.lastName);
-    const phoneNumber = getParamString(params.phoneNumber);
-    const email = getParamString(params.email);
+    const lastName = getParamString(params.lastName) || '';
+    const phoneNumber = getParamString(params.phoneNumber) || '';
+    const email = getParamString(params.email) || '';
     const method = getParamString(params.method) || 'sms';
-    const isCustomer = getParamString(params.isCustomer) || 'false';
+    const role = (getParamString(params.role) || 'business') as UserRole;
     const source = getParamString(params.source) || 'phone';
+    
+    // Parse isCustomer from old param or use role
+    const isCustomerParam = getParamString(params.isCustomer);
 
     const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
+    const [isVerifying, setIsVerifying] = useState(false);
     const otpInputRefs = useRef<(TextInput | null)[]>(Array(6).fill(null));
 
     // Determine verification method and contact info
-    const isEmailVerification = source === 'email' || email;
+    const isEmailVerification = source === 'email' || !!email;
     const contactInfo = isEmailVerification ? email : phoneNumber;
 
     const handleBack = () => {
@@ -63,7 +69,7 @@ const OtpVerification: React.FC = () => {
         }
     };
 
-    const handleVerify = useCallback(() => {
+    const handleVerify = useCallback(async () => {
         const enteredCode = otp.join('');
 
         if (enteredCode.length !== 6) {
@@ -71,36 +77,46 @@ const OtpVerification: React.FC = () => {
             return;
         }
 
-        console.log('OTP Verified:', enteredCode);
-        console.log('Source:', source);
+        setIsVerifying(true);
 
-        // ✅ PASSWORD RESET FLOW - Navigate to CreatePassword with reset mode
-        if (source === 'reset-password') {
-            router.push({
-                pathname: '/(auth)/CreatePassword',
-                params: { 
-                    mode: 'reset'
-                }
-            });
-            return;
-        }
+        try {
+            console.log('OTP Verified:', enteredCode);
+            console.log('Source:', source);
+            console.log('Role:', role);
+            console.log('Email verification:', isEmailVerification);
 
-        // Email registration flow
-        if (isEmailVerification) {
-            router.push({
-                pathname: '/(auth)/SuccessSetup',
-                params: {
-                    firstName,
-                    lastName,
-                    email,
-                    phoneNumber: phoneNumber || '',
-                    method,
-                    isCustomer,
-                },
-            });
-        } else {
-            // Phone registration flow
-            router.push({
+            // Simulate API verification (replace with actual API call)
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // ✅ PASSWORD RESET FLOW - Navigate to CreatePassword with reset mode
+            if (source === 'reset-password') {
+                router.replace({
+                    pathname: '/(auth)/CreatePassword',
+                    params: { 
+                        mode: 'reset'
+                    }
+                });
+                return;
+            }
+
+            // EMAIL VERIFICATION FLOW - Navigate to SuccessSetup
+            if (isEmailVerification) {
+                router.replace({
+                    pathname: '/(auth)/SuccessSetup',
+                    params: {
+                        role,
+                        firstName,
+                        lastName,
+                        email,
+                        phoneNumber: phoneNumber || '',
+                        isCustomer: role === 'customer' ? 'true' : 'false',
+                    },
+                });
+                return;
+            }
+
+            // ✅ PHONE VERIFICATION FLOW - Navigate to CreatePassword
+            router.replace({
                 pathname: '/(auth)/CreatePassword',
                 params: {
                     mode: 'create',
@@ -108,14 +124,21 @@ const OtpVerification: React.FC = () => {
                     lastName,
                     phoneNumber,
                     method,
-                    isCustomer,
+                    role,
+                    isCustomer: role === 'customer' ? 'true' : 'false',
                 },
             });
-        }
-    }, [otp, source, firstName, lastName, phoneNumber, email, method, isCustomer, isEmailVerification, router]);
 
-    // Auto-submit when all digits are filled (optional UX improvement)
-    React.useEffect(() => {
+        } catch (error) {
+            console.error('Verification error:', error);
+            Alert.alert('Verification Failed', 'Please try again.');
+        } finally {
+            setIsVerifying(false);
+        }
+    }, [otp, source, firstName, lastName, phoneNumber, email, method, role, isEmailVerification, router]);
+
+    // Auto-submit when all digits are filled
+    useEffect(() => {
         if (otp.every(digit => digit !== '')) {
             handleVerify();
         }
@@ -126,7 +149,6 @@ const OtpVerification: React.FC = () => {
         if (!contactInfo) return '';
         
         if (isEmailVerification) {
-            // Mask email: [johndoe@example.com](mailto:johndoe@example.com) → [j***e@example.com](mailto:j***e@example.com)
             const [localPart, domain] = contactInfo.split('@');
             if (localPart && domain) {
                 const firstChar = localPart[0];
@@ -135,7 +157,6 @@ const OtpVerification: React.FC = () => {
             }
             return contactInfo;
         } else {
-            // Mask phone: +1234567890 → +1******890
             if (contactInfo.length > 7) {
                 return `${contactInfo.slice(0, 3)}******${contactInfo.slice(-3)}`;
             }
@@ -156,18 +177,26 @@ const OtpVerification: React.FC = () => {
 
     const getVerificationMessage = () => {
         const displayContact = getDisplayContact();
+        
         if (source === 'reset-password') {
             return `Enter the 6-digit code sent to ${displayContact}`;
         }
+        
         if (isEmailVerification) {
-            return `Enter the 6-digit code sent to ${displayContact}`;
+            return `Enter the 6-digit code sent to your email`;
         }
         
         if (method === 'whatsapp') {
-            return `Enter the 6-digit code sent via WhatsApp to ${displayContact}`;
+            return `Enter the 6-digit code sent via WhatsApp`;
         }
         
-        return `Enter the 6-digit code sent via SMS to ${displayContact}`;
+        return `Enter the 6-digit code sent via SMS`;
+    };
+
+    // Get welcome name for display
+    const getWelcomeName = () => {
+        if (firstName === 'User') return '';
+        return `Hi ${firstName}! `;
     };
 
     return (
@@ -186,10 +215,11 @@ const OtpVerification: React.FC = () => {
             {/* Bottom Curved White Section */}
             <View className="flex-1 bg-white -mt-8 rounded-t-3xl px-6 pt-10">
                 <View className="relative mb-8">
-                    {/* Back Arrow - positioned correctly inside white area */}
+                    {/* Back Arrow */}
                     <TouchableOpacity
                         className="absolute top-0 left-0 z-10"
                         onPress={handleBack}
+                        disabled={isVerifying}
                     >
                         <ArrowLeft size={28} color="#C62828" />
                     </TouchableOpacity>
@@ -198,37 +228,48 @@ const OtpVerification: React.FC = () => {
                     <Text className="text-2xl font-bold text-center text-black mb-2">
                         {getVerificationTitle()}
                     </Text>
-                    <Text className="text-base text-gray-500 text-center mb-10 px-4">
-                        {getVerificationMessage()}
+                    <Text className="text-base text-gray-500 text-center mb-6 px-4">
+                        {getWelcomeName()}{getVerificationMessage()}
+                    </Text>
+                    
+                    {/* Contact Info Display */}
+                    <Text className="text-lg font-semibold text-center text-gray-800 mb-4">
+                        {getDisplayContact()}
                     </Text>
                 </View>
 
                 {/* OTP Input Boxes */}
-                <View className="flex-row justify-center space-x-4 gap-3 mb-12">
+                <View className="flex-row justify-center gap-3 mb-10">
                     {otp.map((digit, index) => (
                         <TextInput
                             key={index}
                             ref={(ref) => {
                                 otpInputRefs.current[index] = ref;
                             }}
-                            className="w-12 h-12 bg-gray-100 border border-gray-300 rounded-lg text-center text-xl font-semibold text-black"
+                            className={`w-14 h-14 bg-gray-50 border rounded-lg text-center text-2xl font-bold ${
+                                isVerifying ? 'border-gray-200' : 'border-gray-300'
+                            }`}
                             keyboardType="number-pad"
                             maxLength={1}
                             value={digit}
                             onChangeText={(value) => handleOtpChange(value, index)}
                             onKeyPress={(e) => handleKeyPress(e, index)}
-                            autoFocus={index === 0}
+                            autoFocus={index === 0 && !isVerifying}
+                            editable={!isVerifying}
+                            selectTextOnFocus
                         />
                     ))}
                 </View>
 
-                {/* Optional: Resend Code Section */}
+                {/* Resend Code Section */}
                 <View className="items-center mb-8">
                     <Text className="text-gray-500 text-sm mb-2">
-                        Didn't receive the code?
+                        Didn&apos;t receive the code?
                     </Text>
-                    <TouchableOpacity>
-                        <Text className="text-secondary font-semibold text-sm">
+                    <TouchableOpacity disabled={isVerifying}>
+                        <Text className={`text-secondary font-semibold text-sm ${
+                            isVerifying ? 'opacity-50' : ''
+                        }`}>
                             Resend code
                         </Text>
                     </TouchableOpacity>
@@ -236,15 +277,20 @@ const OtpVerification: React.FC = () => {
 
                 {/* Verify Button */}
                 <TouchableOpacity
-                    className="bg-secondary rounded-xl py-4 items-center shadow-lg"
+                    className={`bg-secondary rounded-xl py-4 items-center shadow-lg ${
+                        isVerifying ? 'opacity-70' : ''
+                    }`}
                     onPress={handleVerify}
+                    disabled={isVerifying}
                 >
-                    <Text className="text-white text-lg font-semibold">Verify</Text>
+                    <Text className="text-white text-lg font-semibold">
+                        {isVerifying ? 'Verifying...' : 'Verify'}
+                    </Text>
                 </TouchableOpacity>
 
                 {/* Login Link */}
                 <View className="items-center mt-8">
-                    <TouchableOpacity onPress={handleLogin}>
+                    <TouchableOpacity onPress={handleLogin} disabled={isVerifying}>
                         <Text className="text-gray-600 text-base text-center">
                             Already have an account?{' '}
                             <Text className="text-secondary font-semibold">Log in</Text>
