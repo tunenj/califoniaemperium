@@ -47,7 +47,7 @@ export default function CartScreen() {
         'Empty Cart',
         'Please add items to your cart before checking out.',
         [
-          { text: 'Continue Shopping', onPress: () => router.push('/(tabs)/home') },
+          { text: 'Continue Shopping', onPress: () => router.push('/(vendor)/home') },
           { text: 'OK', style: 'cancel' },
         ]
       );

@@ -38,7 +38,7 @@ const SuccessSetup: React.FC = () => {
         if (isBusiness) {
             // Navigate to business store setup flow
             router.push({
-                pathname: '/Setup/business-setup',
+                pathname: '/Setup/business-setup/step-1',
                 params: {
                     email,
                     phoneNumber,

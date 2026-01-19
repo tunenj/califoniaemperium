@@ -63,7 +63,7 @@ const CustomerProfileSetup: React.FC = () => {
     Alert.alert("Success", "Email updated successfully");
   };
 
-  const genderOptions = ["Female", "Male", "Prefer not to say", "Other"];
+  const genderOptions = ["Female", "Male"];
 
   /* ONLY ADDITION: check if form is complete */
   const isFormComplete = useMemo(() => {
