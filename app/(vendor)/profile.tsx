@@ -16,6 +16,22 @@ export default function StoreProfileScreen() {
   const [bannerImage, setBannerImage] = useState<string | null>(null);
   const [logoImage, setLogoImage] = useState<string | null>(null);
 
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [category, setCategory] = useState("");
+
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+
+  const categories = [
+    "Electronics",
+    "Fashion",
+    "Groceries",
+    "Health & Beauty",
+    "Home & Kitchen",
+    "Others",
+  ];
+
   const pickImage = async (type: "banner" | "logo") => {
     const { status } =
       await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -37,17 +53,21 @@ export default function StoreProfileScreen() {
 
     if (!result.canceled && result.assets?.[0]) {
       const uri = result.assets[0].uri;
-      type === "banner" ? setBannerImage(uri) : setLogoImage(uri);
+      if (type === "banner") {
+        setBannerImage(uri);
+      } else {
+        setLogoImage(uri);
+      }
     }
   };
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      {/* Content with ScrollView */}
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 80 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <View className="px-5">
           {/* Header */}
@@ -107,6 +127,7 @@ export default function StoreProfileScreen() {
 
           {/* Form */}
           <View className="mt-6 space-y-6">
+            {/* Store Name */}
             <View>
               <Text className="text-xs text-gray-400 mb-2">
                 Store Name
@@ -117,20 +138,48 @@ export default function StoreProfileScreen() {
               />
             </View>
 
+            {/* Category */}
             <View>
-              <Text className="text-xs text-gray-400 mb-2">
-                Category
-              </Text>
-              <TouchableOpacity className="flex-row items-center justify-between bg-gray-100 rounded-lg px-4 py-3">
-                <Text className="text-sm text-gray-400">Select</Text>
+              <Text className="text-xs text-gray-400 mb-2">Category</Text>
+
+              <TouchableOpacity
+                className="flex-row items-center justify-between bg-gray-100 rounded-lg px-4 py-3"
+                onPress={() => setCategoryOpen((prev) => !prev)}
+              >
+                <Text
+                  className={`text-sm ${category ? "text-gray-800" : "text-gray-400"
+                    }`}
+                >
+                  {category || "Select"}
+                </Text>
                 <Ionicons
-                  name="chevron-down"
+                  name={categoryOpen ? "chevron-up" : "chevron-down"}
                   size={16}
                   color="#9ca3af"
                 />
               </TouchableOpacity>
+
+              {categoryOpen && (
+                <View className="bg-gray-100 rounded-lg mt-2 overflow-hidden">
+                  {categories.map((item) => (
+                    <TouchableOpacity
+                      key={item}
+                      className="px-4 py-3 border-b border-gray-200"
+                      onPress={() => {
+                        setCategory(item);
+                        setCategoryOpen(false);
+                      }}
+                    >
+                      <Text className="text-sm text-gray-800">
+                        {item}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </View>
 
+            {/* Description */}
             <View>
               <Text className="text-xs text-gray-400 mb-2">
                 Description
@@ -144,73 +193,85 @@ export default function StoreProfileScreen() {
               />
             </View>
 
+            {/* Email */}
             <View>
-              <Text className="text-xs text-gray-400 mb-2">
-                Email
-              </Text>
-              <View className="flex-row justify-between items-center bg-gray-100 rounded-lg px-4 py-3">
-                <Text className="text-sm text-gray-700">
-                  viviancoker@gmail.com
-                </Text>
-                <TouchableOpacity>
-                  <Text className="text-sm text-gray-400 font-medium">
-                    Change
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              <Text className="text-xs text-gray-400 mb-2">Email</Text>
+              <TextInput
+                placeholder="Enter email address"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
+                className="text-sm text-gray-800 bg-gray-100 rounded-lg px-4 py-3"
+              />
             </View>
 
+            {/* Phone */}
             <View>
               <Text className="text-xs text-gray-400 mb-2">
                 Phone Number
               </Text>
               <TextInput
-                value="08120572347"
+                placeholder="Enter phone number"
+                keyboardType="phone-pad"
+                value={phone}
+                onChangeText={setPhone}
                 className="text-sm text-gray-800 bg-gray-100 rounded-lg px-4 py-3"
               />
             </View>
 
+            {/* Address */}
             <View>
               <Text className="text-xs text-gray-400 mb-2">
                 Store Address
               </Text>
               <TextInput
-                value="BA Adeniyi Adeola Str. Ifako Lagos"
+                placeholder="Enter store address"
+                value={address}
+                onChangeText={setAddress}
                 className="text-sm text-gray-800 bg-gray-100 rounded-lg px-4 py-3"
               />
             </View>
           </View>
         </View>
-        {/* Fixed Bottom Buttons */}
-      <View className="absolute bottom-0 left-0 right-0 bg-white px-5 py-4">
-        <View className="flex-row justify-end items-center space-x-4">
-          <TouchableOpacity
-            className="px-6 py-3"
-            onPress={() =>
-              Alert.alert(
-                "Discard changes?",
-                "Your changes will be lost.",
-                [
-                  { text: "Continue Editing", style: "cancel" },
-                  { text: "Discard", style: "destructive" }
-                ]
-              )
-            }
-          >
-            <Text className="text-sm text-secondary border border-secondary px-6 py-2 rounded-2xl font-medium mb-6 -mr-3">Cancel</Text>
-          </TouchableOpacity>
+        {/* Bottom Buttons */}
+        <View className="absolute bottom-0 left-0 right-0 bg-white px-5 py-4">
+          <View className="flex-row justify-end items-center space-x-4 gap-6">
+            <TouchableOpacity
+              onPress={() =>
+                Alert.alert(
+                  "Discard changes?",
+                  "Your changes will be lost.",
+                  [
+                    { text: "Continue Editing", style: "cancel" },
+                    { text: "Discard", style: "destructive" },
+                  ]
+                )
+              }
+            >
+              <Text className="text-sm text-secondary border border-secondary px-6 py-2 rounded-2xl font-medium mb-6 -mr-3">
+                Cancel
+              </Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            className="bg-secondary px-6 py-2 rounded-2xl mb-6"
-            onPress={() => Alert.alert("Success", "Store profile saved successfully!")}
-          >
-            <Text className="text-sm text-white font-medium">
-              Save
-            </Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              className="bg-secondary px-6 py-2 rounded-2xl mb-6"
+              onPress={() =>
+                Alert.alert(
+                  "Success",
+                  "Store profile saved successfully!"
+                )
+              }
+            >
+              <Text className="text-sm text-white font-medium">
+                Save
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
       </ScrollView>
+
+
     </SafeAreaView>
   );
 }

@@ -2,7 +2,7 @@
 import images from '@/constants/images';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Phone } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Image,
   Text,
@@ -16,8 +16,15 @@ import {
   Alert,
 } from 'react-native';
 import { countries } from '@/data/countries';
+import { validatePhoneNumber, formatPhoneNumber } from '@/utils/phoneValidation';
 
 type UserRole = 'business' | 'customer';
+
+interface Country {
+  value: string;
+  label: string;
+  code: string;
+}
 
 const BusinessRegisterForm: React.FC = () => {
   const router = useRouter();
@@ -25,38 +32,117 @@ const BusinessRegisterForm: React.FC = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [formattedPhoneNumber, setFormattedPhoneNumber] = useState('');
+  const [phoneError, setPhoneError] = useState('');
 
-  const [selectedCountry, setSelectedCountry] = useState(
-    countries.find(c => c.value === 'nigeria')
+  const [selectedCountry, setSelectedCountry] = useState<Country>(
+    countries.find(c => c.value === 'canada') || countries[0]
   );
 
   const [selectedMethod, setSelectedMethod] = useState<'whatsapp' | 'sms'>('sms');
-
-  // ✅ Role instead of isCustomer
   const [role, setRole] = useState<UserRole>('business');
-
   const [showCountryPicker, setShowCountryPicker] = useState(false);
+
+
+  // Validate phone number on change
+  const handlePhoneNumberChange = useCallback((text: string) => {
+    // Format as user types
+    const formatted = formatPhoneNumber(text, selectedCountry.code);
+    setPhoneNumber(text.replace(/\D/g, '')); // Store digits only
+    setFormattedPhoneNumber(formatted);
+    
+    // Clear error when user starts typing
+    if (phoneError && text.length > 0) {
+      setPhoneError('');
+    }
+  }, [selectedCountry.code, phoneError]);
+
+  // Validate phone number when country changes
+  useEffect(() => {
+    if (phoneNumber) {
+      const validation = validatePhoneNumber(phoneNumber, selectedCountry.code);
+      if (!validation.isValid && validation.error) {
+        setPhoneError(validation.error);
+      } else {
+        setPhoneError('');
+        // Reformat with new country's format
+        const formatted = formatPhoneNumber(phoneNumber, selectedCountry.code);
+        setFormattedPhoneNumber(formatted);
+      }
+    }
+  }, [selectedCountry.code, phoneNumber]);
 
   const handleBack = () => router.back();
   const handleSignIn = () => router.push('/(auth)/signIn');
 
+  const validateForm = () => {
+    let isValid = true;
+    const errors: string[] = [];
+
+    if (!firstName.trim()) {
+      errors.push('First name is required');
+      isValid = false;
+    }
+
+    if (!lastName.trim()) {
+      errors.push('Last name is required');
+      isValid = false;
+    }
+
+    if (!phoneNumber.trim()) {
+      errors.push('Phone number is required');
+      isValid = false;
+    } else {
+      const validation = validatePhoneNumber(phoneNumber, selectedCountry.code);
+      if (!validation.isValid) {
+        errors.push(validation.error || 'Invalid phone number');
+        isValid = false;
+      }
+    }
+
+    if (!isValid) {
+      Alert.alert(
+        'Form Error',
+        errors.join('\n'),
+        [{ text: 'OK' }]
+      );
+    }
+
+    return isValid;
+  };
+
   const handleProceedToVerification = () => {
-    if (!firstName.trim() || !lastName.trim() || !phoneNumber.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
+    if (!validateForm()) {
       return;
     }
 
+    // Get validation for final check
+    const validation = validatePhoneNumber(phoneNumber, selectedCountry.code);
+    
+    // Use formatted phone if available, otherwise use raw digits
+    const finalPhoneNumber = validation.formattedPhone || phoneNumber;
+    
     router.push({
       pathname: '/(auth)/OtpVerification',
       params: {
-        firstName,
-        lastName,
-        phoneNumber: `${selectedCountry?.code}${phoneNumber}`,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        phoneNumber: `${selectedCountry.code}${phoneNumber}`,
+        formattedPhoneNumber: `${selectedCountry.code} ${finalPhoneNumber}`,
         method: selectedMethod,
-        role,              // ✅ business | customer
-        source: 'phone',   // ✅ explicitly phone flow
+        role,
+        source: 'phone',
       },
     });
+  };
+
+  const handleCountrySelect = (country: Country) => {
+    setSelectedCountry(country);
+    setShowCountryPicker(false);
+    
+    // Clear phone number when country changes (optional)
+    // setPhoneNumber('');
+    // setFormattedPhoneNumber('');
   };
 
   /** Close country picker on Android back */
@@ -152,30 +238,38 @@ const BusinessRegisterForm: React.FC = () => {
 
         {/* Phone */}
         <View className="mb-6">
-          <Text className="text-gray-600 text-sm mb-1">Phone Number</Text>
-          <View className="flex-row items-center bg-gray-100 rounded-lg border-b border-secondary">
+          <View className="flex-row justify-between items-center mb-1">
+            <Text className="text-gray-600 text-sm">Phone Number</Text>
+          </View>
+          
+          <View className={`flex-row items-center bg-gray-100 rounded-lg border-b ${
+            phoneError ? 'border-red-500' : 'border-secondary'
+          }`}>
             <TouchableOpacity
               className="px-3 py-4 border-r border-gray-200"
               style={{ width: 100 }}
               onPress={() => setShowCountryPicker(true)}
             >
               <Text className="text-base font-medium">
-                {selectedCountry?.code || '+234'}
+                {selectedCountry?.code || '+1'}
               </Text>
             </TouchableOpacity>
 
-            <TextInput
-              className="flex-1 px-3 py-4 text-base"
-              placeholder="Enter phone number"
-              placeholderTextColor="black"
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
-              keyboardType="phone-pad"
-            />
+            <View className="flex-1">
+              <TextInput
+                className="px-3 py-4 text-base"
+                placeholder={`Enter phone number`}
+                placeholderTextColor="black"
+                value={formattedPhoneNumber}
+                onChangeText={handlePhoneNumberChange}
+                keyboardType="phone-pad"
+                maxLength={20} // Allow space for formatting
+              />
+            </View>
           </View>
         </View>
 
-        {/* Country Picker */}
+        {/* Country Picker Modal */}
         <Modal visible={showCountryPicker} animationType="slide" transparent>
           <TouchableWithoutFeedback onPress={() => setShowCountryPicker(false)}>
             <View className="flex-1 justify-end bg-black/20">
@@ -189,17 +283,18 @@ const BusinessRegisterForm: React.FC = () => {
                     keyExtractor={c => c.value}
                     renderItem={({ item }) => (
                       <TouchableOpacity
-                        className="py-4 border-b border-gray-100"
-                        onPress={() => {
-                          setSelectedCountry(item);
-                          setShowCountryPicker(false);
-                        }}
+                        className="py-4 border-b border-gray-100 flex-row justify-between items-center"
+                        onPress={() => handleCountrySelect(item)}
                       >
                         <Text className="text-base">
-                          {item.label} ({item.code})
+                          {item.label}
+                        </Text>
+                        <Text className="text-base text-gray-600">
+                          {item.code}
                         </Text>
                       </TouchableOpacity>
                     )}
+                    showsVerticalScrollIndicator={false}
                   />
                 </View>
               </TouchableWithoutFeedback>
@@ -225,6 +320,8 @@ const BusinessRegisterForm: React.FC = () => {
                 setSelectedMethod('whatsapp');
                 handleProceedToVerification();
               }}
+              disabled={!!phoneError}
+              style={{ opacity: phoneError ? 0.5 : 1 }}
             >
               <Image
                 source={images.whatsappIcon}
@@ -252,6 +349,8 @@ const BusinessRegisterForm: React.FC = () => {
                 setSelectedMethod('sms');
                 handleProceedToVerification();
               }}
+              disabled={!!phoneError}
+              style={{ opacity: phoneError ? 0.5 : 1 }}
             >
               <Phone
                 size={24}
