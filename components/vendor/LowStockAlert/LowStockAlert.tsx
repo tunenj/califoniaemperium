@@ -1,5 +1,5 @@
 import { View, Text } from "react-native";
-import Ionicons from "react-native-vector-icons/Ionicons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 const stockItems = [
   { name: "Smart watch Pro", qty: 8 },

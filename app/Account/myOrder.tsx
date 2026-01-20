@@ -9,7 +9,7 @@ import {
     ImageSourcePropType,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Ionicons from "react-native-vector-icons/Ionicons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 type OrderStatus = "Ongoing" | "Delivered" | "Cancelled";
 

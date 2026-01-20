@@ -1,49 +1,80 @@
-import { Stack, useRouter } from "expo-router";
-import React, { useEffect } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Drawer } from "expo-router/drawer";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import TopNav from "@/components/vendor/TopNav/TopNav";
+import { DrawerHeaderProps } from "@react-navigation/drawer";
 
 export default function AdminLayout() {
   const router = useRouter();
+  const [ready, setReady] = useState(false);
 
-  // DEMO route protection
+  // SAFE demo route protection
   useEffect(() => {
-    // Later replace with real auth check
-    const isAdmin = true;
+    const isAdmin = true; // replace later with real auth
 
     if (!isAdmin) {
-      router.replace("/(auth)/LoginForm/EmailSignIn");
+      router.replace("/LoginForm/EmailSignIn");
+      return;
     }
-  }, []);
+
+    setReady(true);
+  }, [router]);
+
+  if (!ready) return null;
 
   return (
-    <Stack
+    <Drawer
       screenOptions={{
-        headerStyle: { backgroundColor: "#C62828" },
-        headerTintColor: "#fff",
-        headerTitleStyle: { fontWeight: "bold" },
-        headerRight: () => (
-          <TouchableOpacity
-            onPress={() => router.replace("/(auth)/LoginForm/EmailSignIn")}
-          >
-            <Text className="text-white font-semibold mr-4">
-              Logout
-            </Text>
-          </TouchableOpacity>
-        ),
+        header: (props: DrawerHeaderProps) => <TopNav {...props} />,
+        drawerActiveTintColor: "#000",
+        drawerInactiveTintColor: "#555",
+        drawerLabelStyle: { fontSize: 15 },
       }}
     >
-      <Stack.Screen
+      <Drawer.Screen
         name="home"
-        options={{ title: "Home" }}
+        options={{
+          title: "Dashboard",
+          drawerIcon: ({ color, size }) => (
+            <Ionicons name="grid-outline" size={size} color={color} />
+          ),
+        }}
       />
-      <Stack.Screen
-        name="users"
-        options={{ title: "Manage Users" }}
+
+      <Drawer.Screen
+        name="products"
+        options={{
+          title: "Products",
+          drawerIcon: ({ color, size }) => (
+            <MaterialCommunityIcons
+              name="cube-outline"
+              size={size}
+              color={color}
+            />
+          ),
+        }}
       />
-      <Stack.Screen
-        name="settings"
-        options={{ title: "Admin Settings" }}
+
+      <Drawer.Screen
+        name="orders"
+        options={{
+          title: "Orders",
+          drawerIcon: ({ color, size }) => (
+            <Ionicons name="bag-handle-outline" size={size} color={color} />
+          ),
+        }}
       />
-    </Stack>
+
+      <Drawer.Screen
+        name="profile"
+        options={{
+          title: "Admin Profile",
+          drawerIcon: ({ color, size }) => (
+            <Ionicons name="person-outline" size={size} color={color} />
+          ),
+        }}
+      />
+    </Drawer>
   );
 }

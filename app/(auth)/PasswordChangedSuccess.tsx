@@ -8,7 +8,7 @@ const PasswordChangedSuccess: React.FC = () => {
   const router = useRouter();
 
   const handleLogin = () => {
-    router.replace('/(auth)/signIn');
+    router.replace('/signIn');
   };
 
   return (

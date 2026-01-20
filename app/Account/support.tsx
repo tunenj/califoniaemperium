@@ -8,7 +8,7 @@ import {
     Image,
     Alert
 } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
+import Icon from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from "expo-linear-gradient";
 import * as Clipboard from 'expo-clipboard';
 import { useRouter } from "expo-router";

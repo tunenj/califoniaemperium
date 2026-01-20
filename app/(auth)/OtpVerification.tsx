@@ -91,7 +91,7 @@ const OtpVerification: React.FC = () => {
             // ✅ PASSWORD RESET FLOW - Navigate to CreatePassword with reset mode
             if (source === 'reset-password') {
                 router.replace({
-                    pathname: '/(auth)/CreatePassword',
+                    pathname: '/CreatePassword',
                     params: { 
                         mode: 'reset'
                     }
@@ -102,7 +102,7 @@ const OtpVerification: React.FC = () => {
             // EMAIL VERIFICATION FLOW - Navigate to SuccessSetup
             if (isEmailVerification) {
                 router.replace({
-                    pathname: '/(auth)/SuccessSetup',
+                    pathname: '/SuccessSetup',
                     params: {
                         role,
                         firstName,

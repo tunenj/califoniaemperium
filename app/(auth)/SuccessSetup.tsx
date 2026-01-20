@@ -65,10 +65,10 @@ const SuccessSetup: React.FC = () => {
     const handleLater = () => {
         if (isBusiness) {
             // Navigate to vendor home/dashboard
-            router.replace('/(vendor)/home');
+            router.replace('/dashboard');
         } else {
             // Navigate to customer home/dashboard
-            router.replace('/(customer)/home');
+            router.replace('/main');
         }
     };
 

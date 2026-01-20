@@ -13,7 +13,7 @@ export default function CustomerLayout() {
     >
       {/* Regular tab screens */}
       <Tabs.Screen
-        name="home"
+        name="main"
         options={{
           title: "Home",
           tabBarIcon: ({ color, focused, size }) => (

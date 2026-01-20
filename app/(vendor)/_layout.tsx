@@ -1,21 +1,20 @@
 import { Drawer } from "expo-router/drawer";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import TopNav from "@/components/vendor/TopNav/TopNav";
+import { DrawerHeaderProps } from "@react-navigation/drawer";
 
 export default function VendorLayout() {
   return (
     <Drawer
+      initialRouteName="dashboard"
       screenOptions={{
-        header: () => <TopNav />,
+        header: (props: DrawerHeaderProps) => <TopNav {...props} />,
         drawerActiveTintColor: "#000",
         drawerInactiveTintColor: "#555",
-        drawerLabelStyle: {
-          fontSize: 15,
-        },
       }}
     >
       <Drawer.Screen
-        name="home"
+        name="dashboard"
         options={{
           title: "Dashboard",
           drawerIcon: ({ color, size }) => (

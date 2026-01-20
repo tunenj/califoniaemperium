@@ -12,15 +12,15 @@ const BusinessRegisterScreen: React.FC = () => {
   const router = useRouter();
 
   const handleSignIn = () => {
-    router.push('/(auth)/signIn');
+    router.push('/signIn');
   };
 
   const handlePhoneSignUp = () => {
-    router.push('/(auth)/RegisterForm/PhoneSignUp');
+    router.push('/RegisterForm/PhoneSignUp');
   };
 
   const handleEmailSignUp = () => {
-    router.push('/(auth)/RegisterForm/EmailSignUp');
+    router.push('/RegisterForm/EmailSignUp');
   };
 
   return (

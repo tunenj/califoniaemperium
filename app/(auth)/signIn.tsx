@@ -13,11 +13,11 @@ const BusinessLoginScreen: React.FC = () => {
     const router = useRouter();
 
     const handlePhoneSignIn = () => {
-        router.push('/(auth)/LoginForm/PhoneSignIn');
+        router.push('/LoginForm/PhoneSignIn');
     };
 
     const handleEmailSignIn = () => {
-        router.push('/(auth)/LoginForm/EmailSignIn');
+        router.push('/LoginForm/EmailSignIn');
     };
 
     return (
