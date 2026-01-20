@@ -78,13 +78,13 @@ const CreatePassword: React.FC = () => {
     }
 
     if (isReset) {
-      router.replace("/(auth)/PasswordChangedSuccess");
+      router.replace("/PasswordChangedSuccess");
       return;
     }
 
     // Navigate to SuccessSetup with ALL parameters including role
     router.replace({
-      pathname: "/(auth)/SuccessSetup",
+      pathname: "/SuccessSetup",
       params: {
         firstName,
         lastName,

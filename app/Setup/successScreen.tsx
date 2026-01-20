@@ -9,7 +9,7 @@ const ProfileSetupSuccess: React.FC = () => {
 
   const handleProceed = () => {
     // Change this to your actual dashboard route
-    router.replace("/(customer)/home");
+    router.replace("/main");
   };
 
   return (

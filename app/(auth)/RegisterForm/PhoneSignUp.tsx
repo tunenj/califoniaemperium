@@ -8,15 +8,18 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
   Modal,
   FlatList,
   BackHandler,
   Alert,
+  Pressable,
 } from 'react-native';
 import { countries } from '@/data/countries';
-import { validatePhoneNumber, formatPhoneNumber } from '@/utils/phoneValidation';
+import {
+  validatePhoneNumber,
+  formatPhoneNumber,
+} from '@/utils/phoneValidation';
 
 type UserRole = 'business' | 'customer';
 
@@ -29,106 +32,98 @@ interface Country {
 const BusinessRegisterForm: React.FC = () => {
   const router = useRouter();
 
+  const defaultCountry =
+    countries.find(c => c.value === 'canada') ?? countries[0];
+
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [formattedPhoneNumber, setFormattedPhoneNumber] = useState('');
   const [phoneError, setPhoneError] = useState('');
 
-  const [selectedCountry, setSelectedCountry] = useState<Country>(
-    countries.find(c => c.value === 'canada') || countries[0]
-  );
+  const [selectedCountry, setSelectedCountry] =
+    useState<Country>(defaultCountry);
 
-  const [selectedMethod, setSelectedMethod] = useState<'whatsapp' | 'sms'>('sms');
+  const [selectedMethod, setSelectedMethod] =
+    useState<'whatsapp' | 'sms'>('sms');
+
   const [role, setRole] = useState<UserRole>('business');
   const [showCountryPicker, setShowCountryPicker] = useState(false);
 
+  /* -------------------- HELPERS -------------------- */
+  const getCleanCountryCode = useCallback(() => {
+    return selectedCountry.code.replace(/\D/g, '');
+  }, [selectedCountry.code]);
 
-  // Validate phone number on change
-  const handlePhoneNumberChange = useCallback((text: string) => {
-    // Format as user types
-    const formatted = formatPhoneNumber(text, selectedCountry.code);
-    setPhoneNumber(text.replace(/\D/g, '')); // Store digits only
-    setFormattedPhoneNumber(formatted);
-    
-    // Clear error when user starts typing
-    if (phoneError && text.length > 0) {
-      setPhoneError('');
-    }
-  }, [selectedCountry.code, phoneError]);
+  /* -------------------- PHONE HANDLING -------------------- */
+  const handlePhoneNumberChange = useCallback(
+    (text: string) => {
+      const digitsOnly = text.replace(/\D/g, '');
+      const cleanCode = getCleanCountryCode();
 
-  // Validate phone number when country changes
+      setPhoneNumber(digitsOnly);
+      setFormattedPhoneNumber(
+        formatPhoneNumber(digitsOnly, cleanCode)
+      );
+
+      if (phoneError) setPhoneError('');
+    },
+    [getCleanCountryCode, phoneError]
+  );
+
   useEffect(() => {
-    if (phoneNumber) {
-      const validation = validatePhoneNumber(phoneNumber, selectedCountry.code);
-      if (!validation.isValid && validation.error) {
-        setPhoneError(validation.error);
-      } else {
-        setPhoneError('');
-        // Reformat with new country's format
-        const formatted = formatPhoneNumber(phoneNumber, selectedCountry.code);
-        setFormattedPhoneNumber(formatted);
-      }
+    if (!phoneNumber) return;
+
+    const cleanCode = getCleanCountryCode();
+    const validation = validatePhoneNumber(phoneNumber, cleanCode);
+
+    if (!validation.isValid && validation.error) {
+      setPhoneError(validation.error);
+    } else {
+      setPhoneError('');
+      setFormattedPhoneNumber(
+        formatPhoneNumber(phoneNumber, cleanCode)
+      );
     }
-  }, [selectedCountry.code, phoneNumber]);
+  }, [phoneNumber, getCleanCountryCode]);
 
-  const handleBack = () => router.back();
-  const handleSignIn = () => router.push('/(auth)/signIn');
-
+  /* -------------------- FORM VALIDATION -------------------- */
   const validateForm = () => {
-    let isValid = true;
     const errors: string[] = [];
+    const cleanCode = getCleanCountryCode();
 
-    if (!firstName.trim()) {
-      errors.push('First name is required');
-      isValid = false;
-    }
-
-    if (!lastName.trim()) {
-      errors.push('Last name is required');
-      isValid = false;
-    }
+    if (!firstName.trim()) errors.push('First name is required');
+    if (!lastName.trim()) errors.push('Last name is required');
 
     if (!phoneNumber.trim()) {
       errors.push('Phone number is required');
-      isValid = false;
     } else {
-      const validation = validatePhoneNumber(phoneNumber, selectedCountry.code);
+      const validation = validatePhoneNumber(phoneNumber, cleanCode);
       if (!validation.isValid) {
         errors.push(validation.error || 'Invalid phone number');
-        isValid = false;
       }
     }
 
-    if (!isValid) {
-      Alert.alert(
-        'Form Error',
-        errors.join('\n'),
-        [{ text: 'OK' }]
-      );
+    if (errors.length) {
+      Alert.alert('Form Error', errors.join('\n'));
+      return false;
     }
 
-    return isValid;
+    return true;
   };
 
   const handleProceedToVerification = () => {
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
-    // Get validation for final check
-    const validation = validatePhoneNumber(phoneNumber, selectedCountry.code);
-    
-    // Use formatted phone if available, otherwise use raw digits
-    const finalPhoneNumber = validation.formattedPhone || phoneNumber;
-    
+    const cleanCode = getCleanCountryCode();
+
     router.push({
-      pathname: '/(auth)/OtpVerification',
+      pathname: '/OtpVerification',
       params: {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
-        phoneNumber: `${selectedCountry.code}${phoneNumber}`,
-        formattedPhoneNumber: `${selectedCountry.code} ${finalPhoneNumber}`,
+        phoneNumber: `${cleanCode}${phoneNumber}`,
+        formattedPhoneNumber: `+${cleanCode} ${formattedPhoneNumber}`,
         method: selectedMethod,
         role,
         source: 'phone',
@@ -139,13 +134,9 @@ const BusinessRegisterForm: React.FC = () => {
   const handleCountrySelect = (country: Country) => {
     setSelectedCountry(country);
     setShowCountryPicker(false);
-    
-    // Clear phone number when country changes (optional)
-    // setPhoneNumber('');
-    // setFormattedPhoneNumber('');
   };
 
-  /** Close country picker on Android back */
+  /* -------------------- ANDROID BACK BUTTON -------------------- */
   useEffect(() => {
     const backAction = () => {
       if (showCountryPicker) {
@@ -155,43 +146,41 @@ const BusinessRegisterForm: React.FC = () => {
       return false;
     };
 
-    const backHandler = BackHandler.addEventListener(
+    const handler = BackHandler.addEventListener(
       'hardwareBackPress',
       backAction
     );
 
-    return () => backHandler.remove();
+    return () => handler.remove();
   }, [showCountryPicker]);
 
+  /* -------------------- UI -------------------- */
   return (
     <View className="flex-1 bg-white">
       {/* Header */}
-      <View className="bg-secondary h-1/3 min-h-[250px]">
-        <View className="flex-1 items-center justify-center">
-          <Image
-            source={images.onboarding}
-            className="w-16 h-16"
-            resizeMode="contain"
-          />
-        </View>
+      <View className="bg-secondary h-1/3 min-h-[250px] items-center justify-center">
+        <Image
+          source={images.onboarding}
+          className="w-16 h-16"
+          resizeMode="contain"
+        />
       </View>
 
       {/* Form */}
       <View className="flex-1 bg-white -mt-8 rounded-t-3xl px-6 pt-8">
-        {/* Back */}
         <TouchableOpacity
           className="absolute top-4 left-4 z-10"
-          onPress={handleBack}
+          onPress={() => router.back()}
         >
           <ArrowLeft size={28} color="#C62828" />
         </TouchableOpacity>
 
-        {/* Title + Role Switch */}
+        {/* Title */}
         <View className="mb-8 items-center">
-          <Text className="text-lg font-semibold text-black mb-1">
-            {role === 'customer'
-              ? 'Register as Customer'
-              : 'Register as Business'}
+          <Text className="text-lg font-semibold mb-1">
+            {role === 'business'
+              ? 'Register as Business'
+              : 'Register as Customer'}
           </Text>
 
           <TouchableOpacity
@@ -201,10 +190,8 @@ const BusinessRegisterForm: React.FC = () => {
             }
           >
             <Image source={images.switchIcon} className="w-6 h-6 mr-2" />
-            <Text className="text-lg text-gray-400 font-medium underline">
-              {role === 'customer'
-                ? 'Switch to Business'
-                : 'Switch to Customer'}
+            <Text className="text-gray-400 underline">
+              Switch to {role === 'business' ? 'Customer' : 'Business'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -214,12 +201,11 @@ const BusinessRegisterForm: React.FC = () => {
           <View className="flex-1 mr-2">
             <Text className="text-gray-600 text-sm mb-1">First Name</Text>
             <TextInput
-              className="bg-gray-100 rounded-lg px-4 py-4 border-b border-secondary"
-              placeholder="Enter First Name"
-              placeholderTextColor="black"
+              className="bg-gray-100 rounded-lg px-4 py-4 border-b border-secondary text-gray-900"
+              placeholder="Enter first name"
+              placeholderTextColor="#9CA3AF"
               value={firstName}
               onChangeText={setFirstName}
-              autoCapitalize="words"
             />
           </View>
 
@@ -227,159 +213,113 @@ const BusinessRegisterForm: React.FC = () => {
             <Text className="text-gray-600 text-sm mb-1">Last Name</Text>
             <TextInput
               className="bg-gray-100 rounded-lg px-4 py-4 border-b border-secondary"
-              placeholder="Enter Last Name"
-              placeholderTextColor="black"
+              placeholder="Enter last name"
+              placeholderTextColor="#9CA3AF"
               value={lastName}
               onChangeText={setLastName}
-              autoCapitalize="words"
             />
           </View>
         </View>
 
         {/* Phone */}
-        <View className="mb-6">
-          <View className="flex-row justify-between items-center mb-1">
-            <Text className="text-gray-600 text-sm">Phone Number</Text>
-          </View>
-          
-          <View className={`flex-row items-center bg-gray-100 rounded-lg border-b ${
-            phoneError ? 'border-red-500' : 'border-secondary'
-          }`}>
-            <TouchableOpacity
-              className="px-3 py-4 border-r border-gray-200"
-              style={{ width: 100 }}
-              onPress={() => setShowCountryPicker(true)}
-            >
-              <Text className="text-base font-medium">
-                {selectedCountry?.code || '+1'}
-              </Text>
-            </TouchableOpacity>
+        <Text className="text-gray-600 text-sm mb-1">Phone Number</Text>
+        <View
+          className={`flex-row bg-gray-100 rounded-lg border-b ${phoneError ? 'border-red-500' : 'border-secondary'
+            }`}
+        >
+          <TouchableOpacity
+            className="px-3 py-4 border-r border-gray-200"
+            style={{ width: 100 }}
+            onPress={() => setShowCountryPicker(true)}
+          >
+            <Text className="text-base font-medium">
+              {selectedCountry.code}
+            </Text>
+          </TouchableOpacity>
 
-            <View className="flex-1">
-              <TextInput
-                className="px-3 py-4 text-base"
-                placeholder={`Enter phone number`}
-                placeholderTextColor="black"
-                value={formattedPhoneNumber}
-                onChangeText={handlePhoneNumberChange}
-                keyboardType="phone-pad"
-                maxLength={20} // Allow space for formatting
-              />
-            </View>
-          </View>
+          <TextInput
+            className="flex-1 px-3 py-4"
+            placeholder="Enter phone number"
+            placeholderTextColor="#9CA3AF"
+            value={formattedPhoneNumber}
+            onChangeText={handlePhoneNumberChange}
+            keyboardType="phone-pad"
+          />
         </View>
 
-        {/* Country Picker Modal */}
-        <Modal visible={showCountryPicker} animationType="slide" transparent>
-          <TouchableWithoutFeedback onPress={() => setShowCountryPicker(false)}>
-            <View className="flex-1 justify-end bg-black/20">
-              <TouchableWithoutFeedback>
-                <View className="bg-white rounded-t-3xl p-6 max-h-[70%]">
-                  <Text className="text-xl font-semibold mb-4">
-                    Select Country
-                  </Text>
-                  <FlatList
-                    data={countries}
-                    keyExtractor={c => c.value}
-                    renderItem={({ item }) => (
-                      <TouchableOpacity
-                        className="py-4 border-b border-gray-100 flex-row justify-between items-center"
-                        onPress={() => handleCountrySelect(item)}
-                      >
-                        <Text className="text-base">
-                          {item.label}
-                        </Text>
-                        <Text className="text-base text-gray-600">
-                          {item.code}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                    showsVerticalScrollIndicator={false}
-                  />
-                </View>
-              </TouchableWithoutFeedback>
-            </View>
-          </TouchableWithoutFeedback>
-        </Modal>
-
-        {/* Verification Method */}
-        <View className="mb-6">
-          <Text className="text-lg text-gray-400 mb-4">
-            Verify to continue
-          </Text>
+        {/* Verify */}
+        <View className="mt-8">
+          <Text className="text-gray-400 mb-4">Verify to continue</Text>
 
           <View className="flex-row">
-            {/* WhatsApp */}
             <TouchableOpacity
-              className={`flex-1 flex-row items-center p-4 mr-3 rounded-xl border ${
-                selectedMethod === 'whatsapp'
-                  ? 'bg-secondary border-secondary'
-                  : 'bg-white border-secondary'
-              }`}
+              className="flex-1 flex-row items-center p-4 mr-3 rounded-xl border border-secondary"
               onPress={() => {
                 setSelectedMethod('whatsapp');
                 handleProceedToVerification();
               }}
               disabled={!!phoneError}
-              style={{ opacity: phoneError ? 0.5 : 1 }}
             >
               <Image
                 source={images.whatsappIcon}
                 className="w-6 h-6 mr-2"
               />
-              <Text
-                className={`text-sm font-medium ${
-                  selectedMethod === 'whatsapp'
-                    ? 'text-white'
-                    : 'text-gray-600'
-                }`}
-              >
-                WhatsApp
-              </Text>
+              <Text className="text-gray-400">WhatsApp</Text>
             </TouchableOpacity>
 
-            {/* SMS */}
             <TouchableOpacity
-              className={`flex-1 flex-row items-center p-4 rounded-xl border ${
-                selectedMethod === 'sms'
-                  ? 'bg-secondary border-secondary'
-                  : 'bg-gray-50 border-gray-200'
-              }`}
+              className="flex-1 flex-row items-center p-4 rounded-xl bg-secondary"
               onPress={() => {
                 setSelectedMethod('sms');
                 handleProceedToVerification();
               }}
               disabled={!!phoneError}
-              style={{ opacity: phoneError ? 0.5 : 1 }}
             >
-              <Phone
-                size={24}
-                color={selectedMethod === 'sms' ? 'white' : '#666'}
-                style={{ marginRight: 8 }}
-              />
-              <Text
-                className={`text-sm font-medium ${
-                  selectedMethod === 'sms'
-                    ? 'text-white'
-                    : 'text-gray-600'
-                }`}
-              >
-                SMS
-              </Text>
+              <Phone size={22} color="#ffff" />
+              <Text className="ml-2 text-white">SMS</Text>
             </TouchableOpacity>
           </View>
         </View>
-
-        {/* Login */}
-        <View className="items-center">
-          <TouchableOpacity onPress={handleSignIn}>
-            <Text className="text-gray-600 text-base">
-              Already have an account?{' '}
-              <Text className="text-secondary font-semibold">Log in</Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
       </View>
+
+      {/* Country Picker (SAFE) */}
+      <Modal
+        visible={showCountryPicker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowCountryPicker(false)}
+      >
+        <Pressable
+          className="flex-1 bg-black/30 justify-end"
+          onPress={() => setShowCountryPicker(false)}
+        >
+          <Pressable
+            className="bg-white rounded-t-3xl p-6 max-h-[70%]"
+            onPressIn={() => { }}
+          >
+            <Text className="text-xl font-semibold mb-4">
+              Select Country
+            </Text>
+
+            <FlatList
+              data={countries}
+              keyExtractor={item => `${item.value}-${item.code}`}
+              initialNumToRender={20}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  className="py-4 border-b border-gray-100 flex-row justify-between"
+                  onPress={() => handleCountrySelect(item)}
+                >
+                  <Text>{item.label}</Text>
+                  <Text className="text-gray-500">{item.code}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 };

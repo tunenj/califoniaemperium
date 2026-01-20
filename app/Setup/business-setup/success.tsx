@@ -9,7 +9,7 @@ export default function ProfileSetupSuccess() {
 
   const handleProceed = () => {
     // Change to your actual dashboard route if different
-    router.replace("/(vendor)/home");
+    router.replace("/dashboard");
   };
 
   return (

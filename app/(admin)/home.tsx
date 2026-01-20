@@ -1,28 +1,55 @@
 import React from "react";
-import { SafeAreaView, ScrollView } from "react-native";
-import DashboardHeader from "@/components/home/DashboardHeader";
-import PromoBadges from "@/components/home/PromoBadges";
-import CategoryList from "@/components/home/CategoryGrid";
-import FeaturedStores from "@/components/home/FeaturedStores";
-import ProductSection from "@/components/home/ProductSection";
+import { ScrollView, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
+import MetricsCarousel from "@/components/vendor/MetricsCarousel/MetricsCarousel";
+import RecentOrders from "@/components/admin/RecentOrders";
+import LowStockAlert from "@/components/vendor/LowStockAlert/LowStockAlert";
+import StatCard from "@/components/admin/StatsCards"; // ✅ correct import
 
 const HomeScreen = () => {
   return (
-    <SafeAreaView className="flex-1">
-      {/* STATIC DASHBOARD */}
-      <DashboardHeader />
-
-      {/* SCROLLABLE CONTENT */}
+    <SafeAreaView className="flex-1 bg-[#FDECEF]">
       <ScrollView
-        className="flex-1 bg-lightPink"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 10 }}
+        contentContainerStyle={{ paddingBottom: 4 }}
       >
-        <PromoBadges />
-        <CategoryList />
-        <FeaturedStores />
-        <ProductSection />
+        {/* Top metrics */}
+        <MetricsCarousel />
+
+        {/* Stats cards */}
+        <View className="flex-row gap-4 px-4">
+          <StatCard
+            icon="time-outline"
+            count={1}
+            title="Vendor pending"
+            subtitle="Awaiting approval"
+            bg="bg-orange-100"
+            text="#F97316"
+          />
+
+          <StatCard
+            icon="cube-outline"
+            count={1}
+            title="Product pending"
+            subtitle="Need moderation"
+            bg="bg-purple-100"
+            text="#8B5CF6"
+          />
+
+          <StatCard
+            icon="alert-circle-outline"
+            count={3}
+            title="Open ticket"
+            subtitle="Need attention"
+            bg="bg-red-100"
+            text="#EF4444"
+          />
+        </View>
+
+        {/* Other sections */}
+        <RecentOrders />
+        <LowStockAlert />
       </ScrollView>
     </SafeAreaView>
   );

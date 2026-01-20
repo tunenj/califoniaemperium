@@ -1,6 +1,6 @@
 import images from "@/constants/images";
 import { useRouter } from "expo-router";
-import { ArrowLeft, Eye, EyeOff } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { Image, Text, TextInput, TouchableOpacity, View } from "react-native";
 
@@ -18,52 +18,60 @@ const EmailLoginScreen: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   // Admin detection (frontend demo)
-  const isAdmin = email.toLowerCase() === ADMIN_EMAIL;
+  const isAdmin = email.trim().toLowerCase() === ADMIN_EMAIL;
 
   // Validate form
   const isFormValid =
     email.trim() !== "" && email.includes("@") && password.trim() !== "";
 
   // Handlers
-  const handleBack = () => router.back();
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    }
+  };
 
   const handleSwitchRole = () => {
     setRole((prev) => (prev === "vendor" ? "customer" : "vendor"));
   };
 
   const handleForgotPassword = () => {
-    router.push("/(auth)/forgotPassword");
+    router.push("/forgotPassword");
   };
 
   const handleSignUp = () => {
-    router.push("/(auth)/signUp");
+    router.push("/signUp");
   };
 
   const handleLogin = () => {
+    if (!isFormValid) return;
+
     console.log("Login Attempt:", {
       email,
-      password,
       role,
+      isAdmin,
     });
 
-    // ADMIN — bypass role switching
+    // ADMIN
     if (isAdmin) {
       router.replace("/(admin)/home");
       return;
     }
 
-    // Vendor / Customer
+    // VENDOR
     if (role === "vendor") {
-      router.replace("/(vendor)/home");
-    } else {
-      router.replace("/(customer)/home");
+      router.replace("/(vendor)/dashboard");
+      return;
     }
+
+    // CUSTOMER
+    router.replace("/(customer)/main");
   };
 
   return (
     <View className="flex-1 bg-white">
       {/* Top Header */}
-      <View className="bg-[#C62828] h-1/3 min-h-[250px] relative">
+      <View className="bg-[#C62828] h-1/3 min-h-[250px]">
         <View className="flex-1 items-center justify-center pt-12">
           <Image
             source={images.onboarding}
@@ -81,7 +89,7 @@ const EmailLoginScreen: React.FC = () => {
             onPress={handleBack}
             className="absolute top-0 left-0 p-2 z-10"
           >
-            <ArrowLeft size={28} color="#C62828" />
+            <Ionicons name="arrow-back" size={28} color="#C62828" />
           </TouchableOpacity>
 
           <View className="items-center">
@@ -140,9 +148,9 @@ const EmailLoginScreen: React.FC = () => {
               onPress={() => setShowPassword(!showPassword)}
             >
               {showPassword ? (
-                <EyeOff size={24} color="#999" />
+                <Ionicons name="eye-off-outline" size={24} color="#999" />
               ) : (
-                <Eye size={24} color="#999" />
+                <Ionicons name="eye-outline" size={24} color="#999" />
               )}
             </TouchableOpacity>
           </View>

@@ -3,7 +3,13 @@ import images from '@/constants/images';
 import { useRouter } from 'expo-router';
 import { ArrowRight, ArrowLeft } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Image,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 type UserType = 'business' | 'customer' | null;
 
@@ -17,19 +23,20 @@ export default function WelcomeScreen() {
 
   // Always route to onboardingSignUp
   const handleSignUp = () => {
-    router.push('/(Onboarding)/OnboardingSignUp');
+    router.push('/OnboardingSignUp');
   };
 
   const handleSignIn = () => {
-    if (selectedType) {
-    router.push('/(auth)/signIn');
-    }
-  }
-
-   const handleBack = () => {
-    router.back();
+    if (!selectedType) return;
+    router.push('/signIn');
   };
-  
+
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    }
+  };
+
   return (
     <ScrollView
       className="flex-1"
@@ -37,10 +44,10 @@ export default function WelcomeScreen() {
       showsVerticalScrollIndicator={false}
     >
       {/* Top Section */}
-      <View className="bg-secondary h-1/3 min-h-[250px]">
+      <View className="bg-secondary min-h-[250px]">
         <View className="flex-1 px-6 pt-20">
-          {/* Arrow in its own container */}
-          <View className="relative left-26">
+          {/* Back Arrow */}
+          <View className="relative left-[26px]">
             <TouchableOpacity
               className="w-10 h-10 rounded-full shadow-lg"
               onPress={handleBack}
@@ -49,7 +56,7 @@ export default function WelcomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Logo/Image in its own container */}
+          {/* Logo */}
           <View className="items-center justify-center mb-4 shadow-lg">
             <Image
               source={images.onboarding}
@@ -58,6 +65,7 @@ export default function WelcomeScreen() {
             />
           </View>
         </View>
+
         <Text className="text-2xl text-white mb-12 text-center">
           Welcome Back
         </Text>
@@ -77,11 +85,11 @@ export default function WelcomeScreen() {
           <View className="space-y-6">
             {/* Business */}
             <TouchableOpacity
-              className={`p-6 rounded-2xl border mt-4 bg-white
-                ${selectedType === 'business'
+              className={`p-6 rounded-2xl border mt-4 bg-white ${
+                selectedType === 'business'
                   ? 'border-secondary'
                   : 'border-gray-200'
-                }`}
+              }`}
               onPress={() => handleSelectType('business')}
             >
               <View className="flex-row items-center">
@@ -92,13 +100,13 @@ export default function WelcomeScreen() {
                     resizeMode="contain"
                   />
                   <View
-                    className={`absolute right-0 top-4 w-4 h-4 rounded border
-                      ${selectedType === 'business'
+                    className={`absolute right-0 top-4 w-4 h-4 rounded border ${
+                      selectedType === 'business'
                         ? 'bg-secondary border-secondary'
                         : 'border-gray-400'
-                      }`}
+                    }`}
                   />
-                  <Text className="text-xl font-bold text-gray-900 mb-1 z-10">
+                  <Text className="text-xl font-bold text-gray-900 mb-1">
                     Business
                   </Text>
                 </View>
@@ -107,11 +115,11 @@ export default function WelcomeScreen() {
 
             {/* Customer */}
             <TouchableOpacity
-              className={`p-6 rounded-2xl border mt-4 bg-white
-                ${selectedType === 'customer'
+              className={`p-6 rounded-2xl border mt-4 bg-white ${
+                selectedType === 'customer'
                   ? 'border-secondary'
                   : 'border-gray-200'
-                }`}
+              }`}
               onPress={() => handleSelectType('customer')}
             >
               <View className="flex-row items-center">
@@ -122,13 +130,13 @@ export default function WelcomeScreen() {
                     resizeMode="contain"
                   />
                   <View
-                    className={`absolute right-0 top-4 w-4 h-4 rounded border
-                      ${selectedType === 'customer'
+                    className={`absolute right-0 top-4 w-4 h-4 rounded border ${
+                      selectedType === 'customer'
                         ? 'bg-secondary border-secondary'
                         : 'border-gray-400'
-                      }`}
+                    }`}
                   />
-                  <Text className="text-xl font-bold text-gray-900 mb-1 z-10">
+                  <Text className="text-xl font-bold text-gray-900 mb-1">
                     Customer
                   </Text>
                 </View>
@@ -140,10 +148,11 @@ export default function WelcomeScreen() {
           <View className="mt-12">
             {/* Login Button */}
             <TouchableOpacity
-              className={`py-4 rounded-2xl ${
+              className={`py-4 rounded-2xl shadow-lg ${
                 selectedType ? 'bg-secondary' : 'bg-gray-300'
-              } shadow-lg`}
+              }`}
               onPress={handleSignIn}
+              disabled={!selectedType}
             >
               <View className="flex-row items-center justify-center">
                 <Text
@@ -155,7 +164,7 @@ export default function WelcomeScreen() {
                 </Text>
                 <ArrowRight
                   size={22}
-                  color={selectedType ? 'white' : '#9CA3AF'}
+                  color={selectedType ? '#fff' : '#9CA3AF'}
                 />
               </View>
             </TouchableOpacity>

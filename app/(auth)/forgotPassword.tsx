@@ -23,7 +23,7 @@ const ResetPasswordForm: React.FC = () => {
 
         // Navigate to OTP screen or handle reset logic
         router.push({
-            pathname: '/(auth)/OtpVerification',
+            pathname: '/OtpVerification',
             params: { source: 'reset-password', input },
         });
     };
