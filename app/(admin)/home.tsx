@@ -18,14 +18,13 @@ const HomeScreen = () => {
         <MetricsCarousel />
 
         {/* Stats cards */}
-        <View className="flex-row gap-4 px-4">
+        <View className="flex-row gap-2 px-4">
           <StatCard
             icon="time-outline"
             count={1}
             title="Vendor pending"
             subtitle="Awaiting approval"
-            bg="bg-orange-100"
-            text="#F97316"
+            color="#F97316" // orange
           />
 
           <StatCard
@@ -33,8 +32,7 @@ const HomeScreen = () => {
             count={1}
             title="Product pending"
             subtitle="Need moderation"
-            bg="bg-purple-100"
-            text="#8B5CF6"
+            color="#8B5CF6" // purple
           />
 
           <StatCard
@@ -42,8 +40,7 @@ const HomeScreen = () => {
             count={3}
             title="Open ticket"
             subtitle="Need attention"
-            bg="bg-red-100"
-            text="#EF4444"
+            color="#EF4444" // red
           />
         </View>
 

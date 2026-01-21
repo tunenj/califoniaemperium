@@ -7,43 +7,45 @@ interface StatCardProps {
   count: number;
   title: string;
   subtitle: string;
-  bg: "bg-orange-100" | "bg-purple-100" | "bg-red-100";
-  text: string;
+  color: string; // used for icon, text & border
 }
-
-const borderMap: Record<StatCardProps["bg"], string> = {
-  "bg-orange-100": "border-orange-400",
-  "bg-purple-100": "border-purple-400",
-  "bg-red-100": "border-red-400",
-};
 
 const StatCard: React.FC<StatCardProps> = ({
   icon,
   count,
   title,
   subtitle,
-  bg,
-  text,
+  color,
 }) => {
   return (
     <View
-      className={`flex-1 rounded-2xl p-4 border ${bg} ${borderMap[bg]}`}
+      className="flex-1 rounded-2xl p-4 bg-white border"
+      style={{ borderColor: color }}
     >
       {/* Icon + Count */}
       <View className="flex-row items-center mb-3">
-        <Ionicons name={icon} size={22} color={text} />
-        <Text className="ml-2 text-lg font-bold" style={{ color: text }}>
+        <Ionicons name={icon} size={22} color={color} />
+        <Text
+          className="ml-2 text-lg font-bold"
+          style={{ color }}
+        >
           {count}
         </Text>
       </View>
 
       {/* Title */}
-      <Text className="text-sm font-semibold" style={{ color: text }}>
+      <Text
+        className="text-sm font-semibold"
+        style={{ color }}
+      >
         {title}
       </Text>
 
       {/* Subtitle */}
-      <Text className="text-xs mt-1" style={{ color: text }}>
+      <Text
+        className="text-xs mt-1"
+        style={{ color }}
+      >
         {subtitle}
       </Text>
     </View>
