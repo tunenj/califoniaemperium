@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
+import { useLanguage } from '@/context/LanguageContext'; // Add import
 
 /* ---------------- TYPES ---------------- */
 
@@ -44,6 +45,7 @@ const EXISTING_CATEGORIES = [
 
 export default function AddDropshipProduct() {
     const router = useRouter();
+    const { t } = useLanguage(); // Add hook
 
     const [image, setImage] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -70,7 +72,7 @@ export default function AddDropshipProduct() {
     const handlePickImage = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== "granted") {
-            Alert.alert("Permission Required", "Allow access to upload image");
+            Alert.alert(t('permission_required'), t('allow_access_to_upload_image'));
             return;
         }
 
@@ -98,15 +100,15 @@ export default function AddDropshipProduct() {
 
     const validate = () => {
         if (!formData.name.trim()) {
-            Alert.alert("Error", "Product name is required");
+            Alert.alert(t('error'), t('product_name_required'));
             return false;
         }
         if (!formData.category) {
-            Alert.alert("Error", "Please select a category");
+            Alert.alert(t('error'), t('select_category_required'));
             return false;
         }
         if (!formData.sellingPrice.trim()) {
-            Alert.alert("Error", "Selling price is required");
+            Alert.alert(t('error'), t('selling_price_required'));
             return false;
         }
         return true;
@@ -120,7 +122,7 @@ export default function AddDropshipProduct() {
         setIsSubmitting(true);
         await new Promise(res => setTimeout(res, 1200));
 
-        Alert.alert("Success", "Product added successfully");
+        Alert.alert(t('success'), t('product_added_successfully'));
         setIsSubmitting(false);
         router.back();
     };
@@ -168,10 +170,10 @@ export default function AddDropshipProduct() {
                         </TouchableOpacity>
 
                         <Text className="text-lg font-semibold text-gray-900">
-                            Add Dropship Product
+                            {t('add_dropship_product')}
                         </Text>
                         <Text className="text-xs text-gray-400 mt-1">
-                            Fill in the product information.
+                            {t('fill_product_information')}
                         </Text>
                     </View>
 
@@ -191,7 +193,7 @@ export default function AddDropshipProduct() {
                                     color="#fff"
                                 />
                                 <Text className="text-xs text-white mt-2">
-                                    Click to upload
+                                    {t('click_to_upload')}
                                 </Text>
                             </>
                         )}
@@ -199,20 +201,20 @@ export default function AddDropshipProduct() {
 
                     {/* Form */}
                     <Input
-                        label="CJ Product ID"
+                        label={t('cj_product_id')}
                         value={formData.cjProductId}
                         onChange={v => handleChange("cjProductId", v)}
                     />
 
                     <Input
-                        label="Product Name"
+                        label={t('product_name')}
                         value={formData.name}
                         onChange={v => handleChange("name", v)}
                     />
 
                     {/* Category */}
                     <View className="mb-5">
-                        <Text className="text-xs text-gray-400 mb-1">Category</Text>
+                        <Text className="text-xs text-gray-400 mb-1">{t('category')}</Text>
                         <TouchableOpacity
                             onPress={() => setCategoryVisible(true)}
                             className="flex-row justify-between items-center border-b border-gray-300 py-2"
@@ -221,7 +223,7 @@ export default function AddDropshipProduct() {
                                 className={`text-sm ${formData.category ? "text-gray-900" : "text-gray-400"
                                     }`}
                             >
-                                {formData.category || "Select"}
+                                {formData.category || t('select')}
                             </Text>
                             <Ionicons name="chevron-down" size={16} color="#9ca3af" />
                         </TouchableOpacity>
@@ -229,10 +231,10 @@ export default function AddDropshipProduct() {
 
                     {/* Status */}
                     <View className="mb-5">
-                        <Text className="text-xs text-gray-400 mb-1">Status</Text>
+                        <Text className="text-xs text-gray-400 mb-1">{t('status')}</Text>
                         <TouchableOpacity className="flex-row justify-between items-center border-b border-gray-300 py-2">
                             <Text className="text-sm capitalize text-gray-900">
-                                {formData.status}
+                                {formData.status === 'active' ? t('active') : t('inactive')}
                             </Text>
                             <Ionicons name="chevron-down" size={16} color="#9ca3af" />
                         </TouchableOpacity>
@@ -240,32 +242,32 @@ export default function AddDropshipProduct() {
 
                     {/* Description */}
                     <View className="mb-5">
-                        <Text className="text-xs text-gray-400 mb-1">Description</Text>
+                        <Text className="text-xs text-gray-400 mb-1">{t('description')}</Text>
                         <TextInput
                             value={formData.description}
                             onChangeText={v => handleChange("description", v)}
-                            placeholder="Describe your product"
+                            placeholder={t('describe_product')}
                             multiline
                             className="border-b border-gray-300 py-2 text-sm min-h-[60px]"
                         />
                     </View>
 
                     <Input
-                        label="Supplier price"
+                        label={t('supplier_price')}
                         value={formData.supplierPrice}
                         onChange={v => handleChange("supplierPrice", v)}
                         placeholder="0"
                     />
 
                     <Input
-                        label="Selling price"
+                        label={t('selling_price')}
                         value={formData.sellingPrice}
                         onChange={v => handleChange("sellingPrice", v)}
                         placeholder="0"
                     />
 
                     <Input
-                        label="Profit Margin"
+                        label={t('profit_margin')}
                         value={profitMargin}
                         onChange={() => { }}
                         editable={false}
@@ -279,7 +281,7 @@ export default function AddDropshipProduct() {
                             className="flex-1 border border-red-400 rounded-full py-2"
                         >
                             <Text className="text-secondary text-center text-sm">
-                                Cancel
+                                {t('cancel')}
                             </Text>
                         </TouchableOpacity>
 
@@ -292,7 +294,7 @@ export default function AddDropshipProduct() {
                                 <ActivityIndicator color="#fff" />
                             ) : (
                                 <Text className="text-white text-center text-sm font-medium">
-                                    Add Product
+                                    {t('add_product')}
                                 </Text>
                             )}
                         </TouchableOpacity>
@@ -305,7 +307,7 @@ export default function AddDropshipProduct() {
                 <View className="absolute inset-0 bg-black/40 justify-end">
                     <View className="bg-white rounded-t-2xl px-5 pt-4 pb-8">
                         <View className="flex-row justify-between items-center mb-4">
-                            <Text className="text-sm font-semibold">Select Category</Text>
+                            <Text className="text-sm font-semibold">{t('select_category')}</Text>
                             <TouchableOpacity onPress={() => setCategoryVisible(false)}>
                                 <Ionicons name="close" size={20} color="#374151" />
                             </TouchableOpacity>

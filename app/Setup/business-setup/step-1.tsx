@@ -16,10 +16,12 @@ import AnimatedStep from "@/components/AnimatedStep";
 import StepIndicator from "@/components/StepIndicator";
 import { useSetup } from "@/context/SetupContext";
 import { countries } from "@/data/countries";
+import { useLanguage } from "@/context/LanguageContext"; // Add import
 
 export default function Step1() {
   const router = useRouter();
   const { data, update } = useSetup();
+  const { t } = useLanguage(); // Add hook
 
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [showGenderPicker, setShowGenderPicker] = useState(false);
@@ -40,9 +42,19 @@ export default function Step1() {
     Boolean(data.address);
 
   const genders = [
-    { label: "Male", value: "male" },
-    { label: "Female", value: "female" },
+    { label: t('male'), value: "male" },
+    { label: t('female'), value: "female" },
   ];
+
+  // Get translated country names
+  const getTranslatedCountry = (countryCode: string) => {
+    const country = countries.find(c => c.code === countryCode);
+    if (!country) return { label: countryCode, code: countryCode };
+    
+    // You can add language-specific country names here
+    // For now, using the English label
+    return country;
+  };
 
   return (
     <AnimatedStep>
@@ -69,12 +81,12 @@ export default function Step1() {
               </TouchableOpacity>
 
               <Text className="font-semibold text-base">
-                Welcome, {data.firstName || "User"}
+                {t('welcome_user', { name: data.firstName || t('user') })}
               </Text>
             </View>
 
             <Text className="text-xs text-gray-400 mt-1 text-center">
-              Set up your business profile
+              {t('setup_business_profile')}
             </Text>
           </View>
 
@@ -83,22 +95,23 @@ export default function Step1() {
 
           {/* Section Title */}
           <Text className="font-medium text-black mb-4">
-            Personal Details
+            {t('personal_details')}
           </Text>
 
           {/* Full Name */}
           <Text className="text-xs text-black mb-1">
-            Full Name
+            {t('full_name')}
           </Text>
           <TextInput
             value={fullName}
             onChangeText={(v) => update({ fullName: v })}
+            placeholder={t('enter_full_name')}
             className="border-b py-2 mb-4 text-gray-700"
           />
 
           {/* Gender Dropdown */}
           <Text className="text-xs text-gray-400 mb-1">
-            Gender
+            {t('gender')}
           </Text>
           <TouchableOpacity
             onPress={() => setShowGenderPicker(true)}
@@ -106,23 +119,26 @@ export default function Step1() {
           >
             <Text className={data.gender ? "text-black" : "text-gray-400"}>
               {data.gender
-                ? data.gender.charAt(0).toUpperCase() + data.gender.slice(1)
-                : "Select from list"}
+                ? t(data.gender)
+                : t('select_from_list')}
             </Text>
           </TouchableOpacity>
 
           {/* Email */}
           <View className="flex-row items-center justify-between">
             <Text className="text-xs text-gray-400 mb-1">
-              Email
+              {t('email')}
             </Text>
-            <Text className="text-xs text-red-600">
-              Change
-            </Text>
+            <TouchableOpacity onPress={() => {/* Add change email logic */}}>
+              <Text className="text-xs text-red-600">
+                {t('change')}
+              </Text>
+            </TouchableOpacity>
           </View>
           <TextInput
             value={data.email || ""}
             onChangeText={(v) => update({ email: v })}
+            placeholder={t('enter_email')}
             keyboardType="email-address"
             autoCapitalize="none"
             className="border-b py-2 mb-4"
@@ -130,7 +146,7 @@ export default function Step1() {
 
           {/* Phone Number */}
           <Text className="text-xs text-gray-400 mb-1">
-            Phone Number
+            {t('phone_number')}
           </Text>
           <View className="flex-row border-b items-center mb-4">
             <TouchableOpacity
@@ -144,7 +160,7 @@ export default function Step1() {
             </TouchableOpacity>
 
             <TextInput
-              placeholder="Enter phone number"
+              placeholder={t('enter_phone_number')}
               value={data.phone || ""}
               onChangeText={(v) =>
                 update({
@@ -159,10 +175,10 @@ export default function Step1() {
 
           {/* Address */}
           <Text className="text-xs text-gray-400 mb-1">
-            Residential Address
+            {t('residential_address')}
           </Text>
           <TextInput
-            placeholder="Enter address"
+            placeholder={t('enter_address')}
             value={data.address || ""}
             onChangeText={(v) => update({ address: v })}
             className="border-b py-2"
@@ -177,23 +193,28 @@ export default function Step1() {
             }`}
           >
             <Text className="text-white font-medium">
-              Next
+              {t('next')}
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Country Picker Modal */}
-        <Modal visible={showCountryPicker} animationType="slide">
+        <Modal visible={showCountryPicker} animationType="slide" transparent={true}>
           <SafeAreaView className="flex-1 bg-white">
-            <Text className="text-lg font-semibold px-5 py-4">
-              Select Country
-            </Text>
+            <View className="flex-row justify-between items-center px-5 py-4 border-b border-gray-200">
+              <Text className="text-lg font-semibold">
+                {t('select_country')}
+              </Text>
+              <TouchableOpacity onPress={() => setShowCountryPicker(false)}>
+                <Ionicons name="close" size={24} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
             <FlatList
               data={countries}
               keyExtractor={(item) => item.value}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  className="px-5 py-4 border-b border-gray-100"
+                  className="px-5 py-4 border-b border-gray-100 flex-row items-center justify-between"
                   onPress={() => {
                     update({ countryCode: item.code });
                     setShowCountryPicker(false);
@@ -202,6 +223,9 @@ export default function Step1() {
                   <Text className="text-base">
                     {item.label} ({item.code})
                   </Text>
+                  {selectedCountry?.code === item.code && (
+                    <Ionicons name="checkmark" size={20} color="#3b82f6" />
+                  )}
                 </TouchableOpacity>
               )}
             />
@@ -209,17 +233,22 @@ export default function Step1() {
         </Modal>
 
         {/* Gender Picker Modal */}
-        <Modal visible={showGenderPicker} animationType="slide">
+        <Modal visible={showGenderPicker} animationType="slide" transparent={true}>
           <SafeAreaView className="flex-1 bg-white">
-            <Text className="text-lg font-semibold px-5 py-4">
-              Select Gender
-            </Text>
+            <View className="flex-row justify-between items-center px-5 py-4 border-b border-gray-200">
+              <Text className="text-lg font-semibold">
+                {t('select_gender')}
+              </Text>
+              <TouchableOpacity onPress={() => setShowGenderPicker(false)}>
+                <Ionicons name="close" size={24} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
             <FlatList
               data={genders}
               keyExtractor={(item) => item.value}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  className="px-5 py-4 border-b border-gray-100"
+                  className="px-5 py-4 border-b border-gray-100 flex-row items-center justify-between"
                   onPress={() => {
                     update({ gender: item.value });
                     setShowGenderPicker(false);
@@ -228,6 +257,9 @@ export default function Step1() {
                   <Text className="text-base">
                     {item.label}
                   </Text>
+                  {data.gender === item.value && (
+                    <Ionicons name="checkmark" size={20} color="#3b82f6" />
+                  )}
                 </TouchableOpacity>
               )}
             />

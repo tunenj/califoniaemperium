@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useLanguage } from '@/context/LanguageContext'; // Add import
 
 type MessageStatus = "read" | "unread" | "replied";
 
@@ -61,6 +62,7 @@ const MESSAGES: Message[] = [
 ];
 
 export default function MessagesScreen() {
+  const { t } = useLanguage(); // Add hook
   const [activeTab, setActiveTab] = useState<
     "All" | "Unread" | "Replied"
   >("All");
@@ -72,19 +74,21 @@ export default function MessagesScreen() {
     return true;
   });
 
+  const tabs = [t('all'), t('unread'), t('replied')];
+
   return (
     <SafeAreaView className="flex-1 bg-white px-5">
       {/* Header */}
       <Text className="text-lg font-semibold text-gray-900">
-        Messages
+        {t('messages')}
       </Text>
       <Text className="text-xs text-gray-400 mt-1">
-        Customer inquiries and communications.
+        {t('customer_inquiries_communications')}
       </Text>
 
       {/* Filters */}
       <View className="flex-row gap-2 mt-4">
-        {["All", "Unread", "Replied"].map((tab) => (
+        {tabs.map((tab) => (
           <TouchableOpacity
             key={tab}
             onPress={() => setActiveTab(tab as any)}
@@ -111,7 +115,7 @@ export default function MessagesScreen() {
       <View className="flex-row items-center bg-gray-100 rounded-full px-4 py-1 mt-4">
         <Ionicons name="search" size={16} color="#9ca3af" />
         <TextInput
-          placeholder="search messages..."
+          placeholder={t('search_messages')}
           value={search}
           onChangeText={setSearch}
           className="ml-2 flex-1 text-xs text-gray-700"
@@ -172,7 +176,7 @@ export default function MessagesScreen() {
                 {item.status === "unread" && (
                   <View className="mt-1 px-2 py-0.5 rounded-full bg-red-100">
                     <Text className="text-[10px] text-red-500">
-                      unread
+                      {t('unread')}
                     </Text>
                   </View>
                 )}
@@ -180,7 +184,7 @@ export default function MessagesScreen() {
                 {item.status === "read" && (
                   <View className="mt-1 px-2 py-0.5 rounded-full border border-gray-300">
                     <Text className="text-[10px] text-gray-500">
-                      read
+                      {t('read')}
                     </Text>
                   </View>
                 )}
@@ -188,7 +192,7 @@ export default function MessagesScreen() {
                 {item.status === "replied" && (
                   <View className="mt-1 px-2 py-0.5 rounded-full border border-green-300">
                     <Text className="text-[10px] text-green-600">
-                      replied
+                      {t('replied')}
                     </Text>
                   </View>
                 )}

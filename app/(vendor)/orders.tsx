@@ -7,6 +7,7 @@ import {
     TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useLanguage } from '@/context/LanguageContext'; // Add import
 
 type Order = {
     id: string;
@@ -23,14 +24,15 @@ const ORDERS: Order[] = Array.from({ length: 6 }).map(() => ({
 }));
 
 export default function OrdersScreen() {
+    const { t } = useLanguage(); // Add hook
     const [search, setSearch] = useState("");
 
     return (
         <View className="flex-1 bg-white px-4 pt-4">
             {/* Header */}
-            <Text className="text-xl font-semibold">Orders</Text>
+            <Text className="text-xl font-semibold">{t('orders')}</Text>
             <Text className="text-sm text-black mt-1">
-                Manage and track customers orders.
+                {t('manage_track_customer_orders')}
             </Text>
 
             {/* Search + Filter */}
@@ -38,7 +40,7 @@ export default function OrdersScreen() {
                 <View className="flex-1 flex-row items-center bg-gray-100 rounded-full px-4 py-0.5">
                     <Ionicons name="search" size={18} color="#9ca3af" />
                     <TextInput
-                        placeholder="search order..."
+                        placeholder={t('search_order')}
                         value={search}
                         onChangeText={setSearch}
                         className="ml-2 flex-1 text-sm text-gray-700"
@@ -47,19 +49,19 @@ export default function OrdersScreen() {
                 </View>
 
                 <TouchableOpacity className="flex-row items-center border border-gray-200 rounded-full px-4 py-2">
-                    <Text className="text-sm text-gray-700 mr-1">All Status</Text>
+                    <Text className="text-sm text-gray-700 mr-1">{t('all_status')}</Text>
                     <Ionicons name="chevron-down" size={16} color="#6b7280" />
                 </TouchableOpacity>
             </View>
 
             {/* Table Header */}
             <View className="flex-row bg-gray-100 p-6 mt-4 mb-4 text-black text-xs -mx-5">
-                <Text className="w-1/4">Orders</Text>
+                <Text className="w-1/4">{t('orders')}</Text>
                 <Text className="w-1/4 ml-2">
-                    Customer
+                    {t('customer')}
                 </Text>
-                <Text className="w-1/5 text-right">Date</Text>
-                <Text className="w-1/5 text-right">Item</Text>
+                <Text className="w-1/5 text-right">{t('date')}</Text>
+                <Text className="w-1/5 text-right">{t('items')}</Text>
             </View>
 
             {/* Orders List */}

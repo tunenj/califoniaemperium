@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useLanguage } from '@/context/LanguageContext'; // Add import
 
 type RootStackParamList = {
   Cart: undefined;
@@ -54,6 +55,7 @@ const cartItems: CartItem[] = [
 
 function CartScreen({ navigation }: Props) {
   const [items, setItems] = useState(cartItems);
+  const { t } = useLanguage(); // Add hook
 
   const increaseQuantity = (id: string) => {
     setItems(prev =>
@@ -86,9 +88,9 @@ function CartScreen({ navigation }: Props) {
             onPress={() => navigation.goBack()}
             className="p-2"
           >
-            <Text className="text-red-500 text-lg font-semibold">Cancel</Text>
+            <Text className="text-red-500 text-lg font-semibold">{t('cancel')}</Text>
           </TouchableOpacity>
-          <Text className="text-xl font-bold text-gray-900">Your Cart</Text>
+          <Text className="text-xl font-bold text-gray-900">{t('your_cart')}</Text>
           <View className="w-12" /> {/* Spacer */}
         </View>
 
@@ -153,20 +155,20 @@ function CartScreen({ navigation }: Props) {
         {/* Totals */}
         <View className="bg-white rounded-2xl p-5 mt-6 shadow-sm border border-gray-100">
           <View className="flex-row justify-between items-end mb-3">
-            <Text className="text-sm text-gray-500">Shipping</Text>
+            <Text className="text-sm text-gray-500">{t('shipping')}</Text>
             <Text className="text-lg font-semibold text-gray-900">₦4,000</Text>
           </View>
           <View className="flex-row justify-between items-center mb-4">
-            <Text className="text-base font-semibold text-gray-700">Subtotal</Text>
+            <Text className="text-base font-semibold text-gray-700">{t('subtotal')}</Text>
             <Text className="text-xl font-bold text-gray-900">₦42,000</Text>
           </View>
           <View className="h-px bg-gray-200 mb-4" />
           <View className="flex-row justify-between items-center mb-6">
-            <Text className="text-xl font-bold text-gray-900">Total</Text>
+            <Text className="text-xl font-bold text-gray-900">{t('total')}</Text>
             <Text className="text-2xl font-bold text-red-500">₦46,000</Text>
           </View>
           <TouchableOpacity className="bg-red-500 rounded-2xl py-4 items-center">
-            <Text className="text-white text-lg font-semibold">Checkout</Text>
+            <Text className="text-white text-lg font-semibold">{t('checkout')}</Text>
           </TouchableOpacity>
         </View>
       </View>

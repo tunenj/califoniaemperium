@@ -4,12 +4,14 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react-native";
 import React, { useCallback, useEffect, useState } from "react";
 import { Alert, Text, TextInput, TouchableOpacity, View, Image } from "react-native";
+import { useLanguage } from '@/context/LanguageContext'; // Add import
 
 type UserRole = 'business' | 'customer';
 
 const CreatePassword: React.FC = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { t } = useLanguage(); // Add hook
 
   // Helper function to get string value from params
   const getParamString = (param: any): string => {
@@ -50,16 +52,16 @@ const CreatePassword: React.FC = () => {
 
     if (password.length < 8) {
       Alert.alert(
-        "Password Too Short",
-        "Password must be at least 8 characters."
+        t('password_too_short_title'),
+        t('password_too_short_message')
       );
       return;
     }
 
     if (password !== confirmPassword) {
       Alert.alert(
-        "Passwords Do Not Match",
-        "Please make sure both passwords match."
+        t('passwords_dont_match_title'),
+        t('passwords_dont_match_message')
       );
       return;
     }
@@ -71,8 +73,8 @@ const CreatePassword: React.FC = () => {
 
     if (!(hasUpper && hasLower && hasNumber && hasSpecial)) {
       Alert.alert(
-        "Weak Password",
-        "Password must include uppercase, lowercase, number, and special character."
+        t('weak_password_title'),
+        t('weak_password_message')
       );
       return;
     }
@@ -104,7 +106,8 @@ const CreatePassword: React.FC = () => {
     lastName, 
     email, 
     phoneNumber, 
-    userRole
+    userRole,
+    t
   ]);
 
   return (
@@ -131,26 +134,26 @@ const CreatePassword: React.FC = () => {
 
         {/* Heading */}
         <Text className="text-2xl font-bold text-center mb-2">
-          {isReset ? "Change your password" : `Welcome, ${firstName}`}
+          {isReset ? t('change_your_password') : `${t('welcome')}, ${firstName}`}
         </Text>
 
         {/* Subheading */}
         <Text className="text-gray-500 text-center mb-8">
           {isReset
-            ? "Ensure to enter password you can remember"
-            : "Create a password for your account"}
+            ? t('ensure_to_remember_password')
+            : t('create_password_for_account')}
         </Text>
 
         {/* Password */}
         <View className="mb-4">
           <Text className="text-sm text-gray-600 mb-2">
-            {isReset ? "Create New Password" : "Create Password"}
+            {isReset ? t('create_new_password') : t('create_password')}
           </Text>
 
           <View className="relative">
             <TextInput
               className="bg-gray-100 rounded-lg px-4 py-4 pr-12"
-              placeholder="Enter password"
+              placeholder={t('enter_password')}
               secureTextEntry={!showPassword}
               value={password}
               onChangeText={setPassword}
@@ -168,13 +171,13 @@ const CreatePassword: React.FC = () => {
         {/* Confirm Password */}
         <View className="mb-8">
           <Text className="text-sm text-gray-600 mb-2">
-            Re-enter New Password
+            {t('re_enter_password')}
           </Text>
 
           <View className="relative">
             <TextInput
               className="bg-gray-100 rounded-lg px-4 py-4 pr-12"
-              placeholder="Re-enter password"
+              placeholder={t('re_enter_password_placeholder')}
               secureTextEntry={!showConfirmPassword}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
@@ -198,7 +201,7 @@ const CreatePassword: React.FC = () => {
           onPress={handleSubmit}
         >
           <Text className="text-white text-lg font-semibold">
-            {isReset ? "Confirm password reset" : "Create Password"}
+            {isReset ? t('confirm_password_reset') : t('create_password_button')}
           </Text>
         </TouchableOpacity>
       </View>

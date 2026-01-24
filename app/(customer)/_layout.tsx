@@ -1,7 +1,10 @@
 import { Tabs } from "expo-router";
 import { Ionicons, Feather } from "@expo/vector-icons";
+import { useLanguage } from '@/context/LanguageContext'; // Add import
 
 export default function CustomerLayout() {
+  const { t } = useLanguage(); // Add hook
+
   return (
     <Tabs
       screenOptions={{
@@ -15,7 +18,7 @@ export default function CustomerLayout() {
       <Tabs.Screen
         name="main"
         options={{
-          title: "Home",
+          title: t('home'), // Use translation
           tabBarIcon: ({ color, focused, size }) => (
             <Ionicons name={focused ? "home" : "home-outline"} size={size} color={color} />
           )
@@ -25,7 +28,7 @@ export default function CustomerLayout() {
       <Tabs.Screen
         name="category"
         options={{
-          title: "Category",
+          title: t('category'), // Use translation
           tabBarIcon: ({ color, size }) => (
             <Feather name="grid" size={size} color={color} />
           )
@@ -35,7 +38,7 @@ export default function CustomerLayout() {
       <Tabs.Screen
         name="explore"
         options={{
-          title: "Explore",
+          title: t('explore'), // Use translation
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="compass-outline" size={size} color={color} />
           )
@@ -45,7 +48,7 @@ export default function CustomerLayout() {
       <Tabs.Screen
         name="cart"
         options={{
-          title: "Cart",
+          title: t('cart'), // Use translation
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="cart-outline" size={size} color={color} />
           )
@@ -55,7 +58,7 @@ export default function CustomerLayout() {
       <Tabs.Screen
         name="account"
         options={{
-          title: "Account",
+          title: t('account'), // Use translation
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person-circle-outline" size={size} color={color} />
           )

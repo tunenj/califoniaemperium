@@ -6,31 +6,21 @@ import {
   TouchableOpacity,
   Modal,
   FlatList,
-  Pressable,
   BackHandler,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-
-type Language = {
-  label: string;
-  value: string;
-};
-
-const LANGUAGES: Language[] = [
-  { label: "English", value: "en" },
-  { label: "French", value: "fr" },
-  { label: "Spanish", value: "es" },
-  { label: "Portuguese", value: "pt" },
-];
+import {
+  useLanguage,
+  LANGUAGES,
+  type Language,
+} from "@/context/LanguageContext";
 
 const SelectLanguage = () => {
   const router = useRouter();
-
-  const [language, setLanguage] = useState<Language | null>(null);
+  const { language, setLanguage } = useLanguage(); // language is Language | null
   const [showPicker, setShowPicker] = useState(false);
 
-  /* -------------------- ANDROID BACK HANDLER -------------------- */
   useEffect(() => {
     const backAction = () => {
       if (showPicker) {
@@ -55,15 +45,14 @@ const SelectLanguage = () => {
   };
 
   const handleSelectLanguage = (item: Language) => {
-    setLanguage(item);
+    setLanguage(item); // Pass the Language object
     setShowPicker(false);
   };
 
-  /* -------------------- UI -------------------- */
   return (
     <SafeAreaView className="flex-1 bg-white px-6">
       {/* Illustration */}
-      <View className="items-center mt-24">
+      <View className="items-center mt-16">
         <Image
           source={require("@/assets/images/language.png")}
           className="w-80 h-80"
@@ -83,11 +72,9 @@ const SelectLanguage = () => {
         activeOpacity={0.7}
       >
         <Text
-          className={`text-base ${
-            language ? "text-black" : "text-gray-400"
-          }`}
+          className={`text-base ${language ? "text-black" : "text-gray-400"}`}
         >
-          {language ? language.label : "Select language"}
+          {language ? `${language.nativeName} (${language.name})` : "Select language"}
         </Text>
       </TouchableOpacity>
 
@@ -95,9 +82,7 @@ const SelectLanguage = () => {
       <TouchableOpacity
         disabled={!language}
         onPress={handleNext}
-        className={`mt-10 py-3 rounded-lg ${
-          language ? "bg-red-600" : "bg-red-300"
-        }`}
+        className={`mt-10 py-3 rounded-lg ${language ? "bg-red-600" : "bg-red-300"}`}
         activeOpacity={0.8}
       >
         <Text className="text-center text-white font-semibold text-base">
@@ -109,40 +94,54 @@ const SelectLanguage = () => {
       <Modal
         visible={showPicker}
         animationType="slide"
-        transparent
+        transparent={true}
         onRequestClose={() => setShowPicker(false)}
       >
-        {/* BACKDROP */}
-        <Pressable
-          className="flex-1 bg-black/30 justify-end"
-          onPress={() => setShowPicker(false)}
-        >
-          {/* CONTENT (BLOCK PRESS BUBBLING) */}
-          <Pressable
-            className="bg-white rounded-t-3xl p-6 max-h-[60%]"
-            onPressIn={() => {}}
-          >
+        <View className="flex-1 bg-black/30 justify-end">
+          {/* CONTENT */}
+          <View className="bg-white rounded-t-3xl p-6 max-h-[60%]">
             <Text className="text-lg font-semibold mb-4">
               Choose Language
             </Text>
 
             <FlatList
               data={LANGUAGES}
-              keyExtractor={(item) => item.value}
+              keyExtractor={(item) => item.code}
               showsVerticalScrollIndicator={false}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   onPress={() => handleSelectLanguage(item)}
-                  className="py-4 border-b border-gray-100"
+                  className={`py-4 border-b border-gray-100 flex-row justify-between items-center ${
+                    language?.code === item.code ? "bg-red-50" : ""
+                  }`}
+                  activeOpacity={0.7}
                 >
-                  <Text className="text-base text-black">
-                    {item.label}
-                  </Text>
+                  <View>
+                    <Text className="text-base text-black font-medium">
+                      {item.nativeName}
+                    </Text>
+                    <Text className="text-sm text-gray-500">{item.name}</Text>
+                  </View>
+                  {language?.code === item.code && (
+                    <View className="w-6 h-6 rounded-full bg-red-600 items-center justify-center">
+                      <Text className="text-white text-xs">✓</Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
               )}
+              ListFooterComponent={
+                <TouchableOpacity
+                  onPress={() => setShowPicker(false)}
+                  className="py-4 mt-2"
+                >
+                  <Text className="text-center text-red-600 font-semibold">
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+              }
             />
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   );

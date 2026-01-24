@@ -14,10 +14,12 @@ import { useRouter } from 'expo-router';
 import { ChevronLeft, Trash2, ShoppingCart } from 'lucide-react-native';
 import { LinearGradient } from "expo-linear-gradient";
 import { useCart } from '../../context/CartContext';
-
+import { useLanguage } from '@/context/LanguageContext'; // Add import
 
 export default function CartScreen() {
   const router = useRouter();
+  const { t } = useLanguage(); // Add hook
+  
   const {
     items,
     updateQuantity,
@@ -44,11 +46,11 @@ export default function CartScreen() {
   const handleCheckout = () => {
     if (items.length === 0) {
       Alert.alert(
-        'Empty Cart',
-        'Please add items to your cart before checking out.',
+        t('empty_cart'),
+        t('add_items_before_checkout'),
         [
-          { text: 'Continue Shopping', onPress: () => router.push('/(vendor)/home') },
-          { text: 'OK', style: 'cancel' },
+          { text: t('continue_shopping'), onPress: () => router.push('/(vendor)/dashboard') },
+          { text: t('ok'), style: 'cancel' },
         ]
       );
       return;
@@ -61,7 +63,7 @@ export default function CartScreen() {
     const code = promoCode.trim().toUpperCase();
 
     if (!code) {
-      Alert.alert('Error', 'Please enter a promo code');
+      Alert.alert(t('error'), t('please_enter_promo_code'));
       return;
     }
 
@@ -72,7 +74,7 @@ export default function CartScreen() {
     };
 
     if (!(code in validCodes)) {
-      Alert.alert('Invalid Code', 'The promo code you entered is invalid or expired.');
+      Alert.alert(t('invalid_code'), t('promo_code_invalid_expired'));
       return;
     }
 
@@ -83,19 +85,19 @@ export default function CartScreen() {
     setAppliedDiscount(discountAmount);
 
     Alert.alert(
-      'Success',
-      `Promo code applied! Saved ₦${discountAmount.toLocaleString()}`
+      t('success'),
+      t('promo_code_applied_saved', { amount: discountAmount.toLocaleString() })
     );
   };
 
   // Clear cart
   const handleClearCart = () => {
     Alert.alert(
-      'Clear Cart',
-      'Are you sure you want to remove all items from your cart?',
+      t('clear_cart'),
+      t('remove_all_items_confirmation'),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Clear All', style: 'destructive', onPress: clearCart },
+        { text: t('cancel'), style: 'cancel' },
+        { text: t('clear_all'), style: 'destructive', onPress: clearCart },
       ]
     );
   };
@@ -118,7 +120,7 @@ export default function CartScreen() {
             <View className="flex-row items-center">
               <ShoppingCart size={22} color="#C62828"/>
               <Text className="text-xl font-bold text-secondary ml-2">
-                Your Cart
+                {t('your_cart')}
               </Text>
             </View>
 
@@ -130,17 +132,17 @@ export default function CartScreen() {
               <Text className="text-6xl">🛒</Text>
             </View>
             <Text className="text-lg font-bold text-gray-900 mb-3">
-              Your cart is empty
+              {t('cart_is_empty')}
             </Text>
             <Text className="text-gray-500 text-center mb-8">
-              Looks like you haven&apos;t added any items yet.
+              {t('no_items_added_yet')}
             </Text>
             <TouchableOpacity
-              onPress={() => router.push('/(customer)/home')}
+              onPress={() => router.push('/(customer)/main')}
               className="bg-secondary rounded-full px-8 py-3 w-full"
             >
               <Text className="text-white font-semibold text-lg text-center">
-                Start Shopping
+                {t('start_shopping')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -159,7 +161,7 @@ export default function CartScreen() {
               <ChevronLeft size={24} color="#374151" />
             </TouchableOpacity>
             <Text className="text-xl font-bold text-gray-900">
-              Your Cart ({getItemCount()})
+              {t('your_cart')} ({getItemCount()})
             </Text>
             <TouchableOpacity onPress={handleClearCart} className="p-2">
               <Trash2 size={20} color="#EF4444" />
@@ -179,7 +181,7 @@ export default function CartScreen() {
                   {item.storeName}
                 </Text>
                 <TouchableOpacity onPress={() => removeItem(item.id)}>
-                  <Text className="text-red-500 text-sm">Remove</Text>
+                  <Text className="text-red-500 text-sm">{t('remove')}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -192,8 +194,8 @@ export default function CartScreen() {
 
                   {(item.color || item.size) && (
                     <Text className="text-gray-500 text-sm mb-2">
-                      {item.color && `Color: ${item.color} `}
-                      {item.size && `• Size: ${item.size}`}
+                      {item.color && `${t('color')}: ${item.color} `}
+                      {item.size && `• ${t('size')}: ${item.size}`}
                     </Text>
                   )}
 
@@ -231,7 +233,7 @@ export default function CartScreen() {
                       className="ml-auto"
                     >
                       <Text className="text-blue-500 text-sm">
-                        Save for later
+                        {t('save_for_later')}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -242,10 +244,10 @@ export default function CartScreen() {
 
           {/* Promo Code */}
           <View className="bg-white rounded-2xl p-4 mb-4 border border-gray-100">
-            <Text className="font-medium mb-3">Have a promo code?</Text>
+            <Text className="font-medium mb-3">{t('have_promo_code')}</Text>
             <View className="flex-row">
               <TextInput
-                placeholder="Enter promo code"
+                placeholder={t('enter_promo_code')}
                 value={promoCode}
                 onChangeText={setPromoCode}
                 className="flex-1 border border-gray-300 rounded-l-xl px-4 py-3"
@@ -254,7 +256,7 @@ export default function CartScreen() {
                 onPress={applyPromoCode}
                 className="bg-gray-900 px-6 rounded-r-xl justify-center"
               >
-                <Text className="text-white">Apply</Text>
+                <Text className="text-white">{t('apply')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -262,22 +264,22 @@ export default function CartScreen() {
           {/* Summary */}
           <View className="bg-white rounded-2xl p-5 mb-8 border border-gray-100">
             <View className="flex-row justify-between mb-3">
-              <Text>Subtotal</Text>
+              <Text>{t('subtotal')}</Text>
               <Text>₦{subtotal.toLocaleString()}</Text>
             </View>
             <View className="flex-row justify-between mb-3">
-              <Text>Shipping</Text>
+              <Text>{t('shipping')}</Text>
               <Text>₦{shippingFee.toLocaleString()}</Text>
             </View>
             <View className="flex-row justify-between mb-3">
-              <Text>Tax</Text>
+              <Text>{t('tax')}</Text>
               <Text>₦{tax.toLocaleString()}</Text>
             </View>
 
             <View className="h-px bg-gray-200 my-4" />
 
             <View className="flex-row justify-between mb-6">
-              <Text className="text-xl font-bold">Total</Text>
+              <Text className="text-xl font-bold">{t('total')}</Text>
               <Text className="text-2xl font-bold text-red-600">
                 ₦{total.toLocaleString()}
               </Text>
@@ -288,7 +290,7 @@ export default function CartScreen() {
               className="bg-red-500 rounded-2xl py-4 items-center"
             >
               <Text className="text-white font-bold text-lg">
-                Proceed to Checkout
+                {t('proceed_to_checkout')}
               </Text>
             </TouchableOpacity>
           </View>

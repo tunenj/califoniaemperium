@@ -1,19 +1,22 @@
 import React from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { useLanguage } from "@/context/LanguageContext";
 
 const sidebarItems = [
-  "Phones & Tablets",
-  "Fashion",
-  "Electronics",
-  "Computing",
-  "Grocery",
-  "Home & Kitchen",
-  "Furniture",
-  "Gaming",
-  "Baby Products",
+  "phones_tablets",
+  "fashion",
+  "electronics",
+  "computing",
+  "grocery",
+  "home_kitchen",
+  "furniture",
+  "gaming",
+  "baby_products",
 ];
 
 const SidebarMenu = () => {
+  const { t } = useLanguage();
+
   return (
     <View>
       <View
@@ -21,7 +24,7 @@ const SidebarMenu = () => {
         style={{ width: 100 }}
       >
         <Text className="text-lg text-gray-900 border-l-8 h-20 border-darkRed pl-3 pt-3">
-          Home & office
+          {t('home_office')}
         </Text>
       </View>
 
@@ -33,8 +36,14 @@ const SidebarMenu = () => {
           <TouchableOpacity
             key={item}
             className="py-2 px-4 border rounded border-gray-100"
+            activeOpacity={0.7}
           >
-            <Text className="text-base text-gray-900">{item}</Text>
+            {/* Wrap everything in a single View */}
+            <View>
+              <Text className="text-base text-gray-900">
+                {t(item)}
+              </Text>
+            </View>
           </TouchableOpacity>
         ))}
       </ScrollView>

@@ -10,17 +10,19 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialIcons, FontAwesome } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { useLanguage } from '@/context/LanguageContext'; // Add import
 
 export default function StoreReviewsScreen() {
   const router = useRouter();
+  const { t } = useLanguage(); // Add hook
   const [activeTab, setActiveTab] = useState<"products" | "reviews">("reviews");
 
   const categories = [
-    "All Store",
-    "Electronics",
-    "Fashion",
-    "Home & Garden",
-    "Sports",
+    t('all_store'),
+    t('electronics'),
+    t('fashion'),
+    t('home_garden'),
+    t('sports'),
   ];
 
   const renderStars = (rating: number) => {
@@ -82,12 +84,12 @@ export default function StoreReviewsScreen() {
               {categories.map((cat) => (
                 <TouchableOpacity key={cat} className="mr-3">
                   <Text
-                    className={`text-base text-white ${cat === "All Store" ? "font-bold" : "font-normal"
+                    className={`text-base text-white ${cat === t('all_store') ? "font-bold" : "font-normal"
                       }`}
                   >
                     {cat}
                   </Text>
-                  {cat === "All Store" && (
+                  {cat === t('all_store') && (
                     <View className="h-1 bg-white rounded-full mt-1" />
                   )}
                 </TouchableOpacity>
@@ -117,13 +119,13 @@ export default function StoreReviewsScreen() {
                 <View className="ml-2">
                   <Text className="font-bold text-white text-lg -mt-10 z-10">TechHub</Text>
                   <Text className="text-xs text-gray-500 mt-1">
-                    Beautiful home decor and essential items
+                    {t('store_description')}
                   </Text>
                 </View>
               </View>
 
               <TouchableOpacity className="bg-red-500 px-4 py-1 rounded-full relative bottom-4 left-3 z-10">
-                <Text className="text-white text-xs font-semibold">Follow</Text>
+                <Text className="text-white text-xs font-semibold">{t('follow')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -135,11 +137,11 @@ export default function StoreReviewsScreen() {
                 </View>
                 <Text className="text-sm ml-2">
                   <Text className="font-bold">4.8</Text>
-                  <Text className="text-gray-500"> (67 reviews)</Text>
+                  <Text className="text-gray-500"> {t('reviews_count', { count: 67 })}</Text>
                 </Text>
               </View>
-              <Text className="text-sm text-gray-500">2,540 followers</Text>
-              <Text className="text-sm text-gray-500">4 products</Text>
+              <Text className="text-sm text-gray-500">{t('followers_count', { count: 2540 })}</Text>
+              <Text className="text-sm text-gray-500">{t('products_count', { count: 4 })}</Text>
             </View>
           </View>
         </View>
@@ -151,7 +153,7 @@ export default function StoreReviewsScreen() {
             onPress={() => router.push("/(customer)/store")}
           >
             <Text className={`font-bold ${activeTab === "products" ? "text-red-500" : "text-gray-400"}`}>
-              Products (4)
+              {t('products_with_count', { count: 4 })}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -159,7 +161,7 @@ export default function StoreReviewsScreen() {
             onPress={() => setActiveTab("reviews")}
           >
             <Text className={`font-bold ${activeTab === "reviews" ? "text-red-500" : "text-gray-400"}`}>
-              Reviews (0)
+              {t('reviews_with_count', { count: 0 })}
             </Text>
           </TouchableOpacity>
         </View>
@@ -167,25 +169,25 @@ export default function StoreReviewsScreen() {
         {/* REVIEW FILTERS */}
         <View className="mx-4 mt-4">
           <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-lg font-bold">Reviews</Text>
+            <Text className="text-lg font-bold">{t('reviews')}</Text>
             <TouchableOpacity className="flex-row items-center">
-              <Text className="text-red-500 mr-1">Sort by</Text>
+              <Text className="text-red-500 mr-1">{t('sort_by')}</Text>
               <Ionicons name="chevron-down" size={16} color="#d13138" />
             </TouchableOpacity>
           </View>
 
           <View className="flex-row space-x-2 mb-6 gap-2">
             <TouchableOpacity className="bg-gray-100 px-4 py-2 rounded-full">
-              <Text>All</Text>
+              <Text>{t('all')}</Text>
             </TouchableOpacity>
             <TouchableOpacity className="bg-gray-100 px-4 py-2 rounded-full">
-              <Text>5 Stars</Text>
+              <Text>{t('stars_5')}</Text>
             </TouchableOpacity>
             <TouchableOpacity className="bg-gray-100 px-4 py-2 rounded-full">
-              <Text>4 Stars</Text>
+              <Text>{t('stars_4')}</Text>
             </TouchableOpacity>
             <TouchableOpacity className="bg-gray-100 px-4 py-2 rounded-full">
-              <Text>3 Stars</Text>
+              <Text>{t('stars_3')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -196,10 +198,10 @@ export default function StoreReviewsScreen() {
             <FontAwesome name="comment-o" size={32} color="#9CA3AF" />
           </View>
           <Text className="text-xl font-bold text-gray-800 mb-2">
-            No reviews yet
+            {t('no_reviews_yet')}
           </Text>
           <Text className="text-gray-500 text-center mb-8">
-            Be the first to review this store
+            {t('be_first_to_review')}
           </Text>
         </View>
       </ScrollView>

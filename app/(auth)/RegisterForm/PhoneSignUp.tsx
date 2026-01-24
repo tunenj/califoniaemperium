@@ -20,6 +20,7 @@ import {
   validatePhoneNumber,
   formatPhoneNumber,
 } from '@/utils/phoneValidation';
+import { useLanguage } from '@/context/LanguageContext'; // Add import
 
 type UserRole = 'business' | 'customer';
 
@@ -31,6 +32,7 @@ interface Country {
 
 const BusinessRegisterForm: React.FC = () => {
   const router = useRouter();
+  const { t } = useLanguage(); // Add hook
 
   const defaultCountry =
     countries.find(c => c.value === 'canada') ?? countries[0];
@@ -92,20 +94,20 @@ const BusinessRegisterForm: React.FC = () => {
     const errors: string[] = [];
     const cleanCode = getCleanCountryCode();
 
-    if (!firstName.trim()) errors.push('First name is required');
-    if (!lastName.trim()) errors.push('Last name is required');
+    if (!firstName.trim()) errors.push(t('first_name_required'));
+    if (!lastName.trim()) errors.push(t('last_name_required'));
 
     if (!phoneNumber.trim()) {
-      errors.push('Phone number is required');
+      errors.push(t('phone_number_required'));
     } else {
       const validation = validatePhoneNumber(phoneNumber, cleanCode);
       if (!validation.isValid) {
-        errors.push(validation.error || 'Invalid phone number');
+        errors.push(validation.error || t('invalid_phone_number'));
       }
     }
 
     if (errors.length) {
-      Alert.alert('Form Error', errors.join('\n'));
+      Alert.alert(t('form_error'), errors.join('\n'));
       return false;
     }
 
@@ -179,8 +181,8 @@ const BusinessRegisterForm: React.FC = () => {
         <View className="mb-8 items-center">
           <Text className="text-lg font-semibold mb-1">
             {role === 'business'
-              ? 'Register as Business'
-              : 'Register as Customer'}
+              ? `${t('register_as')} ${t('business')}`
+              : `${t('register_as')} ${t('customer')}`}
           </Text>
 
           <TouchableOpacity
@@ -191,7 +193,7 @@ const BusinessRegisterForm: React.FC = () => {
           >
             <Image source={images.switchIcon} className="w-6 h-6 mr-2" />
             <Text className="text-gray-400 underline">
-              Switch to {role === 'business' ? 'Customer' : 'Business'}
+              {t('switch_to')} {role === 'business' ? t('customer') : t('business')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -199,10 +201,10 @@ const BusinessRegisterForm: React.FC = () => {
         {/* Names */}
         <View className="flex-row mb-4">
           <View className="flex-1 mr-2">
-            <Text className="text-gray-600 text-sm mb-1">First Name</Text>
+            <Text className="text-gray-600 text-sm mb-1">{t('first_name')}</Text>
             <TextInput
               className="bg-gray-100 rounded-lg px-4 py-4 border-b border-secondary text-gray-900"
-              placeholder="Enter first name"
+              placeholder={t('enter_first_name')}
               placeholderTextColor="#9CA3AF"
               value={firstName}
               onChangeText={setFirstName}
@@ -210,10 +212,10 @@ const BusinessRegisterForm: React.FC = () => {
           </View>
 
           <View className="flex-1 ml-2">
-            <Text className="text-gray-600 text-sm mb-1">Last Name</Text>
+            <Text className="text-gray-600 text-sm mb-1">{t('last_name')}</Text>
             <TextInput
               className="bg-gray-100 rounded-lg px-4 py-4 border-b border-secondary"
-              placeholder="Enter last name"
+              placeholder={t('enter_last_name')}
               placeholderTextColor="#9CA3AF"
               value={lastName}
               onChangeText={setLastName}
@@ -222,7 +224,7 @@ const BusinessRegisterForm: React.FC = () => {
         </View>
 
         {/* Phone */}
-        <Text className="text-gray-600 text-sm mb-1">Phone Number</Text>
+        <Text className="text-gray-600 text-sm mb-1">{t('phone_number')}</Text>
         <View
           className={`flex-row bg-gray-100 rounded-lg border-b ${phoneError ? 'border-red-500' : 'border-secondary'
             }`}
@@ -239,7 +241,7 @@ const BusinessRegisterForm: React.FC = () => {
 
           <TextInput
             className="flex-1 px-3 py-4"
-            placeholder="Enter phone number"
+            placeholder={t('enter_phone_number')}
             placeholderTextColor="#9CA3AF"
             value={formattedPhoneNumber}
             onChangeText={handlePhoneNumberChange}
@@ -249,7 +251,7 @@ const BusinessRegisterForm: React.FC = () => {
 
         {/* Verify */}
         <View className="mt-8">
-          <Text className="text-gray-400 mb-4">Verify to continue</Text>
+          <Text className="text-gray-400 mb-4">{t('verify_to_continue')}</Text>
 
           <View className="flex-row">
             <TouchableOpacity
@@ -276,7 +278,7 @@ const BusinessRegisterForm: React.FC = () => {
               disabled={!!phoneError}
             >
               <Phone size={22} color="#ffff" />
-              <Text className="ml-2 text-white">SMS</Text>
+              <Text className="ml-2 text-white">{t('sms')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -298,7 +300,7 @@ const BusinessRegisterForm: React.FC = () => {
             onPressIn={() => { }}
           >
             <Text className="text-xl font-semibold mb-4">
-              Select Country
+              {t('select_country')}
             </Text>
 
             <FlatList

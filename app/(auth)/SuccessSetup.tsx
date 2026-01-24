@@ -4,12 +4,14 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CheckCircle, ArrowLeft } from 'lucide-react-native';
 import React from 'react';
 import { Image, Text, TouchableOpacity, View } from 'react-native';
+import { useLanguage } from '@/context/LanguageContext'; // Add import
 
 type UserRole = 'business' | 'customer';
 
 const SuccessSetup: React.FC = () => {
     const router = useRouter();
     const params = useLocalSearchParams();
+    const { t } = useLanguage(); // Add hook
 
     /** Helper to normalize params */
     const getParamString = (param: any): string => {
@@ -72,15 +74,17 @@ const SuccessSetup: React.FC = () => {
         }
     };
 
-
     const getSetupButtonText = () => {
-        return isBusiness ? 'Set Up Store' : 'Set Up Profile';
+        return isBusiness ? t('set_up_store') : t('set_up_profile');
     };
 
     const getLaterButtonText = () => {
-        return isBusiness ? 'Skip Store Setup' : 'Skip Profile Setup';
+        return isBusiness ? t('skip_store_setup') : t('skip_profile_setup');
     };
 
+    const getRoleText = () => {
+        return isBusiness ? t('business_account') : t('customer_account');
+    };
 
     return (
         <View className="flex-1 bg-white">
@@ -112,10 +116,10 @@ const SuccessSetup: React.FC = () => {
                             <CheckCircle size={48} color="#10B981" />
                         </View>
                         <Text className="text-3xl font-bold text-black mb-2">
-                            Successful
+                            {t('successful')}
                         </Text>
                         <Text className="text-gray-600 text-lg text-center px-4">
-                            Account created successfully
+                            {t('account_created_successfully')}
                         </Text>
                     </View>
 
@@ -123,7 +127,7 @@ const SuccessSetup: React.FC = () => {
                     <View className="items-center mb-8">
                         <View className="bg-gray-100 px-4 py-2 rounded-full">
                             <Text className="text-gray-700 text-sm font-medium">
-                                {isBusiness ? 'Business Account' : 'Customer Account'}
+                                {getRoleText()}
                             </Text>
                         </View>
                     </View>

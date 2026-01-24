@@ -11,6 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { useLanguage } from "@/context/LanguageContext"; // Add this import
 
 type Product = {
     id: string;
@@ -68,12 +69,14 @@ const products: Product[] = [
 
 export default function StoreScreen() {
     const router = useRouter();
+    const { t } = useLanguage(); // Add this hook
+
     const categories = [
-        "All Store",
-        "Electronics",
-        "Fashion",
-        "Home & Garden",
-        "Sports",
+        t("all_store") || "All Store", // Use translation
+        t("electronics") || "Electronics", // Use translation
+        t("fashion") || "Fashion", // Use translation
+        t("home_garden") || "Home & Garden", // Use translation
+        t("sports") || "Sports", // Use translation
     ];
 
     return (
@@ -120,12 +123,12 @@ export default function StoreScreen() {
                             {categories.map((cat) => (
                                 <TouchableOpacity key={cat} className="mr-3">
                                     <Text
-                                        className={`text-base text-white ${cat === "All Store" ? "font-bold" : "font-normal"
+                                        className={`text-base text-white ${cat === categories[0] ? "font-bold" : "font-normal"
                                             }`}
                                     >
                                         {cat}
                                     </Text>
-                                    {cat === "All Store" && (
+                                    {cat === categories[0] && (
                                         <View className="h-1 bg-white rounded-full mt-1" />
                                     )}
                                 </TouchableOpacity>
@@ -159,22 +162,28 @@ export default function StoreScreen() {
                                         TechHub
                                     </Text>
                                     <Text className="text-xs text-gray-500">
-                                        Beautiful home decor and essential items
+                                        {t("store_description") || "Beautiful home decor and essential items"} {/* Use translation */}
                                     </Text>
                                 </View>
                             </View>
 
                             <TouchableOpacity className="bg-red-500 px-4 py-1 rounded-full relative bottom-4 left-3 z-10">
-                                <Text className="text-white text-xs font-semibold">Follow</Text>
+                                <Text className="text-white text-xs font-semibold">
+                                    {t("follow") || "Follow"} {/* Use translation */}
+                                </Text>
                             </TouchableOpacity>
                         </View>
 
                         <View className="flex-row justify-between mt-4">
                             <Text className="text-xs text-gray-500">
-                                4.8 ⭐ (76 reviews)
+                                4.8 ⭐ {t("reviews_count", { count: 76 }) || "(76 reviews)"} {/* Use translation */}
                             </Text>
-                            <Text className="text-xs text-gray-500">2,340 followers</Text>
-                            <Text className="text-xs text-gray-500">64 products</Text>
+                            <Text className="text-xs text-gray-500">
+                                {t("followers_count", { count: 2340 }) || "2,340 followers"} {/* Use translation */}
+                            </Text>
+                            <Text className="text-xs text-gray-500">
+                                {t("products_count", { count: 64 }) || "64 products"} {/* Use translation */}
+                            </Text>
                         </View>
                     </View>
                 </View>
@@ -182,14 +191,18 @@ export default function StoreScreen() {
                 {/* TABS */}
                 <View className="flex-row px-4 mt-6">
                     <TouchableOpacity className="mr-6">
-                        <Text className="font-bold text-red-500">Products (4)</Text>
+                        <Text className="font-bold text-red-500">
+                            {t("products_with_count", { count: 4 }) || "Products (4)"} {/* Use translation */}
+                        </Text>
                         <View className="h-1 bg-red-500 rounded-full mt-1" />
                     </TouchableOpacity>
 
                     <TouchableOpacity
                         onPress={() => router.push("/(customer)/store-reviews")}
                     >
-                        <Text className="text-gray-400">Reviews (0)</Text>
+                        <Text className="text-gray-400">
+                            {t("reviews_with_count", { count: 0 }) || "Reviews (0)"} {/* Use translation */}
+                        </Text>
                     </TouchableOpacity>
                 </View>
 

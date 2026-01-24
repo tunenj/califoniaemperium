@@ -3,8 +3,11 @@ import { ScrollView, View, Text } from "react-native";
 import CategorySection from "@/components/category/CategorySection";
 import SidebarMenu from "@/components/category/SidebarMenu";
 import Dashboard from "@/components/explore/dashboard";
+import { useLanguage } from '@/context/LanguageContext'; // Add import
 
 const CategoryScreen = () => {
+  const { t } = useLanguage(); // Add hook
+
   return (
     <View className="flex-1 bg-lightPink">
       <Dashboard />
@@ -18,7 +21,7 @@ const CategoryScreen = () => {
           <View className="px-4 py-4 bg-white z-10 mt-2 ml-1 rounded-2xl">
             <View className="flex-row items-center justify-between">
               <Text className="text-base font-semibold text-gray-800">
-                All products
+                {t('all_products')}
               </Text>
               <Text className="text-sm text-red-500 font-medium">›</Text>
             </View>
@@ -33,47 +36,47 @@ const CategoryScreen = () => {
             {/* Each section wrapped in its own background */}
             <View className="bg-white rounded-xl p-6 mb-2 w-[250px] -mx-6">
               <CategorySection
-                title="Appliances"
+                title={t('appliances')}
                 items={[
-                  { label: "Small Appliances", image: require("../../assets/images/blender.png") },
-                  { label: "Big Appliances", image: require("../../assets/images/fridge.png") },
+                  { label: t('small_appliances'), image: require("../../assets/images/blender.png") },
+                  { label: t('big_appliances'), image: require("../../assets/images/fridge.png") },
                 ]}
               />
             </View>
 
             <View className="bg-white rounded-xl p-6 mb-2 w-[250px] -mx-6">
               <CategorySection
-                title="Home & Kitchen"
+                title={t('home_kitchen')}
                 items={[
-                  { label: "Cookware", image: require("../../assets/images/Cookware.png") },
-                  { label: "Bakeware", image: require("../../assets/images/Bakeware.png") },
-                  { label: "Cutlery", image: require("../../assets/images/Cutlery.png") },
-                  { label: "Small cooker", image: require("../../assets/images/Cooker.png") },
+                  { label: t('cookware'), image: require("../../assets/images/Cookware.png") },
+                  { label: t('bakeware'), image: require("../../assets/images/Bakeware.png") },
+                  { label: t('cutlery'), image: require("../../assets/images/Cutlery.png") },
+                  { label: t('small_cooker'), image: require("../../assets/images/Cooker.png") },
                 ]}
               />
             </View>
 
             <View className="bg-white rounded-xl p-6 mb-2 w-[250px] -mx-6">
               <CategorySection
-                title="Home"
+                title={t('home')}
                 items={[
-                  { label: "Bedding", image: require("../../assets/images/Bedding.png") },
-                  { label: "Decor", image: require("../../assets/images/Decor.png") },
-                  { label: "Lighting", image: require("../../assets/images/Lighting.png") },
-                  { label: "Bathroom", image: require("../../assets/images/Bathroom.png") },
-                  { label: "Lamp", image: require("../../assets/images/Lamp.png") },
-                  { label: "Cleaner", image: require("../../assets/images/BathroomCleaner.png") },
+                  { label: t('bedding'), image: require("../../assets/images/Bedding.png") },
+                  { label: t('decor'), image: require("../../assets/images/Decor.png") },
+                  { label: t('lighting'), image: require("../../assets/images/Lighting.png") },
+                  { label: t('bathroom'), image: require("../../assets/images/Bathroom.png") },
+                  { label: t('lamp'), image: require("../../assets/images/Lamp.png") },
+                  { label: t('cleaner'), image: require("../../assets/images/BathroomCleaner.png") },
                 ]}
               />
             </View>
 
             <View className="bg-white rounded-xl p-6 mb-6 w-[250px] -mx-6">
               <CategorySection
-                title="Office Products"
+                title={t('office_products')}
                 items={[
-                  { label: "Chair", image: require("../../assets/images/Chair.png") },
-                  { label: "Table", image: require("../../assets/images/Table.png") },
-                  { label: "Stationary", image: require("../../assets/images/Stationary.png") },
+                  { label: t('chair'), image: require("../../assets/images/Chair.png") },
+                  { label: t('table'), image: require("../../assets/images/Table.png") },
+                  { label: t('stationary'), image: require("../../assets/images/Stationary.png") },
                 ]}
               />
             </View>

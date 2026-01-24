@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from "expo-router";
+import { useLanguage } from '@/context/LanguageContext'; // Add import
 
 const { width } = Dimensions.get('window');
 const ITEM_WIDTH = (width - 40) / 2; // tighter spacing like screenshot
@@ -82,6 +83,8 @@ const mockProducts: Product[] = [
 ];
 
 const ProductsScreen: React.FC = () => {
+    const { t } = useLanguage(); // Add hook
+
     const renderProduct = ({ item }: { item: Product }) => (
         <TouchableOpacity
             style={{ width: ITEM_WIDTH }}
@@ -104,7 +107,7 @@ const ProductsScreen: React.FC = () => {
 
                 <View className="bg-green-100 px-2 py-0.5 rounded-full">
                     <Text className="text-[10px] text-green-600 font-semibold">
-                        Active
+                        {t('active')}
                     </Text>
                 </View>
             </View>
@@ -114,7 +117,7 @@ const ProductsScreen: React.FC = () => {
                     {item.price}
                 </Text>
                 <Text className="text-xs text-gray-500">
-                    {item.stock} in stock
+                    {item.stock} {t('in_stock')}
                 </Text>
             </View>
         </TouchableOpacity>
@@ -127,10 +130,10 @@ const ProductsScreen: React.FC = () => {
                 <View className="flex-row justify-between items-center mb-3">
                     <View>
                         <Text className="text-lg font-bold text-gray-900">
-                            Products
+                            {t('products')}
                         </Text>
                         <Text className="text-xs text-gray-500">
-                            {mockProducts.length} Products in your store
+                            {mockProducts.length} {t('products_in_your_store')}
                         </Text>
                     </View>
                     <TouchableOpacity
@@ -138,7 +141,7 @@ const ProductsScreen: React.FC = () => {
                         className="bg-white border border-red-500 px-4 py-2 rounded-full"
                     >
                         <Text className="text-red-500 text-xs font-semibold">
-                            + Add Product
+                            + {t('add_product')}
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -146,7 +149,7 @@ const ProductsScreen: React.FC = () => {
                 {/* Search */}
                 <View className="bg-white rounded-xl px-4 py-1 border border-gray-200 mb-3">
                     <TextInput
-                        placeholder="search products..."
+                        placeholder={t('search_products')}
                         placeholderTextColor="#9CA3AF"
                         className="text-sm text-gray-800"
                     />
@@ -155,12 +158,12 @@ const ProductsScreen: React.FC = () => {
                 {/* Filters */}
                 <View className="flex-row gap-3">
                     <TouchableOpacity className="flex-row items-center justify-between flex-1 bg-white px-4 py-3 rounded-xl border border-gray-200">
-                        <Text className="text-xs text-gray-700">All Categories</Text>
+                        <Text className="text-xs text-gray-700">{t('all_categories')}</Text>
                         <Text className="text-xs text-gray-400">⌄</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity className="flex-row items-center justify-between flex-1 bg-white px-4 py-3 rounded-xl border border-gray-200">
-                        <Text className="text-xs text-gray-700">All Status</Text>
+                        <Text className="text-xs text-gray-700">{t('all_status')}</Text>
                         <Text className="text-xs text-gray-400">⌄</Text>
                     </TouchableOpacity>
                 </View>

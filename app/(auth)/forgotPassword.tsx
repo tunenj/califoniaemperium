@@ -4,9 +4,12 @@ import { useRouter } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Image, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useLanguage } from '@/context/LanguageContext'; // Add import
 
 const ResetPasswordForm: React.FC = () => {
     const router = useRouter();
+    const { t } = useLanguage(); // Add hook
+    
     const [input, setInput] = useState('');
     const [isButtonEnabled, setIsButtonEnabled] = useState(false);
 
@@ -54,10 +57,10 @@ const ResetPasswordForm: React.FC = () => {
                     {/* Title & Description */}
                     <View className="items-center mt-3 mb-10">
                         <Text className="text-2xl font-bold text-black mb-3">
-                            Reset Password
+                            {t('reset_password')}
                         </Text>
                         <Text className="text-gray-600 text-base items-center justify-center leading-6">
-                            A password reset link will be sent to your email or phone number
+                            {t('reset_password_description')}
                         </Text>
                     </View>
                 </View>
@@ -65,12 +68,12 @@ const ResetPasswordForm: React.FC = () => {
                 {/* Input Field */}
                 <View className="mb-10">
                     <Text className="text-gray-700 text-base mb-3">
-                        Email or phone number
+                        {t('email_or_phone')}
                     </Text>
                     <View className="relative">
                         <TextInput
                             className="bg-gray-100 rounded-lg px-4 py-4 text-base border-b-2 border-secondary"
-                            placeholder="Enter your email or phone number"
+                            placeholder={t('enter_email_or_phone')}
                             placeholderTextColor="black"
                             value={input}
                             onChangeText={setInput}
@@ -93,7 +96,7 @@ const ResetPasswordForm: React.FC = () => {
                         className={`text-lg font-medium ${isButtonEnabled ? 'text-white' : 'text-gray-500'
                             }`}
                     >
-                        Send Code
+                        {t('send_code')}
                     </Text>
                 </TouchableOpacity>
             </View>

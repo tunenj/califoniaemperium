@@ -11,14 +11,17 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useLanguage } from "@/context/LanguageContext"; // Add this import
 
 const HomeScreen = () => {
+  const { t } = useLanguage(); // Add this hook
+
   const categories = [
-    "All Store",
-    "Electronics",
-    "Fashion",
-    "Home & Garden",
-    "Sports",
+    t("all_store") || "All Store", // Use translation
+    t("electronics") || "Electronics", // Use translation
+    t("fashion") || "Fashion", // Use translation
+    t("home_garden") || "Home & Garden", // Use translation
+    t("sports") || "Sports", // Use translation
   ];
 
   return (
@@ -69,12 +72,12 @@ const HomeScreen = () => {
                   >
                     <Text
                       className={`text-base ${
-                        cat === "All Store" ? "font-bold" : "font-normal"
+                        cat === categories[0] ? "font-bold" : "font-normal"
                       } text-white`}
                     >
                       {cat}
                     </Text>
-                    {cat === "All Store" && (
+                    {cat === categories[0] && (
                       <View className="absolute bottom-0 left-3 right-3 h-1 bg-white rounded-full" />
                     )}
                   </TouchableOpacity>
@@ -88,7 +91,7 @@ const HomeScreen = () => {
               <View className="flex-1 flex-row items-center bg-white rounded-full h-10 px-4 shadow-md">
                 <Feather name="camera" size={22} color="#666" />
                 <TextInput
-                  placeholder="Search products, stores..."
+                  placeholder={t("search") || "Search products, stores..."} // Use translation
                   placeholderTextColor="#999"
                   className="flex-1 mx-3 text-base text-black"
                 />
@@ -110,7 +113,7 @@ const HomeScreen = () => {
                 {/* Title */}
                 <View className="relative inline-block">
                   <Text className="text-3xl font-bold text-white leading-tight">
-                    Holiday{"\n"}Style Rush
+                    {t("holiday_style_rush") || "Holiday\nStyle Rush"} {/* Use translation */}
                   </Text>
 
                   {/* Image on the edge */}
@@ -121,24 +124,24 @@ const HomeScreen = () => {
                   />
                 </View>
 
-                {/* Inline wrapper for “On checkout” + pill */}
+                {/* Inline wrapper for "On checkout" + pill */}
                 <View className="mt-2 flex-row items-center">
                   {/* Text on left in front */}
                   <Text className="relative z-10 text-[12px] text-white font-medium">
-                    On checkout
+                    {t("on_checkout") || "On checkout"} {/* Use translation */}
                   </Text>
 
                   {/* Pill on right behind */}
-                  <View className="absolute -right-9 top-0.5 bg-[#C7A66A] px-2 py-2 rounded-full w-24 z-0">
+                  <View className="absolute -right-7 top-0.5 bg-[#C7A66A] px-2 py-2 rounded-full w-24 z-0">
                     <Text className="text-[10px] font-semibold text-white text-center">
-                      Extra 10% OFF
+                      {t("extra_10_off") || "Extra 10% OFF"} {/* Use translation */}
                     </Text>
                   </View>
                 </View>
 
                 {/* Footer */}
                 <Text className="text-xs text-white opacity-90 mt-1">
-                  T&C Applies
+                  {t("terms_conditions_apply") || "T&C Applies"} {/* Use translation */}
                 </Text>
               </View>
 

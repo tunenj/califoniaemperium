@@ -1,42 +1,66 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+// context/LanguageContext.tsx
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import i18n from '@/lib/i18n';
+import { TFunction } from 'i18next';
 
-type LanguageContextType = {
-  language: string;
-  setLanguage: (lang: string) => void;
-  isReady: boolean;
-};
+export interface Language {
+  code: string;
+  name: string;
+  nativeName: string;
+}
 
-const LanguageContext = createContext<LanguageContextType | undefined>(
-  undefined
-);
+export const LANGUAGES: Language[] = [
+  { code: 'en', name: 'English', nativeName: 'English' },
+  { code: 'fr', name: 'French', nativeName: 'Français' },
+  { code: 'es', name: 'Spanish', nativeName: 'Español' },
+  { code: 'pt', name: 'Portuguese', nativeName: 'Português' },
+];
 
-export const LanguageProvider = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
-  const [language, setLanguageState] = useState("en");
-  const [isReady, setIsReady] = useState(false);
+interface LanguageContextProps {
+  language: Language | null;
+  setLanguage: (language: Language) => void;
+  t: TFunction;
+  languages: Language[];
+}
 
-  // Load saved language on app start
-  useEffect(() => {
-    (async () => {
-      const savedLanguage = await AsyncStorage.getItem("app_language");
-      if (savedLanguage) {
-        setLanguageState(savedLanguage);
-      }
-      setIsReady(true);
-    })();
-  }, []);
+const LanguageContext = createContext<LanguageContextProps | undefined>(undefined);
 
-  const setLanguage = async (lang: string) => {
+export const LanguageProvider = ({ children }: { children: ReactNode }) => {
+  const [language, setLanguageState] = useState<Language | null>(null);
+
+  const setLanguage = async (lang: Language) => {
+    await i18n.changeLanguage(lang.code);
     setLanguageState(lang);
-    await AsyncStorage.setItem("app_language", lang);
   };
 
+  const t: TFunction = i18n.t;
+
+  // Load initial language
+  useEffect(() => {
+    const currentLangCode = i18n.language;
+    const lang = LANGUAGES.find(l => l.code === currentLangCode);
+    if (lang) {
+      setLanguageState(lang);
+    }
+  }, []);
+
+  // Listen for language changes from i18n
+  useEffect(() => {
+    const handleLanguageChange = (langCode: string) => {
+      const lang = LANGUAGES.find(l => l.code === langCode);
+      if (lang) {
+        setLanguageState(lang);
+      }
+    };
+
+    i18n.on('languageChanged', handleLanguageChange);
+    return () => {
+      i18n.off('languageChanged', handleLanguageChange);
+    };
+  }, []);
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, isReady }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, languages: LANGUAGES }}>
       {children}
     </LanguageContext.Provider>
   );
@@ -45,7 +69,7 @@ export const LanguageProvider = ({
 export const useLanguage = () => {
   const context = useContext(LanguageContext);
   if (!context) {
-    throw new Error("useLanguage must be used within LanguageProvider");
+    throw new Error('useLanguage must be used within LanguageProvider');
   }
   return context;
 };

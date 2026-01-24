@@ -11,11 +11,12 @@ import {
 } from "react-native";
 import { ArrowLeft, ChevronDown, Pencil, User } from "lucide-react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-
+import { useLanguage } from "@/context/LanguageContext"; // Add import
 
 const CustomerProfileSetup: React.FC = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { t } = useLanguage(); // Add hook
 
   /** Helper to get string value from params */
   const getParamString = (param: any): string => {
@@ -24,13 +25,13 @@ const CustomerProfileSetup: React.FC = () => {
   };
 
   // Get registered user data
-  const firstName = getParamString(params.firstName) || "User";
+  const firstName = getParamString(params.firstName) || t('user');
   const lastName = getParamString(params.lastName) || "";
   const registeredEmail =
     getParamString(params.email) || "viviancooker@gmail.com";
   const phoneNumber = getParamString(params.phoneNumber) || "";
 
-  const fullName = `${firstName} ${lastName}`.trim() || "Vivian Cooker";
+  const fullName = `${firstName} ${lastName}`.trim() || t('vivian_cooker');
 
   const [profileName, setProfileName] = useState(fullName);
   const [gender, setGender] = useState<string | null>(null);
@@ -48,22 +49,22 @@ const CustomerProfileSetup: React.FC = () => {
 
   const handleUpdateEmail = () => {
     if (newEmail.trim() === "") {
-      Alert.alert("Error", "Email cannot be empty");
+      Alert.alert(t('error'), t('email_cannot_be_empty'));
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(newEmail)) {
-      Alert.alert("Invalid Email", "Please enter a valid email address");
+      Alert.alert(t('invalid_email'), t('enter_valid_email'));
       return;
     }
 
     setEmail(newEmail);
     setShowEmailModal(false);
-    Alert.alert("Success", "Email updated successfully");
+    Alert.alert(t('success'), t('email_updated_successfully'));
   };
 
-  const genderOptions = ["Female", "Male"];
+  const genderOptions = [t('female'), t('male')];
 
   /* ONLY ADDITION: check if form is complete */
   const isFormComplete = useMemo(() => {
@@ -95,11 +96,11 @@ const CustomerProfileSetup: React.FC = () => {
         </View>
 
         <Text className="text-xl font-semibold text-black mb-1 text-center">
-          Welcome, {firstName}
+          {t('welcome_user', { name: firstName })}
         </Text>
 
         <Text className="text-gray-500 text-center">
-          Set up your business profile
+          {t('setup_business_profile')}
         </Text>
       </View>
 
@@ -110,7 +111,7 @@ const CustomerProfileSetup: React.FC = () => {
         </View>
 
         <Text className="text-lg font-semibold text-black">
-          Personal Details
+          {t('personal_details')}
         </Text>
 
         <View className="h-[2px] bg-secondary w-20 mt-2" />
@@ -119,7 +120,7 @@ const CustomerProfileSetup: React.FC = () => {
       {/* Form */}
       <ScrollView className="space-y-5" showsVerticalScrollIndicator={false}>
         <View>
-          <Text className="text-gray-500 text-sm mb-1">Full Name</Text>
+          <Text className="text-gray-500 text-sm mb-1">{t('full_name')}</Text>
           <TextInput
             value={profileName}
             onChangeText={setProfileName}
@@ -128,7 +129,7 @@ const CustomerProfileSetup: React.FC = () => {
         </View>
 
         <View>
-          <Text className="text-gray-500 text-sm mb-1">Gender</Text>
+          <Text className="text-gray-500 text-sm mb-1">{t('gender')}</Text>
           <TouchableOpacity
             onPress={() => setShowGenderModal(true)}
             className="flex-row items-center justify-between border-b border-gray-300 py-3"
@@ -137,7 +138,7 @@ const CustomerProfileSetup: React.FC = () => {
               className={`text-base ${gender ? "text-black" : "text-gray-400"
                 }`}
             >
-              {gender ?? "Select from list"}
+              {gender ?? t('select_from_list')}
             </Text>
             <ChevronDown size={18} color="#9CA3AF" />
           </TouchableOpacity>
@@ -145,10 +146,10 @@ const CustomerProfileSetup: React.FC = () => {
 
         <View>
           <View className="flex-row justify-between mb-1">
-            <Text className="text-gray-500 text-sm">Email</Text>
+            <Text className="text-gray-500 text-sm">{t('email')}</Text>
             <TouchableOpacity onPress={() => setShowEmailModal(true)}>
               <Text className="text-secondary text-sm">
-                <Pencil size={14} color="#C62828" /> Change
+                <Pencil size={14} color="#C62828" /> {t('change')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -160,23 +161,23 @@ const CustomerProfileSetup: React.FC = () => {
         </View>
 
         <View>
-          <Text className="text-gray-500 text-sm mb-1">Phone Number</Text>
+          <Text className="text-gray-500 text-sm mb-1">{t('phone_number')}</Text>
           <TextInput
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
-            placeholder="Enter phone number"
+            placeholder={t('enter_phone_number')}
             placeholderTextColor="#9CA3AF"
             className="border-b border-gray-300 py-3 text-base text-black"
           />
         </View>
 
         <View>
-          <Text className="text-gray-500 text-sm mb-1">Billing Address</Text>
+          <Text className="text-gray-500 text-sm mb-1">{t('billing_address')}</Text>
           <TextInput
             value={address}
             onChangeText={setAddress}
-            placeholder="Enter address"
+            placeholder={t('enter_address')}
             placeholderTextColor="#9CA3AF"
             className="border-b border-gray-300 py-3 text-base text-black"
           />
@@ -199,7 +200,7 @@ const CustomerProfileSetup: React.FC = () => {
             className={`text-lg font-semibold ${isFormComplete ? "text-white" : "text-gray-400"
               }`}
           >
-            Next
+            {t('next')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -209,7 +210,7 @@ const CustomerProfileSetup: React.FC = () => {
         <View className="flex-1 justify-end bg-black/50">
           <View className="bg-white rounded-t-3xl p-6">
             <Text className="text-xl font-bold mb-6 text-center">
-              Select Gender
+              {t('select_gender')}
             </Text>
             {genderOptions.map((option) => (
               <TouchableOpacity
@@ -228,13 +229,14 @@ const CustomerProfileSetup: React.FC = () => {
       <Modal visible={showEmailModal} transparent animationType="slide">
         <View className="flex-1 justify-end bg-black/50">
           <View className="bg-white rounded-t-3xl p-6">
-            <Text className="text-xl font-bold mb-4">Change Email</Text>
+            <Text className="text-xl font-bold mb-4">{t('change_email')}</Text>
 
             <TextInput
               value={newEmail}
               onChangeText={setNewEmail}
               keyboardType="email-address"
               autoCapitalize="none"
+              placeholder={t('enter_new_email')}
               className="border border-gray-300 rounded-lg px-4 py-3 mb-6"
             />
 
@@ -243,7 +245,7 @@ const CustomerProfileSetup: React.FC = () => {
               onPress={handleUpdateEmail}
             >
               <Text className="text-center text-white font-semibold">
-                Update
+                {t('update')}
               </Text>
             </TouchableOpacity>
           </View>

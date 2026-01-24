@@ -7,6 +7,7 @@ import {
   Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useLanguage } from '@/context/LanguageContext'; // Add import
 
 interface Props {
   visible: boolean;
@@ -27,6 +28,7 @@ const EditCommissionModal: React.FC<Props> = ({
   totalSales,
   onSave,
 }) => {
+  const { t } = useLanguage(); // Add hook
   const [rate, setRate] = React.useState(
     String(commissionRate)
   );
@@ -46,7 +48,7 @@ const EditCommissionModal: React.FC<Props> = ({
           {/* Header */}
           <View className="flex-row justify-between items-center mb-4">
             <Text className="text-lg font-semibold text-gray-900">
-              Edit Commission Rate
+              {t('edit_commission_rate')}
             </Text>
             <Pressable onPress={onClose}>
               <Ionicons name="close" size={22} />
@@ -65,7 +67,7 @@ const EditCommissionModal: React.FC<Props> = ({
 
           {/* Commission Input */}
           <Text className="text-sm font-medium text-gray-700 mb-1">
-            Commission Rate (%)
+            {t('commission_rate_percent')}
           </Text>
           <TextInput
             keyboardType="numeric"
@@ -75,18 +77,18 @@ const EditCommissionModal: React.FC<Props> = ({
           />
 
           <Text className="text-xs text-gray-500 mb-4">
-            Platform will earn {rate}% of each sale from this vendor
+            {t('platform_earn_commission', { rate })}
           </Text>
 
           {/* Preview */}
           <View className="rounded-xl bg-red-50 border border-red-200 p-4 mb-6">
             <Text className="text-xs text-red-600 mb-2">
-              Preview on current sale
+              {t('preview_on_current_sale')}
             </Text>
 
             <View className="flex-row justify-between">
               <Text className="text-sm text-gray-700">
-                Total Sales:
+                {t('total_sales')}:
               </Text>
               <Text className="font-semibold">
                 ₦{totalSales.toLocaleString()}
@@ -95,7 +97,7 @@ const EditCommissionModal: React.FC<Props> = ({
 
             <View className="flex-row justify-between mt-1">
               <Text className="text-sm text-gray-700">
-                Commission:
+                {t('commission')}:
               </Text>
               <Text className="font-semibold text-red-600">
                 ₦{commissionValue.toLocaleString()}
@@ -110,7 +112,7 @@ const EditCommissionModal: React.FC<Props> = ({
               className="flex-1 mr-2 border border-red-500 rounded-full py-3"
             >
               <Text className="text-center text-red-500 font-medium">
-                Cancel
+                {t('cancel')}
               </Text>
             </Pressable>
 
@@ -119,7 +121,7 @@ const EditCommissionModal: React.FC<Props> = ({
               className="flex-1 ml-2 bg-red-600 rounded-full py-3"
             >
               <Text className="text-center text-white font-medium">
-                Save change
+                {t('save_change')}
               </Text>
             </Pressable>
           </View>

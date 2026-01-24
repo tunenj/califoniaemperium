@@ -23,9 +23,11 @@ import {
   View,
   ActivityIndicator,
 } from 'react-native';
+import { useLanguage } from '@/context/LanguageContext'; // Add import
 
 const RegisterForm: React.FC = () => {
   const router = useRouter();
+  const { t } = useLanguage(); // Add hook
   const isMounted = useRef(true);
 
   const [email, setEmail] = useState('');
@@ -67,9 +69,9 @@ const RegisterForm: React.FC = () => {
 
     if (!isMounted.current) return valid;
 
-    setEmailError(valid ? '' : 'Please enter a valid email address');
+    setEmailError(valid ? '' : t('invalid_email_format'));
     return valid;
-  }, []);
+  }, [t]);
 
   const validatePassword = useCallback((value: string) => {
     const validations = {
@@ -159,11 +161,11 @@ const RegisterForm: React.FC = () => {
 
       if (emailExists) {
         Alert.alert(
-          'Email Already Registered',
-          'This email is already registered. Would you like to sign in instead?',
+          t('email_already_registered'),
+          t('email_already_registered_message'),
           [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Sign In', onPress: handleSignIn },
+            { text: t('cancel'), style: 'cancel' },
+            { text: t('sign_in'), onPress: handleSignIn },
           ]
         );
         return;
@@ -182,8 +184,8 @@ const RegisterForm: React.FC = () => {
       if (!isMounted.current) return;
 
       Alert.alert(
-        'Registration Failed',
-        'Unable to proceed with registration. Please try again.'
+        t('registration_failed'),
+        t('registration_failed_message')
       );
     } finally {
       if (isMounted.current) {
@@ -199,8 +201,17 @@ const RegisterForm: React.FC = () => {
       <XCircle size={16} color="#EF4444" />
     );
 
+  // Helper functions for dynamic text
+  const getRegisterTitle = () => {
+    return `${t('register_as')} ${isCustomer ? t('customer') : t('business')}`;
+  };
+
+  const getSwitchText = () => {
+    return `${t('switch_to')} ${isCustomer ? t('business') : t('customer')}`;
+  };
+
   /* ───────────────────────────
-     UI (UNCHANGED)
+     UI
   ─────────────────────────── */
   return (
     <View className="flex-1 bg-white">
@@ -226,7 +237,7 @@ const RegisterForm: React.FC = () => {
 
           <View className="mb-8 items-center">
             <Text className="text-2xl font-bold text-black mb-1">
-              {isCustomer ? 'Register as Customer' : 'Register as Business'}
+              {getRegisterTitle()}
             </Text>
 
             <TouchableOpacity
@@ -240,7 +251,7 @@ const RegisterForm: React.FC = () => {
                 resizeMode="contain"
               />
               <Text className="text-lg text-gray-400 font-medium underline">
-                {isCustomer ? 'Switch to Business' : 'Switch to Customer'}
+                {getSwitchText()}
               </Text>
             </TouchableOpacity>
           </View>
@@ -248,20 +259,23 @@ const RegisterForm: React.FC = () => {
 
         {/* Email */}
         <View className="mb-6">
-          <Text className="text-gray-600 text-sm mb-1">Email</Text>
+          <Text className="text-gray-600 text-sm mb-1">
+            {t('email')}
+          </Text>
           <TextInput
             className={`bg-gray-100 rounded-xl px-4 py-4 text-base border ${
               emailError && email.trim()
                 ? 'border-red-300'
                 : 'border-gray-200'
             }`}
-            placeholder="Enter your email"
+            placeholder={t('enter_your_email')}
             placeholderTextColor="#6B7280"
             value={email}
             onChangeText={handleEmailChange}
             keyboardType="email-address"
             autoCapitalize="none"
             editable={!isLoading}
+            accessibilityLabel={t('email')}
           />
           {emailError && email.trim() ? (
             <Text className="text-red-500 text-xs mt-1 ml-1">
@@ -272,22 +286,26 @@ const RegisterForm: React.FC = () => {
 
         {/* Password */}
         <View className="mb-6">
-          <Text className="text-gray-600 text-sm mb-1">Create Password</Text>
+          <Text className="text-gray-600 text-sm mb-1">
+            {t('create_password')}
+          </Text>
           <View className="relative">
             <TextInput
               className="bg-gray-100 rounded-xl px-4 py-4 text-base pr-12 border border-gray-200"
-              placeholder="Create a strong password"
+              placeholder={t('create_password_placeholder')}
               placeholderTextColor="#6B7280"
               secureTextEntry={!showPassword}
               value={password}
               onChangeText={handlePasswordChange}
               autoCapitalize="none"
               editable={!isLoading}
+              accessibilityLabel={t('create_password')}
             />
             <TouchableOpacity
               className="absolute right-4 top-4"
               onPress={() => setShowPassword(!showPassword)}
               disabled={isLoading}
+              accessibilityLabel={showPassword ? t('hide_password') : t('show_password')}
             >
               {showPassword ? (
                 <EyeOff size={24} color="#666" />
@@ -302,31 +320,31 @@ const RegisterForm: React.FC = () => {
               <View className="flex-row items-center">
                 {renderValidationIcon(passwordValidations.minLength)}
                 <Text className="ml-2 text-sm text-gray-500">
-                  At least 8 characters
+                  {t('password_validation_min_length')}
                 </Text>
               </View>
               <View className="flex-row items-center">
                 {renderValidationIcon(passwordValidations.hasUpperCase)}
                 <Text className="ml-2 text-sm text-gray-500">
-                  One uppercase letter
+                  {t('password_validation_uppercase')}
                 </Text>
               </View>
               <View className="flex-row items-center">
                 {renderValidationIcon(passwordValidations.hasLowerCase)}
                 <Text className="ml-2 text-sm text-gray-500">
-                  One lowercase letter
+                  {t('password_validation_lowercase')}
                 </Text>
               </View>
               <View className="flex-row items-center">
                 {renderValidationIcon(passwordValidations.hasNumbers)}
                 <Text className="ml-2 text-sm text-gray-500">
-                  One number
+                  {t('password_validation_numbers')}
                 </Text>
               </View>
               <View className="flex-row items-center">
                 {renderValidationIcon(passwordValidations.hasSpecialChar)}
                 <Text className="ml-2 text-sm text-gray-500">
-                  One special character (!@#$%^&*)
+                  {t('password_validation_special_char')}
                 </Text>
               </View>
             </View>
@@ -339,6 +357,8 @@ const RegisterForm: React.FC = () => {
           }`}
           onPress={handleContinue}
           disabled={!canSubmit || isLoading}
+          accessibilityLabel={t('continue')}
+          accessibilityRole="button"
         >
           {isLoading ? (
             <ActivityIndicator color="#FFFFFF" />
@@ -348,7 +368,7 @@ const RegisterForm: React.FC = () => {
                 canSubmit ? 'text-white' : 'text-gray-500'
               }`}
             >
-              Continue
+              {t('continue')}
             </Text>
           )}
         </TouchableOpacity>
@@ -356,8 +376,10 @@ const RegisterForm: React.FC = () => {
         <View className="items-center pb-6">
           <TouchableOpacity onPress={handleSignIn} disabled={isLoading}>
             <Text className="text-gray-600 text-base">
-              Already have an account?{' '}
-              <Text className="text-secondary font-semibold">Log in</Text>
+              {t('already_have_account')}{' '}
+              <Text className="text-secondary font-semibold">
+                {t('log_in')}
+              </Text>
             </Text>
           </TouchableOpacity>
         </View>

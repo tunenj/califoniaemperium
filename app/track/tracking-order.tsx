@@ -3,6 +3,7 @@ import { View, Text, ScrollView, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLanguage } from "@/context/LanguageContext"; // Add this import
 
 /* ---------------- TYPES ---------------- */
 
@@ -19,35 +20,36 @@ interface Step {
 export default function TrackingOrderScreen() {
     const { orderId } = useLocalSearchParams<{ orderId: string }>();
     const router = useRouter();
+    const { t } = useLanguage(); // Add this hook
 
     const STEPS: Step[] = [
         {
-            label: "Order placed",
+            label: t("order_placed") || "Order placed", // Use translation
             date: "Monday, 03-2025",
             status: "done",
         },
         {
-            label: "Confirmed",
+            label: t("confirmed") || "Confirmed", // Use translation
             date: "Monday, 03-2025",
             status: "done",
         },
         {
-            label: "Waiting to be shipped",
+            label: t("waiting_to_be_shipped") || "Waiting to be shipped", // Use translation
             date: "Monday, 03-2025",
             status: "done",
         },
         {
-            label: "Shipped",
+            label: t("shipped") || "Shipped", // Use translation
             date: "Tuesday, 03-2025",
             status: "done",
         },
         {
-            label: "Out for delivery",
+            label: t("out_for_delivery") || "Out for delivery", // Use translation
             date: "Tuesday, 03-2025",
             status: "done",
         },
         {
-            label: "Delivered",
+            label: t("delivered") || "Delivered", // Use translation
             date: "Tuesday, 03-2025",
             status: "active",
         },
@@ -66,13 +68,13 @@ export default function TrackingOrderScreen() {
                             onPress={() => router.back()}
                         />
                         <Text className="text-sm font-semibold text-gray-900">
-                            Tracking Order
+                            {t("track_order") || "Tracking Order"} {/* Use translation */}
                         </Text>
                     </View>
 
                     <View className="bg-secondary px-3 py-1 rounded-full">
                         <Text className="text-[10px] font-semibold text-white">
-                            Notify Customer
+                            {t("notify_customer") || "Notify Customer"} {/* Use translation */}
                         </Text>
                     </View>
                 </View>
@@ -151,10 +153,9 @@ export default function TrackingOrderScreen() {
                                     </Text>
 
                                     {/* ACTIVE MESSAGE FOR DELIVERED */}
-                                    {step.label === "Delivered" && isActive && (
+                                    {step.label === t("delivered") && isActive && (
                                         <Text className="text-xs text-gray-600 mt-2 max-w-[260px]">
-                                            Its won’t be long now! Your item/order will be delivered to
-                                            you
+                                            {t("delivery_soon_message") || "Its won't be long now! Your item/order will be delivered to you"} {/* Use translation */}
                                         </Text>
                                     )}
                                 </View>
@@ -166,7 +167,7 @@ export default function TrackingOrderScreen() {
                 {/* Footer Message */}
                 <View className="px-5 pb-8">
                     <Text className="text-[10px] text-gray-400">
-                        Order/item has not been delivered yet
+                        {t("order_not_delivered_yet") || "Order/item has not been delivered yet"} {/* Use translation */}
                     </Text>
                 </View>
             </ScrollView>
