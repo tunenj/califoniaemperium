@@ -7,6 +7,7 @@ import {
   Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useLanguage } from '@/context/LanguageContext'; // Add import
 
 /* ---------- Types ---------- */
 
@@ -16,7 +17,7 @@ type Product = {
   sku: string;
   category: string;
   stock: number;
-  image: any; // 👈 local require
+  image: any; 
 };
 
 type StatCard = {
@@ -29,10 +30,10 @@ type StatCard = {
 /* ---------- Data ---------- */
 
 const STATS: StatCard[] = [
-  { id: "1", label: "All Product", value: "100", type: "active" },
-  { id: "2", label: "In Stock", value: "60", type: "default" },
-  { id: "3", label: "Low Stock", value: "20", type: "warning" },
-  { id: "4", label: "Out of Stock", value: "20", type: "danger" },
+  { id: "1", label: "all_products", value: "100", type: "active" },
+  { id: "2", label: "in_stock", value: "60", type: "default" },
+  { id: "3", label: "low_stock", value: "20", type: "warning" },
+  { id: "4", label: "out_of_stock", value: "20", type: "danger" },
 ];
 
 const PRODUCTS: Product[] = [
@@ -89,14 +90,16 @@ const PRODUCTS: Product[] = [
 /* ---------- Screen ---------- */
 
 export default function InventoryScreen() {
+  const { t } = useLanguage(); // Add hook
+
   return (
     <View className="flex-1 bg-white px-5 pt-5">
       {/* Header */}
       <Text className="text-lg font-semibold text-gray-900">
-        Inventory
+        {t('inventory')}
       </Text>
       <Text className="text-xs text-gray-400 mt-1">
-        Track and manage your stock levels.
+        {t('track_manage_stock')}
       </Text>
 
       {/* Stat Cards – Horizontal Scroll */}
@@ -109,7 +112,7 @@ export default function InventoryScreen() {
         className="mt-4"
         renderItem={({ item }) => (
           <InventoryCard
-            label={item.label}
+            label={t(item.label)} // Translate label
             value={item.value}
             type={item.type}
           />
@@ -120,7 +123,7 @@ export default function InventoryScreen() {
       <View className="flex-row items-center bg-gray-100 rounded-full px-4 py-2.5 mt-4">
         <Ionicons name="search" size={16} color="#9ca3af" />
         <TextInput
-          placeholder="search by name or SKU..."
+          placeholder={t('search_by_name_sku')}
           className="ml-2 flex-1 text-xs text-gray-700"
           placeholderTextColor="#9ca3af"
         />
@@ -129,16 +132,16 @@ export default function InventoryScreen() {
       {/* Table Header */}
       <View className="flex-row mt-6 text-xs font-medium bg-gray-100 p-6 -mx-5 text-black pb-4">
         <Text className="w-[38%]">
-          Products
+          {t('products')}
         </Text>
         <Text className="w-[20%]">
-          SKU
+          {t('sku')}
         </Text>
         <Text className="w-[22%]">
-          Category
+          {t('category')}
         </Text>
         <Text className="w-[20%] text-right">
-          Stock
+          {t('stock')}
         </Text>
       </View>
 

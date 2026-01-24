@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useLanguage } from '@/context/LanguageContext'; // Add import
 
 type OrderStatus = "Ongoing" | "Delivered" | "Cancelled";
 
@@ -90,6 +91,17 @@ const ordersData: Record<OrderStatus, OrderItem[]> = {
 };
 
 function OrderCard({ item }: { item: OrderItem }) {
+    const { t } = useLanguage(); // Add hook to OrderCard
+
+    const getTranslatedStatus = (status: OrderStatus) => {
+        switch (status) {
+            case "Ongoing": return t('ongoing');
+            case "Delivered": return t('delivered');
+            case "Cancelled": return t('cancelled');
+            default: return status;
+        }
+    };
+
     return (
         <View className="flex-row bg-white rounded-xl p-3 mb-4 shadow-sm border border-gray-100">
             <Image source={item.image} className="w-14 h-14 rounded-md mr-3" />
@@ -97,7 +109,7 @@ function OrderCard({ item }: { item: OrderItem }) {
                 <View className="flex-row justify-between items-center">
                     <Text className="font-semibold text-gray-900">{item.store}</Text>
                     <Text className={`px-2 py-0.5 rounded-full text-xs ${statusColors[item.status]}`}>
-                        {item.status}
+                        {getTranslatedStatus(item.status)}
                     </Text>
                 </View>
 
@@ -105,20 +117,20 @@ function OrderCard({ item }: { item: OrderItem }) {
 
                 <View className="flex-row justify-between items-center mt-1">
                     <Text className="text-xs">
-                        <Text className="text-gray-500">{item.qty} item </Text>
-                        <Text className="text-red-500">Order {item.id}</Text>
+                        <Text className="text-gray-500">{item.qty} {t('item')} </Text>
+                        <Text className="text-red-500">{t('order')} {item.id}</Text>
                     </Text>
                     <Text className="font-semibold text-gray-900">{item.price}</Text>
                 </View>
 
                 <View className="flex-row justify-between items-center mt-1">
-                    <Text className="text-xs text-gray-500">Estimated Delivery</Text>
+                    <Text className="text-xs text-gray-500">{t('estimated_delivery')}</Text>
                     <Text className="text-xs text-gray-500">{item.estimated}</Text>
                 </View>
 
                 <View className="mt-2 flex-row justify-between space-x-3 gap-4">
                     <TouchableOpacity className="flex-1 bg-red-600 rounded-full py-2 px-4 flex-row items-center justify-center">
-                        <Text className="text-white text-sm">Track Order</Text>
+                        <Text className="text-white text-sm">{t('track_order')}</Text>
                         <Ionicons name="chevron-forward" size={18} color="white" />
                     </TouchableOpacity>
 
@@ -132,6 +144,7 @@ function OrderCard({ item }: { item: OrderItem }) {
 }
 
 export default function OrdersScreen() {
+    const { t } = useLanguage(); // Add hook
     const tabs: OrderStatus[] = ["Ongoing", "Delivered", "Cancelled"];
     const [activeTab, setActiveTab] = useState<OrderStatus>("Ongoing");
     const [loading, setLoading] = useState(false);
@@ -142,11 +155,20 @@ export default function OrdersScreen() {
         setTimeout(() => setLoading(false), 500);
     };
 
+    const getTranslatedTab = (tab: OrderStatus) => {
+        switch (tab) {
+            case "Ongoing": return t('ongoing');
+            case "Delivered": return t('delivered');
+            case "Cancelled": return t('cancelled');
+            default: return tab;
+        }
+    };
+
     return (
         <SafeAreaView className="flex-1 bg-white" edges={["top", "left", "right"]}>
             {/* FIXED TABS */}
             <View className="px-4 pt-4 bg-gray-50 z-10">
-                <Text className="font-semibold text-gray-900 mb-2">My Orders</Text>
+                <Text className="font-semibold text-gray-900 mb-2">{t('my_orders')}</Text>
 
                 <View className="flex-row bg-gray-100 rounded-full p-1 mb-4">
                     {tabs.map((tab) => (
@@ -160,7 +182,7 @@ export default function OrdersScreen() {
                                 className={`text-center text-sm ${activeTab === tab ? "text-gray-800" : "text-gray-500"
                                     }`}
                             >
-                                {tab}
+                                {getTranslatedTab(tab)}
                             </Text>
                         </TouchableOpacity>
                     ))}
@@ -181,7 +203,7 @@ export default function OrdersScreen() {
 
                 {!loading && ordersData[activeTab].length === 0 && (
                     <View className="items-center py-20">
-                        <Text className="text-gray-600">No {activeTab} Orders</Text>
+                        <Text className="text-gray-600">{t('no_orders_status', { status: getTranslatedTab(activeTab) })}</Text>
                     </View>
                 )}
 
@@ -190,7 +212,7 @@ export default function OrdersScreen() {
 
                 {!loading && activeTab === "Ongoing" && (
                     <>
-                        <Text className="font-semibold text-gray-900 mt-2 mb-2">Recent Orders</Text>
+                        <Text className="font-semibold text-gray-900 mt-2 mb-2">{t('recent_orders')}</Text>
                         {ordersData.Delivered.map((item) => (
                             <OrderCard key={item.id} item={item} />
                         ))}

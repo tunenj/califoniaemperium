@@ -10,11 +10,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useLanguage } from '@/context/LanguageContext'; // Add import
 
 type UserType = 'business' | 'customer' | null;
 
 export default function WelcomeScreen() {
   const router = useRouter();
+  const { t } = useLanguage(); // Add hook
   const [selectedType, setSelectedType] = useState<UserType>(null);
 
   const handleSelectType = (type: UserType) => {
@@ -67,7 +69,7 @@ export default function WelcomeScreen() {
         </View>
 
         <Text className="text-2xl text-white mb-12 text-center">
-          Welcome Back
+          {t('welcome_back')}
         </Text>
       </View>
 
@@ -77,7 +79,7 @@ export default function WelcomeScreen() {
           {/* Title */}
           <View className="items-center mb-8">
             <Text className="text-xl text-black text-center">
-              Login as Business or Customer
+              {t('login_as_business_or_customer')}
             </Text>
           </View>
 
@@ -107,7 +109,7 @@ export default function WelcomeScreen() {
                     }`}
                   />
                   <Text className="text-xl font-bold text-gray-900 mb-1">
-                    Business
+                    {t('business')}
                   </Text>
                 </View>
               </View>
@@ -137,7 +139,7 @@ export default function WelcomeScreen() {
                     }`}
                   />
                   <Text className="text-xl font-bold text-gray-900 mb-1">
-                    Customer
+                    {t('customer')}
                   </Text>
                 </View>
               </View>
@@ -160,7 +162,7 @@ export default function WelcomeScreen() {
                     selectedType ? 'text-white' : 'text-gray-500'
                   }`}
                 >
-                  Login
+                  {t('login')}
                 </Text>
                 <ArrowRight
                   size={22}
@@ -175,8 +177,8 @@ export default function WelcomeScreen() {
               onPress={handleSignUp}
             >
               <Text className="text-gray-600 text-lg">
-                Don&apos;t have an account?{' '}
-                <Text className="text-accent">Sign Up</Text>
+                {t('dont_have_account')}{' '}
+                <Text className="text-accent">{t('sign_up')}</Text>
               </Text>
             </TouchableOpacity>
           </View>

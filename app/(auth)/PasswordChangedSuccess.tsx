@@ -3,9 +3,11 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import { Image, Text, TouchableOpacity, View } from 'react-native';
 import { CheckCircle } from 'lucide-react-native';
+import { useLanguage } from '@/context/LanguageContext'; // Add import
 
 const PasswordChangedSuccess: React.FC = () => {
   const router = useRouter();
+  const { t } = useLanguage(); // Add hook
 
   const handleLogin = () => {
     router.replace('/signIn');
@@ -33,12 +35,12 @@ const PasswordChangedSuccess: React.FC = () => {
 
         {/* Heading — EXACT text from image */}
         <Text className="text-xl font-bold text-black mb-2 text-center">
-          Password reset successful!
+          {t('password_reset_successful')}
         </Text>
 
         {/* Subtitle — EXACT text from image */}
         <Text className="text-gray-500 text-center mb-10">
-          You have successfully changed your password
+          {t('password_changed_successfully')}
         </Text>
 
         {/* CTA Button */}
@@ -48,7 +50,7 @@ const PasswordChangedSuccess: React.FC = () => {
           onPress={handleLogin}
         >
           <Text className="text-white text-lg font-semibold">
-            Login to your account
+            {t('login_to_your_account')}
           </Text>
         </TouchableOpacity>
       </View>

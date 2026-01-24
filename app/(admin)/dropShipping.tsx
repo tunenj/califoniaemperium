@@ -1,7 +1,16 @@
 import React, { memo, useMemo, useState } from "react";
-import { View, Text, FlatList, Image, ScrollView, TextInput, TouchableOpacity, } from "react-native";
+import { 
+  View, 
+  Text, 
+  FlatList, 
+  Image, 
+  ScrollView, 
+  TextInput, 
+  TouchableOpacity 
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { useLanguage } from '@/context/LanguageContext'; // Import hook
 
 type VendorStatus = "Approved" | "Pending" | "Rejected";
 
@@ -78,6 +87,8 @@ const SummaryCard = ({
 );
 
 const StatusBadge = ({ status }: { status: VendorStatus }) => {
+    const { t } = useLanguage(); // Add hook
+    
     const style =
         status === "Approved"
             ? "bg-green-100 text-green-700"
@@ -87,7 +98,10 @@ const StatusBadge = ({ status }: { status: VendorStatus }) => {
 
     return (
         <View className={`px-4 py-0.5 rounded-full ${style}`}>
-            <Text className="text-xs font-medium">{status}</Text>
+            <Text className="text-xs font-medium">
+                {status === "Approved" ? t('approved') :
+                 status === "Pending" ? t('pending') : t('rejected')}
+            </Text>
         </View>
     );
 };
@@ -106,37 +120,44 @@ const DataCell = memo(({ text, width }: { text: string; width: string }) => (
 ));
 DataCell.displayName = "DataCell";
 
-const ProductRow = memo(({ item }: { item: Product }) => (
-    <View className="flex-row bg-white border-b border-gray-200">
-        <View className="w-48 flex-row items-center gap-2 px-4 py-3">
-            <Image source={item.image} className="w-9 h-9 rounded-md" />
-            <Text className="text-sm font-semibold" numberOfLines={1}>
-                {item.name}
-            </Text>
+const ProductRow = memo(({ item }: { item: Product }) => {
+    const { t } = useLanguage(); // Add hook
+    
+    return (
+        <View className="flex-row bg-white border-b border-gray-200">
+            <View className="w-48 flex-row items-center gap-2 px-4 py-3">
+                <Image source={item.image} className="w-9 h-9 rounded-md" />
+                <Text className="text-sm font-semibold" numberOfLines={1}>
+                    {item.name}
+                </Text>
+            </View>
+
+            <DataCell width="w-36" text={item.vendor} />
+            <DataCell width="w-32" text={item.category} />
+            <DataCell width="w-24" text={String(item.stock)} />
+
+            <View className="w-36 px-4 py-3">
+                <Text className="text-sm font-semibold">{item.price}</Text>
+                <Text className="text-xs text-gray-500">
+                    {t('cost')}: {item.cost}
+                </Text>
+            </View>
+
+            <View className="w-32 px-4 py-3">
+                <StatusBadge status={item.status} />
+            </View>
+
+            <DataCell width="w-32" text={item.created} />
         </View>
-
-        <DataCell width="w-36" text={item.vendor} />
-        <DataCell width="w-32" text={item.category} />
-        <DataCell width="w-24" text={String(item.stock)} />
-
-        <View className="w-36 px-4 py-3">
-            <Text className="text-sm font-semibold">{item.price}</Text>
-            <Text className="text-xs text-gray-500">Cost: {item.cost}</Text>
-        </View>
-
-        <View className="w-32 px-4 py-3">
-            <StatusBadge status={item.status} />
-        </View>
-
-        <DataCell width="w-32" text={item.created} />
-    </View>
-));
+    );
+});
 ProductRow.displayName = "ProductRow";
 
 /* ================= SCREEN ================= */
 
 export default function ProductModeration() {
     const [search, setSearch] = useState("");
+    const { t } = useLanguage(); // Add hook
 
     const filteredData = useMemo(() => {
         return PRODUCTS.filter(
@@ -152,10 +173,10 @@ export default function ProductModeration() {
             <View className="px-4 pt-5 flex-row items-center justify-between">
                 <View>
                     <Text className="text-lg font-bold text-gray-900">
-                        Dropshipping Products
+                        {t('dropshipping_products')}
                     </Text>
                     <Text className="text-xs text-gray-500">
-                        Manage CJ Dropshipping product catalog
+                        {t('manage_dropshipping_catalog')}
                     </Text>
                 </View>
 
@@ -165,17 +186,18 @@ export default function ProductModeration() {
                         onPress={() => router.push("/Products/addDropproject")}
                     >
                         <Text className="text-red-500 text-xs font-semibold">
-                             Add Product
+                            {t('add_product')}
                         </Text>
                     </TouchableOpacity>
                 </TouchableOpacity>
             </View>
+
             {/* Search */}
             <View className="px-4 mt-5">
                 <View className="flex-row items-center bg-gray-100 border border-gray-400 rounded-lg px-3 py-0.5">
                     <Ionicons name="search-outline" size={18} color="#6b7280" />
                     <TextInput
-                        placeholder="Search products..."
+                        placeholder={t('search_products')}
                         placeholderTextColor="#6b7280"
                         className="ml-2 flex-1 text-sm"
                         value={search}
@@ -183,21 +205,30 @@ export default function ProductModeration() {
                     />
                 </View>
             </View>
+
             {/* Summary Cards (Side Scroll) */}
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 className="mt-8 pl-2"
             >
-                <SummaryCard label="Total Products" value="7" accent="bg-green-300" />
-                <SummaryCard label="Active Products" value="7" accent="bg-green-400" />
+                <SummaryCard 
+                    label={t('total_products')} 
+                    value="7" 
+                    accent="bg-green-300" 
+                />
+                <SummaryCard 
+                    label={t('active_products')} 
+                    value="7" 
+                    accent="bg-green-400" 
+                />
                 <SummaryCard
-                    label="Total Profit"
+                    label={t('total_profit')}
                     value="₦2,000,000"
                     accent="bg-orange-300"
                 />
                 <SummaryCard
-                    label="Avg Margin"
+                    label={t('avg_margin')}
                     value="₦200,000"
                     accent="bg-purple-300"
                 />
@@ -218,13 +249,13 @@ export default function ProductModeration() {
                         stickyHeaderIndices={[0]}
                         ListHeaderComponent={() => (
                             <View className="flex-row bg-gray-100 border-y border-gray-300">
-                                <HeaderCell title="Products" width="w-48" />
-                                <HeaderCell title="Vendor" width="w-36" />
-                                <HeaderCell title="Category" width="w-32" />
-                                <HeaderCell title="Stock" width="w-24" />
-                                <HeaderCell title="Price" width="w-36" />
-                                <HeaderCell title="Status" width="w-32" />
-                                <HeaderCell title="Created" width="w-32" />
+                                <HeaderCell title={t('products')} width="w-48" />
+                                <HeaderCell title={t('vendor')} width="w-36" />
+                                <HeaderCell title={t('category')} width="w-32" />
+                                <HeaderCell title={t('stock')} width="w-24" />
+                                <HeaderCell title={t('price')} width="w-36" />
+                                <HeaderCell title={t('status')} width="w-32" />
+                                <HeaderCell title={t('created')} width="w-32" />
                             </View>
                         )}
                     />

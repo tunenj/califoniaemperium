@@ -11,8 +11,10 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
+import { useLanguage } from '@/context/LanguageContext'; // Add import
 
 export default function StoreProfileScreen() {
+  const { t } = useLanguage(); // Add hook
   const [bannerImage, setBannerImage] = useState<string | null>(null);
   const [logoImage, setLogoImage] = useState<string | null>(null);
 
@@ -24,12 +26,12 @@ export default function StoreProfileScreen() {
   const [address, setAddress] = useState("");
 
   const categories = [
-    "Electronics",
-    "Fashion",
-    "Groceries",
-    "Health & Beauty",
-    "Home & Kitchen",
-    "Others",
+    t('electronics'),
+    t('fashion'),
+    t('groceries'),
+    t('health_beauty'),
+    t('home_kitchen'),
+    t('others'),
   ];
 
   const pickImage = async (type: "banner" | "logo") => {
@@ -38,8 +40,8 @@ export default function StoreProfileScreen() {
 
     if (status !== "granted") {
       Alert.alert(
-        "Permission Required",
-        "Sorry, we need camera roll permissions to upload images."
+        t('permission_required'),
+        t('camera_roll_permission_needed')
       );
       return;
     }
@@ -72,10 +74,10 @@ export default function StoreProfileScreen() {
         <View className="px-5">
           {/* Header */}
           <Text className="text-lg font-semibold text-gray-900">
-            Store profile
+            {t('store_profile')}
           </Text>
           <Text className="text-xs text-gray-400 mt-1">
-            Manage your store information and branding.
+            {t('manage_store_info_branding')}
           </Text>
 
           {/* Banner Upload */}
@@ -93,10 +95,10 @@ export default function StoreProfileScreen() {
               <>
                 <Ionicons name="image-outline" size={28} color="#9ca3af" />
                 <Text className="text-sm font-medium text-gray-600 mt-2">
-                  Upload store banner
+                  {t('upload_store_banner')}
                 </Text>
                 <Text className="text-xs text-gray-400 mt-1">
-                  Recommended: 1200 x 300px
+                  {t('recommended_banner_size')}
                 </Text>
               </>
             )}
@@ -122,7 +124,7 @@ export default function StoreProfileScreen() {
                 />
               )}
             </TouchableOpacity>
-            <Text className="ml-3 text-xs text-gray-500">Logo</Text>
+            <Text className="ml-3 text-xs text-gray-500">{t('logo')}</Text>
           </View>
 
           {/* Form */}
@@ -130,17 +132,17 @@ export default function StoreProfileScreen() {
             {/* Store Name */}
             <View>
               <Text className="text-xs text-gray-400 mb-2">
-                Store Name
+                {t('store_name')}
               </Text>
               <TextInput
-                placeholder="Enter store name"
+                placeholder={t('enter_store_name')}
                 className="text-sm text-gray-800 bg-gray-100 rounded-lg px-4 py-3"
               />
             </View>
 
             {/* Category */}
             <View>
-              <Text className="text-xs text-gray-400 mb-2">Category</Text>
+              <Text className="text-xs text-gray-400 mb-2">{t('category')}</Text>
 
               <TouchableOpacity
                 className="flex-row items-center justify-between bg-gray-100 rounded-lg px-4 py-3"
@@ -150,7 +152,7 @@ export default function StoreProfileScreen() {
                   className={`text-sm ${category ? "text-gray-800" : "text-gray-400"
                     }`}
                 >
-                  {category || "Select"}
+                  {category || t('select')}
                 </Text>
                 <Ionicons
                   name={categoryOpen ? "chevron-up" : "chevron-down"}
@@ -182,10 +184,10 @@ export default function StoreProfileScreen() {
             {/* Description */}
             <View>
               <Text className="text-xs text-gray-400 mb-2">
-                Description
+                {t('description')}
               </Text>
               <TextInput
-                placeholder="Tell us about your store"
+                placeholder={t('tell_about_store')}
                 multiline
                 numberOfLines={3}
                 textAlignVertical="top"
@@ -195,9 +197,9 @@ export default function StoreProfileScreen() {
 
             {/* Email */}
             <View>
-              <Text className="text-xs text-gray-400 mb-2">Email</Text>
+              <Text className="text-xs text-gray-400 mb-2">{t('email')}</Text>
               <TextInput
-                placeholder="Enter email address"
+                placeholder={t('enter_email_address')}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 value={email}
@@ -209,10 +211,10 @@ export default function StoreProfileScreen() {
             {/* Phone */}
             <View>
               <Text className="text-xs text-gray-400 mb-2">
-                Phone Number
+                {t('phone_number')}
               </Text>
               <TextInput
-                placeholder="Enter phone number"
+                placeholder={t('enter_phone_number')}
                 keyboardType="phone-pad"
                 value={phone}
                 onChangeText={setPhone}
@@ -223,10 +225,10 @@ export default function StoreProfileScreen() {
             {/* Address */}
             <View>
               <Text className="text-xs text-gray-400 mb-2">
-                Store Address
+                {t('store_address')}
               </Text>
               <TextInput
-                placeholder="Enter store address"
+                placeholder={t('enter_store_address')}
                 value={address}
                 onChangeText={setAddress}
                 className="text-sm text-gray-800 bg-gray-100 rounded-lg px-4 py-3"
@@ -240,17 +242,17 @@ export default function StoreProfileScreen() {
             <TouchableOpacity
               onPress={() =>
                 Alert.alert(
-                  "Discard changes?",
-                  "Your changes will be lost.",
+                  t('discard_changes'),
+                  t('changes_will_be_lost'),
                   [
-                    { text: "Continue Editing", style: "cancel" },
-                    { text: "Discard", style: "destructive" },
+                    { text: t('continue_editing'), style: "cancel" },
+                    { text: t('discard'), style: "destructive" },
                   ]
                 )
               }
             >
               <Text className="text-sm text-secondary border border-secondary px-6 py-2 rounded-2xl font-medium mb-6 -mr-3">
-                Cancel
+                {t('cancel')}
               </Text>
             </TouchableOpacity>
 
@@ -258,20 +260,18 @@ export default function StoreProfileScreen() {
               className="bg-secondary px-6 py-2 rounded-2xl mb-6"
               onPress={() =>
                 Alert.alert(
-                  "Success",
-                  "Store profile saved successfully!"
+                  t('success'),
+                  t('store_profile_saved_successfully')
                 )
               }
             >
               <Text className="text-sm text-white font-medium">
-                Save
+                {t('save')}
               </Text>
             </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
-
-
     </SafeAreaView>
   );
 }

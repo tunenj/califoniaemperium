@@ -3,8 +3,10 @@ import { SafeAreaView, View, Text, TouchableOpacity, Switch } from "react-native
 import Icon from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { useLanguage } from '@/context/LanguageContext'; // Add import
 
 export default function SecurityScreen() {
+  const { t } = useLanguage(); // Add hook
   const [biometrics, setBiometrics] = useState(false);
   const router = useRouter();
 
@@ -23,7 +25,7 @@ export default function SecurityScreen() {
           <Icon name="chevron-back" size={24} color="#000" />
         </TouchableOpacity>
 
-        <Text className="text-lg ml-2 font-bold">Security</Text>
+        <Text className="text-lg ml-2 font-bold">{t('security')}</Text>
       </View>
 
       {/* Content */}
@@ -32,7 +34,7 @@ export default function SecurityScreen() {
         <View className="flex-row justify-between items-center">
           <View className="flex-row items-center">
             <Icon name="finger-print-outline" size={22} />
-            <Text className="ml-3 text-base">Biometrics</Text>
+            <Text className="ml-3 text-base">{t('biometrics')}</Text>
           </View>
 
           <Switch
@@ -48,7 +50,7 @@ export default function SecurityScreen() {
         <TouchableOpacity className="flex-row justify-between items-center">
           <View className="flex-row items-center">
             <Icon name="lock-closed-outline" size={22} />
-            <Text className="ml-3 text-base">Change password</Text>
+            <Text className="ml-3 text-base">{t('change_password')}</Text>
           </View>
           <Icon name="chevron-forward" size={20} />
         </TouchableOpacity>
@@ -57,7 +59,7 @@ export default function SecurityScreen() {
         <TouchableOpacity className="flex-row justify-between items-center">
           <View className="flex-row items-center">
             <Icon name="shield-checkmark-outline" size={22} />
-            <Text className="ml-3 text-base">Enable 2FA</Text>
+            <Text className="ml-3 text-base">{t('enable_2fa')}</Text>
           </View>
           <Icon name="chevron-forward" size={20} />
         </TouchableOpacity>

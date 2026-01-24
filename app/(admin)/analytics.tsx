@@ -1,6 +1,7 @@
 import React, { memo, useState } from "react";
 import { View, Text, ScrollView, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useLanguage } from '@/context/LanguageContext';
 
 /* ================= TIME FILTER ================= */
 
@@ -144,24 +145,25 @@ MiniStatCard.displayName = "MiniStatCard";
 
 const AnalyticsDashboard = () => {
   const [range, setRange] = useState<"7" | "30" | "90">("30");
+  const { t } = useLanguage(); // Add this hook
 
   return (
     <ScrollView className="flex-1 bg-white" showsVerticalScrollIndicator={false}>
       {/* HEADER */}
       <View className="px-5 pt-6">
         <Text className="text-lg font-semibold text-gray-900">
-          Analytics Dashboard
+          {t('analytics_dashboard')}
         </Text>
         <Text className="text-sm text-gray-500 mt-1">
-          Track your marketplace performance
+          {t('track_marketplace_performance')}
         </Text>
       </View>
 
       {/* FILTERS — LEFT ALIGNED */}
       <View className="px-5 mt-4 flex-row">
-        <TimeFilter label="7Days" active={range === "7"} onPress={() => setRange("7")} />
-        <TimeFilter label="30Days" active={range === "30"} onPress={() => setRange("30")} />
-        <TimeFilter label="90Days" active={range === "90"} onPress={() => setRange("90")} />
+        <TimeFilter label={t('7_days')} active={range === "7"} onPress={() => setRange("7")} />
+        <TimeFilter label={t('30_days')} active={range === "30"} onPress={() => setRange("30")} />
+        <TimeFilter label={t('90_days')} active={range === "90"} onPress={() => setRange("90")} />
       </View>
 
       {/* SUMMARY CARDS */}
@@ -171,28 +173,28 @@ const AnalyticsDashboard = () => {
         className="mt-6 pl-4"
       >
         <SummaryCard
-          title="Total Revenue"
+          title={t('total_revenue')}
           value="₦2,000,000"
           accent="bg-green-300"
           icon="cash-outline"
           iconColor="#16a34a"
         />
         <SummaryCard
-          title="Total Orders"
+          title={t('total_orders')}
           value="20"
           accent="bg-red-300"
           icon="cart-outline"
           iconColor="#dc2626"
         />
         <SummaryCard
-          title="Avg. Order Value"
+          title={t('avg_order_value')}
           value="₦2,000,000"
           accent="bg-orange-300"
           icon="stats-chart-outline"
           iconColor="#ea580c"
         />
         <SummaryCard
-          title="Completion Rate"
+          title={t('completion_rate')}
           value="20.5%"
           accent="bg-purple-300"
           icon="checkmark-done-outline"
@@ -203,12 +205,12 @@ const AnalyticsDashboard = () => {
       {/* TREND */}
       <View className="px-5 mt-8">
         <Text className="text-sm font-semibold text-gray-900 mb-3">
-          Revenue & Orders Trend
+          {t('revenue_orders_trend')}
         </Text>
 
         <View className="h-48 bg-red-50 rounded-xl items-center justify-center">
           <Text className="text-xs text-gray-500">
-            Chart placeholder
+            {t('chart_placeholder')}
           </Text>
         </View>
       </View>
@@ -216,18 +218,18 @@ const AnalyticsDashboard = () => {
       {/* TOP VENDORS */}
       <View className="px-5 mt-8">
         <Text className="text-sm font-semibold text-gray-900 mb-4">
-          Top Vendors by Sales
+          {t('top_vendors_by_sales')}
         </Text>
 
         <VendorBar name="Dropshipping" value={600} max={600} />
-        <VendorBar name="Sports Direct" value={350} max={600} />
-        <VendorBar name="TechZone" value={120} max={600} />
+        <VendorBar name={t('sports_direct')} value={350} max={600} />
+        <VendorBar name={t('tech_zone')} value={120} max={600} />
       </View>
 
       {/* BOTTOM METRICS — 4 IN ONE ROW */}
       <View className="px-5 mt-10 mb-12 flex-row">
         <MiniStatCard
-          title="Total Vendors"
+          title={t('total_vendors')}
           value="15"
           icon="people-outline"
           iconBg="bg-purple-100"
@@ -241,14 +243,14 @@ const AnalyticsDashboard = () => {
           iconColor="#dc2626"
         />
         <MiniStatCard
-          title="Customers"
+          title={t('customers')}
           value="30"
           icon="person-outline"
           iconBg="bg-blue-100"
           iconColor="#2563eb"
         />
         <MiniStatCard
-          title="Products"
+          title={t('products')}
           value="80"
           icon="pricetag-outline"
           iconBg="bg-orange-100"

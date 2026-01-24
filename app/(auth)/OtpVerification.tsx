@@ -4,12 +4,14 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Alert, Image, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useLanguage } from '@/context/LanguageContext'; // Add import
 
 type UserRole = 'business' | 'customer';
 
 const OtpVerification: React.FC = () => {
     const router = useRouter();
     const params = useLocalSearchParams();
+    const { t } = useLanguage(); // Add hook
 
     // Helper function to get string value from params
     const getParamString = (param: any): string => {
@@ -73,7 +75,7 @@ const OtpVerification: React.FC = () => {
         const enteredCode = otp.join('');
 
         if (enteredCode.length !== 6) {
-            Alert.alert('Invalid OTP', 'Please enter the full 6-digit code.');
+            Alert.alert(t('invalid_otp'), t('enter_full_6_digit_code'));
             return;
         }
 
@@ -88,7 +90,7 @@ const OtpVerification: React.FC = () => {
             // Simulate API verification (replace with actual API call)
             await new Promise(resolve => setTimeout(resolve, 1000));
 
-            // ✅ PASSWORD RESET FLOW - Navigate to CreatePassword with reset mode
+            // PASSWORD RESET FLOW - Navigate to CreatePassword with reset mode
             if (source === 'reset-password') {
                 router.replace({
                     pathname: '/CreatePassword',
@@ -131,11 +133,11 @@ const OtpVerification: React.FC = () => {
 
         } catch (error) {
             console.error('Verification error:', error);
-            Alert.alert('Verification Failed', 'Please try again.');
+            Alert.alert(t('verification_failed'), t('please_try_again'));
         } finally {
             setIsVerifying(false);
         }
-    }, [otp, source, firstName, lastName, phoneNumber, email, method, role, isEmailVerification, router]);
+    }, [otp, source, firstName, lastName, phoneNumber, email, method, role, isEmailVerification, router, t]);
 
     // Auto-submit when all digits are filled
     useEffect(() => {
@@ -167,36 +169,36 @@ const OtpVerification: React.FC = () => {
     // Get appropriate title and message
     const getVerificationTitle = () => {
         if (source === 'reset-password') {
-            return 'Reset your password';
+            return t('reset_your_password');
         }
         if (isEmailVerification) {
-            return 'Verify your email';
+            return t('verify_your_email');
         }
-        return 'Verify your phone number';
+        return t('verify_your_phone_number');
     };
 
     const getVerificationMessage = () => {
         const displayContact = getDisplayContact();
         
         if (source === 'reset-password') {
-            return `Enter the 6-digit code sent to ${displayContact}`;
+            return t('enter_6_digit_code_sent_to', { contact: displayContact });
         }
         
         if (isEmailVerification) {
-            return `Enter the 6-digit code sent to your email`;
+            return t('enter_6_digit_code_sent_to_email');
         }
         
         if (method === 'whatsapp') {
-            return `Enter the 6-digit code sent via WhatsApp`;
+            return t('enter_6_digit_code_sent_via_whatsapp');
         }
         
-        return `Enter the 6-digit code sent via SMS`;
+        return t('enter_6_digit_code_sent_via_sms');
     };
 
     // Get welcome name for display
     const getWelcomeName = () => {
         if (firstName === 'User') return '';
-        return `Hi ${firstName}! `;
+        return `${t('hi')} ${firstName}! `;
     };
 
     return (
@@ -264,13 +266,13 @@ const OtpVerification: React.FC = () => {
                 {/* Resend Code Section */}
                 <View className="items-center mb-8">
                     <Text className="text-gray-500 text-sm mb-2">
-                        Didn&apos;t receive the code?
+                        {t('didnt_receive_code')}
                     </Text>
                     <TouchableOpacity disabled={isVerifying}>
                         <Text className={`text-secondary font-semibold text-sm ${
                             isVerifying ? 'opacity-50' : ''
                         }`}>
-                            Resend code
+                            {t('resend_code')}
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -284,7 +286,7 @@ const OtpVerification: React.FC = () => {
                     disabled={isVerifying}
                 >
                     <Text className="text-white text-lg font-semibold">
-                        {isVerifying ? 'Verifying...' : 'Verify'}
+                        {isVerifying ? t('verifying') : t('verify')}
                     </Text>
                 </TouchableOpacity>
 
@@ -292,8 +294,8 @@ const OtpVerification: React.FC = () => {
                 <View className="items-center mt-8">
                     <TouchableOpacity onPress={handleLogin} disabled={isVerifying}>
                         <Text className="text-gray-600 text-base text-center">
-                            Already have an account?{' '}
-                            <Text className="text-secondary font-semibold">Log in</Text>
+                            {t('already_have_account')}{' '}
+                            <Text className="text-secondary font-semibold">{t('log_in')}</Text>
                         </Text>
                     </TouchableOpacity>
                 </View>

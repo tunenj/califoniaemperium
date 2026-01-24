@@ -1,208 +1,205 @@
 import React from 'react';
 import {
-    View,
-    Text,
-    ScrollView,
-    TouchableOpacity,
-    Linking, 
-    Image,
-    Alert
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Linking,
+  Image,
+  Alert,
 } from 'react-native';
-import Icon from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from "expo-linear-gradient";
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Clipboard from 'expo-clipboard';
-import { useRouter } from "expo-router";
+import { useRouter } from 'expo-router';
+import { useLanguage } from '@/context/LanguageContext';
 
-// Type definitions
+/* ================= TYPES ================= */
+
+export type SocialMediaPlatform =
+  | 'instagram'
+  | 'facebook'
+  | 'x'
+  | 'tiktok';
+
 export type SectionItem = {
-    text: string;
-    icon?: string;
-    onPress?: () => void;
+  text: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+  onPress?: () => void;
+  platform?: SocialMediaPlatform;
 };
 
 export type Section = {
-    title: string;
-    items: SectionItem[];
+  title: string;
+  items: SectionItem[];
 };
-
-export type SocialMediaPlatform =
-    | 'Instagram'
-    | 'Facebook'
-    | 'X (formerly Twitter)'
-    | 'TikTok';
 
 export type SocialMediaUrls = Record<SocialMediaPlatform, string>;
 
+/* ================= SCREEN ================= */
+
 const SupportScreen = () => {
-    const sections: Section[] = [
+  const router = useRouter();
+  const { t } = useLanguage();
+
+  const socialUrls: SocialMediaUrls = {
+    instagram: 'https://instagram.com/coffords',
+    facebook: 'https://facebook.com/coffords',
+    x: 'https://twitter.com/coffords',
+    tiktok: 'https://tiktok.com/@coffords',
+  };
+
+  const sections: Section[] = [
+    {
+      title: t('about'),
+      items: [
+        { text: t('report_issue'), icon: 'bug-outline' },
+        { text: t('rate_us'), icon: 'star-outline' },
+        { text: t('contact_us'), icon: 'mail-outline' },
+      ],
+    },
+    {
+      title: t('contact_information'),
+      items: [
         {
-            title: 'About',
-            items: [
-                { text: 'Report an issue', icon: 'bug-outline', onPress: () => console.log('Report issue pressed') },
-                { text: 'Rate us', icon: 'star-outline', onPress: () => console.log('Rate us pressed') },
-                { text: 'Contact Us', icon: 'mail-outline', onPress: () => console.log('Contact us pressed') }
-            ]
+          text: 'support@coffordhelp.com',
+          icon: 'mail-outline',
+          onPress: () => Linking.openURL('mailto:support@coffordhelp.com'),
         },
         {
-            title: 'Contact Information',
-            items: [
-                { text: 'support@coffordhelp.com', icon: 'mail-outline', onPress: () => Linking.openURL('mailto:support@coffordhelp.com') },
-                { text: '+224 818 8130', icon: 'call-outline', onPress: () => Linking.openURL('tel:+2248188130') },
-                { text: '+224 818 8130', icon: 'call-outline', onPress: () => Linking.openURL('tel:+2248188130') }
-            ]
+          text: '+224 818 8130',
+          icon: 'call-outline',
+          onPress: () => Linking.openURL('tel:+2248188130'),
+        },
+      ],
+    },
+    {
+      title: t('social_media'),
+      items: [
+        {
+          text: t('instagram'),
+          icon: 'logo-instagram',
+          platform: 'instagram',
         },
         {
-            title: 'Social Media',
-            items: [
-                { text: 'Instagram', icon: 'logo-instagram' },
-                { text: 'Facebook', icon: 'logo-facebook' },
-                { text: 'X (formerly Twitter)', icon: 'logo-twitter' },
-                { text: 'TikTok', icon: 'logo-tiktok' }
-            ]
+          text: t('facebook'),
+          icon: 'logo-facebook',
+          platform: 'facebook',
         },
         {
-            title: 'FAQs',
-            items: [
-                { text: 'How do I initiate a transaction?', onPress: () => console.log('FAQ 1 pressed') },
-                { text: 'How do I ensure or validate the authenticity of a vendor?', onPress: () => console.log('FAQ 2 pressed') },
-                { text: 'What are the charges on each transaction?', onPress: () => console.log('FAQ 3 pressed') }
-            ]
-        }
-    ];
+          text: t('x_twitter'),
+          icon: 'logo-twitter',
+          platform: 'x',
+        },
+        {
+          text: t('tiktok'),
+          icon: 'logo-tiktok',
+          platform: 'tiktok',
+        },
+      ],
+    },
+    {
+      title: t('faqs'),
+      items: [
+        { text: t('faq_initiate_transaction') },
+        { text: t('faq_validate_vendor') },
+        { text: t('faq_transaction_charges') },
+      ],
+    },
+  ];
 
-    const socialUrls: SocialMediaUrls = {
-        Instagram: 'https://instagram.com/coffords',
-        Facebook: 'https://facebook.com/coffords',
-        'X (formerly Twitter)': 'https://twitter.com/coffords',
-        TikTok: 'https://tiktok.com/@coffords'
-    };
+  const handleItemPress = (section: Section, item: SectionItem) => {
+    if (item.platform) {
+      const url = socialUrls[item.platform];
+      Linking.openURL(url);
+      return;
+    }
 
-    const handleSocialMediaPress = (platform: SocialMediaPlatform) => {
-        const url = socialUrls[platform];
-        Linking.openURL(url).catch(err =>
-            console.error(`Failed to open URL for ${platform}:`, err)
-        );
-    };
+    item.onPress?.();
+  };
 
-    const handleItemPress = (section: Section, item: SectionItem) => {
-        if (section.title === 'Social Media') {
-            handleSocialMediaPress(item.text as SocialMediaPlatform);
-        } else if (item.onPress) {
-            item.onPress();
-        }
-    };
+  const handleCopy = async (text: string) => {
+    await Clipboard.setStringAsync(text);
+    Alert.alert(t('copied'), t('copied_to_clipboard', { text }));
+  };
 
-    const handleCopyToClipboard = async (text: string) => {
-        await Clipboard.setStringAsync(text);
-        Alert.alert("Copied", `${text} copied to clipboard`);
-    };
+  return (
+    <ScrollView className="flex-1 bg-gray-50">
+      <LinearGradient
+        colors={['#B13239', '#4D0812']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={{ height: 44 }}
+      />
 
-    const renderSectionHeader = (title: string) => (
-        <Text className="text-base font-semibold text-gray-700 mb-4">
-            {title}
-        </Text>
-    );
-
-    const renderSectionItem = (
-        section: Section,
-        item: SectionItem,
-        index: number,
-        isLast: boolean
-    ) => (
-        <TouchableOpacity
-            key={index}
-            onPress={() => handleItemPress(section, item)}
-            activeOpacity={0.7}
-            className={`flex-row items-center py-3 ${!isLast ? 'border-b border-gray-100' : ''}`}
-        >
-            {/* Show black thick dot for FAQs, otherwise show icon */}
-            {section.title === 'FAQs' ? (
-                <View className="w-1 h-1 bg-black rounded-full mr-3" />
-            ) : (
-                <Icon
-                    name={item.icon!}
-                    size={22}
-                    style={{ marginRight: 12 }}
-                    color="#000000"
-                />
-            )}
-            <Text className="text-gray-700 flex-1">
-                {item.text}
-            </Text>
-
-
-            {/* Show copy icon for Contact Information, chevron for others */}
-            {section.title === 'Contact Information' ? (
-                <TouchableOpacity onPress={() => handleCopyToClipboard(item.text)}>
-                    <Icon name="copy-outline" size={18} color="#9CA3AF" />
-                </TouchableOpacity>
-            ) : (
-                <Icon
-                    name="chevron-forward-outline"
-                    size={18}
-                    color="#9CA3AF"
-                />
-            )}
-        </TouchableOpacity>
-    );
-
-    const renderSection = (section: Section, index: number) => (
-        <View key={index} className="mb-8">
-            {renderSectionHeader(section.title)}
-            {section.items.map((item, itemIndex) =>
-                renderSectionItem(section, item, itemIndex, itemIndex === section.items.length - 1)
-            )}
+      <View className="p-3">
+        {/* Header */}
+        <View className="h-14 flex-row items-center px-4">
+          <TouchableOpacity onPress={router.back}>
+            <Ionicons name="chevron-back" size={24} />
+          </TouchableOpacity>
+          <Text className="ml-2 text-lg font-bold">{t('support')}</Text>
         </View>
-    );
 
-    const router = useRouter();
-
-    return (
-        <ScrollView
-            className="flex-1 bg-gray-50"
-            showsVerticalScrollIndicator={false}
-        >
-            <LinearGradient
-                colors={["#B13239", "#4D0812"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={{ height: 44, width: "100%" }}
+        <View className="bg-white rounded-lg p-4">
+          <View className="flex-row items-center mb-4">
+            <Image
+              source={require('../../assets/images/icon.png')}
+              className="w-4 h-4"
             />
+            <Text className="ml-4 text-gray-500">
+              {t('about_california_emporium')}
+            </Text>
+          </View>
 
-            <View className="p-3">
+          {sections.map((section, index) => (
+            <View key={index} className="mb-6">
+              <Text className="mb-3 font-semibold text-gray-700">
+                {section.title}
+              </Text>
 
-                {/* Header */}
-                <View className="h-14 px-4 flex-row items-center">
-                    <TouchableOpacity onPress={() => router.back()}>
-                        <Icon name="chevron-back" size={24} color="#000" />
+              {section.items.map((item, i) => (
+                <TouchableOpacity
+                  key={i}
+                  onPress={() => handleItemPress(section, item)}
+                  className="flex-row items-center py-3 border-b border-gray-100"
+                >
+                  {section.title === t('faqs') ? (
+                    <View className="w-1 h-1 bg-black rounded-full mr-3" />
+                  ) : (
+                    <Ionicons
+                      name={item.icon!}
+                      size={22}
+                      color="#000"
+                      style={{ marginRight: 12 }}
+                    />
+                  )}
+
+                  <Text className="flex-1 text-gray-700">{item.text}</Text>
+
+                  {section.title === t('contact_information') ? (
+                    <TouchableOpacity onPress={() => handleCopy(item.text)}>
+                      <Ionicons
+                        name="copy-outline"
+                        size={18}
+                        color="#9CA3AF"
+                      />
                     </TouchableOpacity>
-
-                    <Text className="text-lg ml-2 font-bold">Security</Text>
-                </View>
-
-                <View className="mb-4 p-4 bg-white rounded-lg shadow-sm">
-                    <View className="flex-row items-center justify-between mb-2">
-                        {/* Left side: icon + text */}
-                        <View className="flex-row items-center">
-                            <Image
-                                source={require("../../assets/images/icon.png")}
-                                className="w-4 h-4"
-                            />
-                            <Text className="text-base text-gray-500 ml-4">
-                                About California Emporium
-                            </Text>
-                        </View>
-
-                        {/* Right side: chevron */}
-                        <Icon name="chevron-forward-outline" size={20} color="#9CA3AF" />
-                    </View>
-                    <View className="h-px bg-gray-200 mb-4" />
-
-                    {sections.map(renderSection)}
-                </View>
+                  ) : (
+                    <Ionicons
+                      name="chevron-forward-outline"
+                      size={18}
+                      color="#9CA3AF"
+                    />
+                  )}
+                </TouchableOpacity>
+              ))}
             </View>
-        </ScrollView>
-    );
+          ))}
+        </View>
+      </View>
+    </ScrollView>
+  );
 };
 
 export default SupportScreen;

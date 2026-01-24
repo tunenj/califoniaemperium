@@ -20,6 +20,7 @@ import {
   validatePhoneNumber,
   formatPhoneNumber,
 } from "@/utils/phoneValidation";
+import { useLanguage } from '@/context/LanguageContext'; // Import hook
 
 interface Country {
   value: string;
@@ -29,6 +30,7 @@ interface Country {
 
 const LoginScreen: React.FC = () => {
   const router = useRouter();
+  const { t } = useLanguage(); // Add hook
 
   const defaultCountry =
     countries.find(c => c.value === "canada") ?? countries[0];
@@ -101,22 +103,22 @@ const LoginScreen: React.FC = () => {
     const cleanCode = getCleanCountryCode();
 
     if (!phoneNumber.trim()) {
-      errors.push("Phone number is required");
+      errors.push(t('phone_number_required'));
     } else {
       const validation = validatePhoneNumber(phoneNumber, cleanCode);
       if (!validation.isValid) {
-        errors.push(validation.error || "Invalid phone number");
+        errors.push(validation.error || t('invalid_phone_number'));
       }
     }
 
     if (!password.trim()) {
-      errors.push("Password is required");
+      errors.push(t('password_required'));
     } else if (password.length < 6) {
-      errors.push("Password must be at least 6 characters");
+      errors.push(t('password_min_length'));
     }
 
     if (errors.length) {
-      Alert.alert("Login Error", errors.join("\n"));
+      Alert.alert(t('login_error'), errors.join("\n"));
       return;
     }
 
@@ -150,6 +152,15 @@ const LoginScreen: React.FC = () => {
     return () => handler.remove();
   }, [showCountryPicker]);
 
+  // Helper functions for translated text
+  const getLoginTitle = () => {
+    return `${t('login_as')} ${role === "vendor" ? t('business') : t('customer')}`;
+  };
+
+  const getSwitchText = () => {
+    return `${t('switch_to')} ${role === "vendor" ? t('customer') : t('business')}`;
+  };
+
   /* -------------------- UI -------------------- */
   return (
     <View className="flex-1 bg-white">
@@ -175,7 +186,7 @@ const LoginScreen: React.FC = () => {
         {/* Title */}
         <View className="items-center mb-8">
           <Text className="text-2xl font-bold mb-2">
-            Login as {role === "vendor" ? "Business" : "Customer"}
+            {getLoginTitle()}
           </Text>
 
           <TouchableOpacity
@@ -186,17 +197,18 @@ const LoginScreen: React.FC = () => {
           >
             <Image source={images.switchIcon} className="w-5 h-5 mr-2" />
             <Text className="text-gray-500 underline">
-              Switch to {role === "vendor" ? "Customer" : "Business"}
+              {getSwitchText()}
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Phone */}
-        <Text className="text-gray-700 mb-2">Phone Number</Text>
+        <Text className="text-gray-700 mb-2">
+          {t('phone_number')}
+        </Text>
         <View
-          className={`flex-row bg-gray-100 rounded-lg border-b-2 ${
-            phoneError ? "border-red-500" : "border-[#C62828]"
-          } mb-6`}
+          className={`flex-row bg-gray-100 rounded-lg border-b-2 ${phoneError ? "border-red-500" : "border-[#C62828]"
+            } mb-6`}
         >
           <TouchableOpacity
             className="px-3 py-4 border-r border-gray-200"
@@ -208,7 +220,7 @@ const LoginScreen: React.FC = () => {
 
           <TextInput
             className="flex-1 px-3 py-4"
-            placeholder="Enter phone number"
+            placeholder={t('enter_phone_number')}
             placeholderTextColor="#9CA3AF"
             value={formattedPhoneNumber}
             onChangeText={handlePhoneNumberChange}
@@ -217,11 +229,13 @@ const LoginScreen: React.FC = () => {
         </View>
 
         {/* Password */}
-        <Text className="text-gray-700 mb-2">Password</Text>
+        <Text className="text-gray-700 mb-2">
+          {t('password')}
+        </Text>
         <View className="relative mb-4">
           <TextInput
             secureTextEntry={!showPassword}
-              placeholder="Enter password"
+            placeholder={t('enter_password')}
             placeholderTextColor="#9CA3AF"
             className="bg-gray-100 rounded-lg px-4 py-4 pr-12 border-b-2 border-[#C62828]"
             value={password}
@@ -243,17 +257,16 @@ const LoginScreen: React.FC = () => {
         <TouchableOpacity
           disabled={!isFormValid}
           onPress={handleLogin}
-          className={`rounded-full py-4 items-center mb-8 ${
-            isFormValid ? "bg-[#C62828]" : "bg-gray-300"
-          }`}
+          className={`rounded-full py-4 items-center mb-8 ${isFormValid ? "bg-[#C62828]" : "bg-gray-300"
+            }`}
         >
           <Text className="text-white font-semibold text-lg">
-            Login
+            {t('login')}
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Country Picker (SAFE) */}
+      {/* Country Picker */}
       <Modal
         visible={showCountryPicker}
         transparent
@@ -266,10 +279,10 @@ const LoginScreen: React.FC = () => {
         >
           <Pressable
             className="bg-white rounded-t-3xl p-6 max-h-[70%]"
-            onPressIn={() => {}}
+            onPressIn={() => { }}
           >
             <Text className="text-xl font-semibold mb-4">
-              Select Country
+              {t('select_country')}
             </Text>
 
             <FlatList

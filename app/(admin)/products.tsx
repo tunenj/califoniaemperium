@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useLanguage } from '@/context/LanguageContext'; // Import hook
 
 /* ================= TYPES ================= */
 
@@ -71,6 +72,23 @@ const PRODUCTS: Product[] = [
 /* ================= ROW ================= */
 
 function ProductRow({ item }: { item: Product }) {
+  const { t } = useLanguage(); // Add hook
+  
+  const getStatusTranslation = (status: VendorStatus) => {
+    const translations: Record<VendorStatus, string> = {
+      'Approved': t('approved'),
+      'Pending': t('pending'),
+      'Suspended': t('suspended'),
+    };
+    return translations[status];
+  };
+
+  const statusStyle = item.status === "Approved"
+    ? "bg-green-100 text-green-700"
+    : item.status === "Pending"
+      ? "bg-yellow-100 text-yellow-700"
+      : "bg-red-100 text-red-700";
+
   return (
     <View className="flex-row border-b border-gray-200 py-3 bg-white">
       {/* Product */}
@@ -97,21 +115,16 @@ function ProductRow({ item }: { item: Product }) {
       <View className="w-36 px-3">
         <Text className="text-sm font-semibold">{item.price}</Text>
         <Text className="text-xs text-gray-500">
-          Cost: {item.cost}
+          {t('cost')}: {item.cost}
         </Text>
       </View>
 
       {/* Status */}
       <View className="w-32 px-3">
         <Text
-          className={`text-xs px-3 py-0.5 rounded-full text-center ${item.status === "Approved"
-              ? "bg-green-100 text-green-700"
-              : item.status === "Pending"
-                ? "bg-yellow-100 text-yellow-700"
-                : "bg-red-100 text-red-700"
-            }`}
+          className={`text-xs px-3 py-0.5 rounded-full text-center ${statusStyle}`}
         >
-          {item.status}
+          {getStatusTranslation(item.status)}
         </Text>
       </View>
 
@@ -128,6 +141,7 @@ export default function ProductModeration() {
   const [activeStatus, setActiveStatus] = useState<
     "All" | VendorStatus
   >("All");
+  const { t } = useLanguage(); // Add hook
 
   const data = useMemo(() => {
     return PRODUCTS.filter((p) => {
@@ -142,14 +156,26 @@ export default function ProductModeration() {
     });
   }, [search, activeStatus]);
 
+  const getStatusTranslation = (status: "All" | VendorStatus) => {
+    const translations: Record<string, string> = {
+      'All': t('all'),
+      'Approved': t('approved'),
+      'Pending': t('pending'),
+      'Suspended': t('suspended'),
+    };
+    return translations[status];
+  };
+
+  const statusFilters: ("All" | VendorStatus)[] = ["All", "Pending", "Approved", "Suspended"];
+
   return (
     <View className="flex-1 bg-white px-4">
       {/* Title */}
       <Text className="text-lg font-bold text-gray-900">
-        Product Moderation
+        {t('product_moderation')}
       </Text>
       <Text className="text-sm text-gray-500 mb-4">
-        Review and approve vendor products
+        {t('review_and_approve_products')}
       </Text>
 
       {/* Search */}
@@ -160,7 +186,7 @@ export default function ProductModeration() {
           color="#6b7280"
         />
         <TextInput
-          placeholder="Search products..."
+          placeholder={t('search_products')}
           placeholderTextColor="#6b7280"
           className="flex-1 ml-2 text-sm"
           value={search}
@@ -170,33 +196,29 @@ export default function ProductModeration() {
 
       {/* STATUS FILTERS */}
       <View className="flex-row gap-2 mb-4">
-        {["All", "Pending", "Approved", "Suspended"].map(
-          (status) => {
-            const isActive = activeStatus === status;
+        {statusFilters.map((status) => {
+          const isActive = activeStatus === status;
 
-            return (
-              <TouchableOpacity
-                key={status}
-                onPress={() =>
-                  setActiveStatus(status as any)
-                }
-                className={`px-4 py-1 rounded-full ${isActive
-                    ? "bg-red-600"
-                    : "bg-gray-100"
+          return (
+            <TouchableOpacity
+              key={status}
+              onPress={() => setActiveStatus(status)}
+              className={`px-4 py-1 rounded-full ${isActive
+                  ? "bg-red-600"
+                  : "bg-gray-100"
+                }`}
+            >
+              <Text
+                className={`text-xs ${isActive
+                    ? "text-white font-semibold"
+                    : "text-gray-600"
                   }`}
               >
-                <Text
-                  className={`text-xs ${isActive
-                      ? "text-white font-semibold"
-                      : "text-gray-600"
-                    }`}
-                >
-                  {status}
-                </Text>
-              </TouchableOpacity>
-            );
-          }
-        )}
+                {getStatusTranslation(status)}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* TABLE */}
@@ -209,14 +231,14 @@ export default function ProductModeration() {
             stickyHeaderIndices={[0]}
             showsVerticalScrollIndicator={false}
             ListHeaderComponent={() => (
-              <View className="flex-row border-b  border-gray-300 bg-gray-100">
-                <Header title="Products" width="w-48" />
-                <Header title="Vendor" width="w-36" />
-                <Header title="Category" width="w-32" />
-                <Header title="Stock" width="w-24" />
-                <Header title="Price" width="w-36" />
-                <Header title="Status" width="w-32" />
-                <Header title="Created" width="w-32" />
+              <View className="flex-row border-b border-gray-300 bg-gray-100">
+                <Header title={t('products')} width="w-48" />
+                <Header title={t('vendor')} width="w-36" />
+                <Header title={t('category')} width="w-32" />
+                <Header title={t('stock')} width="w-24" />
+                <Header title={t('price')} width="w-36" />
+                <Header title={t('status')} width="w-32" />
+                <Header title={t('created')} width="w-32" />
               </View>
             )}
           />

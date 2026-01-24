@@ -4,12 +4,13 @@ import React, { useState } from 'react';
 import { Image, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from "@/constants/color";
-
+import { useLanguage } from '@/context/LanguageContext'; // Import the language hook
 
 const BusinessRegisterScreen: React.FC = () => {
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [isCustomer, setIsCustomer] = useState(false);
   const router = useRouter();
+  const { t } = useLanguage(); // Get the translation function
 
   const handleSignIn = () => {
     router.push('/signIn');
@@ -44,7 +45,7 @@ const BusinessRegisterScreen: React.FC = () => {
           {/* Title & Switch */}
           <View className="mb-8 items-center">
             <Text className="text-lg font-semibold text-black mb-1">
-              {isCustomer ? 'Register as Customer' : 'Register as Business'}
+              {isCustomer ? t('register_as_customer') : t('register_as_business')}
             </Text>
 
             <TouchableOpacity
@@ -53,7 +54,7 @@ const BusinessRegisterScreen: React.FC = () => {
             >
               <Image source={images.switchIcon} className="w-6 h-6 mr-2" />
               <Text className="text-lg text-gray-400 font-medium underline">
-                {isCustomer ? 'Switch to Business' : 'Switch to customer'}
+                {isCustomer ? t('switch_to_business') : t('switch_to_customer')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -65,16 +66,15 @@ const BusinessRegisterScreen: React.FC = () => {
           >
             <PhoneCall color={colors.darkRed} size={24} style={{ marginRight: 16 }} />
             <Text className="text-lg text-gray-900 flex-1 pl-8">
-              Sign up with phone number
+              {t('sign_up_with_phone')}
             </Text>
           </TouchableOpacity>
 
-          {/* Rest of your existing code remains the same */}
           {/* Google Sign-up */}
           <TouchableOpacity className="flex-row items-center mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
             <Image source={images.googleIcon} className="w-6 h-6 mr-4" />
             <Text className="text-lg text-gray-900 flex-1 pl-14">
-              Sign up with Google
+              {t('sign_up_with_google')}
             </Text>
           </TouchableOpacity>
 
@@ -82,19 +82,22 @@ const BusinessRegisterScreen: React.FC = () => {
           {showMoreOptions && (
             <View className="flex-row items-center my-6">
               <View className="flex-1 h-px bg-gray-300" />
-              <Text className="px-4 text-gray-500 text-sm font-medium">OR</Text>
+              <Text className="px-4 text-gray-500 text-sm font-medium">
+                {t('or')}
+              </Text>
               <View className="flex-1 h-px bg-gray-300" />
             </View>
           )}
 
           {/* Email Option */}
           {showMoreOptions && (
-            <TouchableOpacity className="flex-row items-center mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200"
-             onPress={handleEmailSignUp}
+            <TouchableOpacity 
+              className="flex-row items-center mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200"
+              onPress={handleEmailSignUp}
             >
               <Mail color={colors.darkRed} size={24} style={{ marginRight: 16 }} />
               <Text className="text-lg text-gray-900 flex-1 pl-14">
-                Email and Password
+                {t('email_and_password')}
               </Text>
             </TouchableOpacity>
           )}
@@ -105,7 +108,7 @@ const BusinessRegisterScreen: React.FC = () => {
             onPress={() => setShowMoreOptions(!showMoreOptions)}
           >
             <Text className="text-gray-400 text-sm font-medium mr-2">
-              {showMoreOptions ? 'Less options' : 'More options'}
+              {showMoreOptions ? t('less_options') : t('more_options')}
             </Text>
             {showMoreOptions ? (
               <ChevronUp color="#9CA3AF" size={16} />
@@ -118,8 +121,8 @@ const BusinessRegisterScreen: React.FC = () => {
           <View className="flex-row justify-center">
             <TouchableOpacity onPress={handleSignIn}>
               <Text className="text-gray-600 text-lg">
-                Already have an account?{' '}
-                <Text className="text-accent">Log in</Text>
+                {t('already_have_account')}{' '}
+                <Text className="text-accent">{t('log_in')}</Text>
               </Text>
             </TouchableOpacity>
           </View>

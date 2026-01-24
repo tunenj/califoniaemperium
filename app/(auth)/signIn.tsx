@@ -4,13 +4,14 @@ import { ChevronDown, ChevronUp, Mail, PhoneCall } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Image, Text, TouchableOpacity, View } from 'react-native';
 import { colors } from "@/constants/color";
-
+import { useLanguage } from '@/context/LanguageContext'; // Add import
 
 const BusinessLoginScreen: React.FC = () => {
     const [showMoreOptions, setShowMoreOptions] = useState(false);
     const [isCustomer, setIsCustomer] = useState(false);
 
     const router = useRouter();
+    const { t } = useLanguage(); // Add hook
 
     const handlePhoneSignIn = () => {
         router.push('/LoginForm/PhoneSignIn');
@@ -18,6 +19,15 @@ const BusinessLoginScreen: React.FC = () => {
 
     const handleEmailSignIn = () => {
         router.push('/LoginForm/EmailSignIn');
+    };
+
+    // Helper functions for dynamic text
+    const getLoginTitle = () => {
+        return `${t('login_as')} ${isCustomer ? t('customer') : t('business')}`;
+    };
+
+    const getSwitchText = () => {
+        return `${t('switch_to')} ${isCustomer ? t('business') : t('customer')}`;
     };
 
     return (
@@ -41,7 +51,7 @@ const BusinessLoginScreen: React.FC = () => {
                     {/* Title & Switch */}
                     <View className="mb-8 items-center">
                         <Text className="text-lg font-semibold text-black mb-1">
-                            {isCustomer ? 'Login as Customer' : 'Login as Business'}
+                            {getLoginTitle()}
                         </Text>
 
                         <TouchableOpacity
@@ -50,7 +60,7 @@ const BusinessLoginScreen: React.FC = () => {
                         >
                             <Image source={images.switchIcon} className="w-6 h-6 mr-2" />
                             <Text className="text-lg text-gray-400 font-medium underline">
-                                {isCustomer ? 'Switch to Business' : 'Switch to customer'}
+                                {getSwitchText()}
                             </Text>
                         </TouchableOpacity>
                     </View>
@@ -61,7 +71,7 @@ const BusinessLoginScreen: React.FC = () => {
                     >
                         <PhoneCall color={colors.darkRed} size={24} style={{ marginRight: 16 }} />
                         <Text className="text-lg text-gray-900 flex-1 pl-8">
-                            Login with phone number
+                            {t('login_with_phone_number')}
                         </Text>
                     </TouchableOpacity>
 
@@ -69,7 +79,7 @@ const BusinessLoginScreen: React.FC = () => {
                     <TouchableOpacity className="flex-row items-center mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
                         <Image source={images.googleIcon} className="w-6 h-6 mr-4" />
                         <Text className="text-lg text-gray-900 flex-1 pl-14">
-                            Login with Google
+                            {t('login_with_google')}
                         </Text>
                     </TouchableOpacity>
 
@@ -77,7 +87,7 @@ const BusinessLoginScreen: React.FC = () => {
                     {showMoreOptions && (
                         <View className="flex-row items-center my-6">
                             <View className="flex-1 h-px bg-gray-300" />
-                            <Text className="px-4 text-gray-500 text-sm font-medium">OR</Text>
+                            <Text className="px-4 text-gray-500 text-sm font-medium">{t('or')}</Text>
                             <View className="flex-1 h-px bg-gray-300" />
                         </View>
                     )}
@@ -89,7 +99,7 @@ const BusinessLoginScreen: React.FC = () => {
                         >
                             <Mail color={colors.darkRed} size={24} style={{ marginRight: 16 }} />
                             <Text className="text-lg text-gray-900 flex-1 pl-14">
-                                Email and Password
+                                {t('email_and_password')}
                             </Text>
                         </TouchableOpacity>
                     )}
@@ -100,7 +110,7 @@ const BusinessLoginScreen: React.FC = () => {
                         onPress={() => setShowMoreOptions(!showMoreOptions)}
                     >
                         <Text className="text-gray-400 text-sm font-medium mr-2">
-                            {showMoreOptions ? 'Less options' : 'More options'}
+                            {showMoreOptions ? t('less_options') : t('more_options')}
                         </Text>
                         {showMoreOptions ? (
                             <ChevronUp color="#9CA3AF" size={16} />
@@ -109,12 +119,12 @@ const BusinessLoginScreen: React.FC = () => {
                         )}
                     </TouchableOpacity>
 
-                    {/* Login */}
+                    {/* Sign up link */}
                     <View className="flex-row justify-center">
                         <TouchableOpacity onPress={() => router.push('/(auth)/signUp')}>
                             <Text className="text-gray-600 text-lg">
-                                Don&apos;t have an account?{' '}
-                                <Text className="text-accent">Sign up</Text>
+                                {t('dont_have_account')}{' '}
+                                <Text className="text-accent">{t('sign_up')}</Text>
                             </Text>
                         </TouchableOpacity>
                     </View>

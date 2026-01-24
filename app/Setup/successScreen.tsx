@@ -3,9 +3,11 @@ import { useRouter } from "expo-router";
 import React from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import { CheckCircle } from "lucide-react-native";
+import { useLanguage } from "@/context/LanguageContext"; // Add import
 
 const ProfileSetupSuccess: React.FC = () => {
   const router = useRouter();
+  const { t } = useLanguage(); // Add hook
 
   const handleProceed = () => {
     // Change this to your actual dashboard route
@@ -34,12 +36,12 @@ const ProfileSetupSuccess: React.FC = () => {
 
         {/* Heading */}
         <Text className="text-xl font-bold text-black mb-2 text-center">
-          Successful
+          {t('successful')}
         </Text>
 
         {/* Subtitle */}
         <Text className="text-gray-500 text-center mb-10">
-          Your profile has been updated
+          {t('profile_updated_successfully')}
         </Text>
 
         {/* CTA Button */}
@@ -49,7 +51,7 @@ const ProfileSetupSuccess: React.FC = () => {
           onPress={handleProceed}
         >
           <Text className="text-white text-lg font-semibold">
-            Proceed to Dashboard
+            {t('proceed_to_dashboard')}
           </Text>
         </TouchableOpacity>
       </View>

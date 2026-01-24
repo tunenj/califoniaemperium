@@ -3,10 +3,12 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import TopNav from "@/components/vendor/TopNav/TopNav";
+import { useLanguage } from '@/context/LanguageContext'; // Import hook
 
 export default function AdminLayout() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
+  const { t } = useLanguage(); // Add hook
 
   useEffect(() => {
     const isAdmin = true;
@@ -34,7 +36,7 @@ export default function AdminLayout() {
       <Drawer.Screen
         name="home"
         options={{
-          title: "Dashboard",
+          title: t('dashboard'),
           drawerIcon: ({ color, size }) => (
             <Ionicons name="grid-outline" size={size} color={color} />
           ),
@@ -44,7 +46,7 @@ export default function AdminLayout() {
       <Drawer.Screen
         name="products"
         options={{
-          title: "Products",
+          title: t('products'),
           drawerIcon: ({ color, size }) => (
             <MaterialCommunityIcons
               name="cube-outline"
@@ -58,7 +60,7 @@ export default function AdminLayout() {
       <Drawer.Screen
         name="orders"
         options={{
-          title: "Orders",
+          title: t('orders'),
           drawerIcon: ({ color, size }) => (
             <Ionicons name="bag-handle-outline" size={size} color={color} />
           ),
@@ -68,7 +70,7 @@ export default function AdminLayout() {
       <Drawer.Screen
         name="support"
         options={{
-          title: "Support",
+          title: t('support'),
           drawerIcon: ({ color, size }) => (
             <Ionicons name="headset-outline" size={size} color={color} />
           ),
@@ -78,7 +80,7 @@ export default function AdminLayout() {
       <Drawer.Screen
         name="vendors"
         options={{
-          title: "Vendors",
+          title: t('vendors'),
           drawerIcon: ({ color, size }) => (
             <Ionicons name="storefront-outline" size={size} color={color} />
           ),
@@ -88,7 +90,7 @@ export default function AdminLayout() {
       <Drawer.Screen
         name="dropShipping"
         options={{
-          title: "Drop Shipping",
+          title: t('drop_shipping'),
           drawerIcon: ({ color, size }) => (
             <MaterialCommunityIcons
               name="truck-delivery-outline"
@@ -102,7 +104,7 @@ export default function AdminLayout() {
       <Drawer.Screen
         name="commission"
         options={{
-          title: "Commission",
+          title: t('commission'),
           drawerIcon: ({ color, size }) => (
             <MaterialCommunityIcons
               name="percent-outline"
@@ -116,7 +118,7 @@ export default function AdminLayout() {
       <Drawer.Screen
         name="payouts"
         options={{
-          title: "Payouts",
+          title: t('payouts'),
           drawerIcon: ({ color, size }) => (
             <Ionicons name="cash-outline" size={size} color={color} />
           ),
@@ -126,7 +128,7 @@ export default function AdminLayout() {
       <Drawer.Screen
         name="analytics"
         options={{
-          title: "Analytics",
+          title: t('analytics'),
           drawerIcon: ({ color, size }) => (
             <Ionicons name="bar-chart-outline" size={size} color={color} />
           ),

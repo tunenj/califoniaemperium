@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useLanguage } from "@/context/LanguageContext"; // Add import
 
 interface StatCardProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -17,6 +18,8 @@ const StatCard: React.FC<StatCardProps> = ({
   subtitle,
   color,
 }) => {
+  const { t } = useLanguage(); // Add hook
+
   return (
     <View
       className="flex-1 rounded-2xl p-4 bg-white border"
@@ -38,7 +41,7 @@ const StatCard: React.FC<StatCardProps> = ({
         className="text-sm font-semibold"
         style={{ color }}
       >
-        {title}
+        {t(title)} {/* Wrap title with t() function */}
       </Text>
 
       {/* Subtitle */}
@@ -46,7 +49,7 @@ const StatCard: React.FC<StatCardProps> = ({
         className="text-xs mt-1"
         style={{ color }}
       >
-        {subtitle}
+        {t(subtitle)} {/* Wrap subtitle with t() function */}
       </Text>
     </View>
   );

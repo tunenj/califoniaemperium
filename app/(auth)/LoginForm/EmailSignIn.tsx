@@ -3,11 +3,13 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { Image, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useLanguage } from '@/context/LanguageContext'; // Import hook
 
 const ADMIN_EMAIL = "yakubyusuf6@gmail.com";
 
 const EmailLoginScreen: React.FC = () => {
   const router = useRouter();
+  const { t } = useLanguage(); // Add hook
 
   // Roles: Vendor or Customer
   const [role, setRole] = useState<"vendor" | "customer">("vendor");
@@ -68,6 +70,19 @@ const EmailLoginScreen: React.FC = () => {
     router.replace("/(customer)/main");
   };
 
+  // Helper function to get login title
+  const getLoginTitle = () => {
+    if (isAdmin) {
+      return t('admin_login');
+    }
+    return `${t('login_as')} ${role === "vendor" ? t('business') : t('customer')}`;
+  };
+
+  // Helper function to get switch text
+  const getSwitchText = () => {
+    return `${t('switch_to')} ${role === "vendor" ? t('customer') : t('business')}`;
+  };
+
   return (
     <View className="flex-1 bg-white">
       {/* Top Header */}
@@ -94,9 +109,7 @@ const EmailLoginScreen: React.FC = () => {
 
           <View className="items-center">
             <Text className="text-2xl font-bold text-black mb-2">
-              {isAdmin
-                ? "Admin Login"
-                : `Login as ${role === "vendor" ? "Business" : "Customer"}`}
+              {getLoginTitle()}
             </Text>
 
             {/* Hide role switch for admin */}
@@ -111,7 +124,7 @@ const EmailLoginScreen: React.FC = () => {
                   resizeMode="contain"
                 />
                 <Text className="text-base text-gray-500 underline">
-                  Switch to {role === "vendor" ? "Customer" : "Business"}
+                  {getSwitchText()}
                 </Text>
               </TouchableOpacity>
             )}
@@ -121,10 +134,12 @@ const EmailLoginScreen: React.FC = () => {
         {/* Form */}
         <View className="mb-8">
           {/* Email */}
-          <Text className="text-gray-700 text-base mb-2">Email</Text>
+          <Text className="text-gray-700 text-base mb-2">
+            {t('email')}
+          </Text>
           <TextInput
             className="bg-gray-100 rounded-lg px-4 py-4 text-base border-b-2 border-[#C62828]"
-            placeholder="Enter your email"
+            placeholder={t('enter_your_email')}
             placeholderTextColor="#444"
             value={email}
             onChangeText={setEmail}
@@ -133,11 +148,13 @@ const EmailLoginScreen: React.FC = () => {
           />
 
           {/* Password */}
-          <Text className="text-gray-700 text-base mt-6 mb-2">Password</Text>
+          <Text className="text-gray-700 text-base mt-6 mb-2">
+            {t('password')}
+          </Text>
           <View className="relative">
             <TextInput
               className="bg-gray-100 rounded-lg px-4 py-4 text-base pr-12 border-b-2 border-[#C62828]"
-              placeholder="Enter password"
+              placeholder={t('enter_password')}
               placeholderTextColor="#444"
               value={password}
               onChangeText={setPassword}
@@ -161,7 +178,7 @@ const EmailLoginScreen: React.FC = () => {
             onPress={handleForgotPassword}
           >
             <Text className="text-[#C62828] text-sm">
-              Forgot password?
+              {t('forgot_password')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -179,19 +196,19 @@ const EmailLoginScreen: React.FC = () => {
               isFormValid ? "text-white" : "text-gray-600"
             }`}
           >
-            Login
+            {t('login')}
           </Text>
         </TouchableOpacity>
 
         {/* Sign Up */}
         <View className="items-center">
           <Text className="text-gray-600 text-base">
-            Don&apos;t have an account?{" "}
+            {t('dont_have_account')}{" "}
             <Text
               className="text-[#C62828] font-semibold"
               onPress={handleSignUp}
             >
-              Sign Up
+              {t('sign_up')}
             </Text>
           </Text>
         </View>

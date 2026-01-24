@@ -10,12 +10,14 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useLanguage } from '@/context/LanguageContext';
 
 type UserType = 'business' | 'customer' | null;
 
 export default function WelcomeScreen() {
   const router = useRouter();
   const [selectedType, setSelectedType] = useState<UserType>(null);
+  const { t } = useLanguage(); // Add this hook
 
   const handleSelectType = (type: UserType) => {
     setSelectedType(type);
@@ -67,7 +69,7 @@ export default function WelcomeScreen() {
         </View>
 
         <Text className="text-2xl text-white mb-12 text-center">
-          Welcome to CaliforniaEmporium
+          {t('welcome_to_app')} {/* New translation key */}
         </Text>
       </View>
 
@@ -77,7 +79,7 @@ export default function WelcomeScreen() {
           {/* Title */}
           <View className="items-center mb-8">
             <Text className="text-xl text-black text-center">
-              Register as Business or Customer
+              {t('register_as_business_or_customer')} {/* New translation key */}
             </Text>
           </View>
 
@@ -107,10 +109,10 @@ export default function WelcomeScreen() {
                     }`}
                   />
                   <Text className="text-xl font-bold text-gray-900 mb-1">
-                    Business
+                    {t('business')} {/* Existing translation key */}
                   </Text>
                   <Text className="text-gray-600">
-                    Am here to provide service
+                    {t('business_description')} {/* New translation key */}
                   </Text>
                 </View>
               </View>
@@ -140,10 +142,10 @@ export default function WelcomeScreen() {
                     }`}
                   />
                   <Text className="text-xl font-bold text-gray-900 mb-1">
-                    Customer
+                    {t('customer')} {/* Existing translation key */}
                   </Text>
                   <Text className="text-gray-600">
-                    Am here to seek service
+                    {t('customer_description')} {/* New translation key */}
                   </Text>
                 </View>
               </View>
@@ -166,7 +168,7 @@ export default function WelcomeScreen() {
                     selectedType ? 'text-white' : 'text-gray-500'
                   }`}
                 >
-                  Sign Up
+                  {t('sign_up')} {/* Existing translation key */}
                 </Text>
                 <ArrowRight
                   size={22}
@@ -181,8 +183,8 @@ export default function WelcomeScreen() {
               onPress={handleSignIn}
             >
               <Text className="text-gray-600 text-lg">
-                Already have an account?{' '}
-                <Text className="text-accent">Log in</Text>
+                {t('already_have_account')}{' '} {/* Existing translation key */}
+                <Text className="text-accent">{t('log_in')}</Text> {/* Existing translation key */}
               </Text>
             </TouchableOpacity>
           </View>

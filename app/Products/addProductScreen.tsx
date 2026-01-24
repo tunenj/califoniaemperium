@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
+import { useLanguage } from '@/context/LanguageContext'; // Add import
 
 type ProductStatus = "active" | "inactive" | "draft";
 
@@ -30,6 +31,8 @@ interface ProductFormData {
 
 export default function AddProductScreen() {
     const router = useRouter();
+    const { t } = useLanguage(); // Add hook
+    
     const [image, setImage] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState<ProductFormData>({
@@ -56,9 +59,9 @@ export default function AddProductScreen() {
 
             if (status !== "granted") {
                 Alert.alert(
-                    "Permission Required",
-                    "Allow access to upload product image.",
-                    [{ text: "OK", style: "default" }]
+                    t('permission_required'),
+                    t('allow_access_upload_product_image'),
+                    [{ text: t('ok'), style: "default" }]
                 );
                 return;
             }
@@ -76,9 +79,9 @@ export default function AddProductScreen() {
         } catch (error) {
             console.error("Error picking image:", error);
             Alert.alert(
-                "Error",
-                "Failed to pick image. Please try again.",
-                [{ text: "OK", style: "cancel" }]
+                t('error'),
+                t('failed_to_pick_image'),
+                [{ text: t('ok'), style: "cancel" }]
             );
         }
     };
@@ -86,23 +89,23 @@ export default function AddProductScreen() {
     // Form validation
     const validateForm = (): boolean => {
         if (!formData.name.trim()) {
-            Alert.alert("Validation Error", "Product name is required");
+            Alert.alert(t('validation_error'), t('product_name_required'));
             return false;
         }
 
         if (!formData.price.trim() || isNaN(Number(formData.price))) {
-            Alert.alert("Validation Error", "Valid price is required");
+            Alert.alert(t('validation_error'), t('valid_price_required'));
             return false;
         }
 
         if (image === null) {
             Alert.alert(
-                "Image Required",
-                "Would you like to add a product image?",
+                t('image_required'),
+                t('add_product_image_prompt'),
                 [
-                    { text: "Add Later", style: "cancel", onPress: () => true },
+                    { text: t('add_later'), style: "cancel", onPress: () => true },
                     {
-                        text: "Upload Now", style: "default", onPress: () => {
+                        text: t('upload_now'), style: "default", onPress: () => {
                             handlePickImage();
                             return false;
                         }
@@ -127,15 +130,15 @@ export default function AddProductScreen() {
 
             // Success
             Alert.alert(
-                "Success",
-                "Product added successfully!",
+                t('success'),
+                t('product_added_successfully'),
                 [
                     {
-                        text: "View Products",
+                        text: t('view_products'),
                         onPress: () => router.replace("/(vendor)/products"),
                     },
                     {
-                        text: "Add Another",
+                        text: t('add_another'),
                         onPress: () => {
                             // Reset form
                             setFormData({
@@ -161,9 +164,9 @@ export default function AddProductScreen() {
 
             // Show user-friendly message
             Alert.alert(
-                "Error",
-                "Failed to add product. Please try again.",
-                [{ text: "OK", style: "cancel" }]
+                t('error'),
+                t('failed_to_add_product'),
+                [{ text: t('ok'), style: "cancel" }]
             );
             setIsSubmitting(false);
         }
@@ -178,12 +181,12 @@ export default function AddProductScreen() {
 
         if (hasUnsavedChanges) {
             Alert.alert(
-                "Discard Changes?",
-                "You have unsaved changes. Are you sure you want to discard them?",
+                t('discard_changes'),
+                t('unsaved_changes_discard_confirmation'),
                 [
-                    { text: "Keep Editing", style: "cancel" },
+                    { text: t('keep_editing'), style: "cancel" },
                     {
-                        text: "Discard",
+                        text: t('discard'),
                         style: "destructive",
                         onPress: () => router.back()
                     },
@@ -191,6 +194,15 @@ export default function AddProductScreen() {
             );
         } else {
             router.back();
+        }
+    };
+
+    const getTranslatedStatus = (status: ProductStatus) => {
+        switch (status) {
+            case 'active': return t('active');
+            case 'inactive': return t('inactive');
+            case 'draft': return t('draft');
+            default: return status;
         }
     };
 
@@ -219,10 +231,10 @@ export default function AddProductScreen() {
 
                         {/* Title & Subtitle */}
                         <Text className="text-lg font-semibold text-gray-900">
-                            Add New Product
+                            {t('add_new_product')}
                         </Text>
                         <Text className="text-xs text-gray-400 mt-1">
-                            Fill in the product&apos;s information.
+                            {t('fill_product_information')}
                         </Text>
                     </View>
 
@@ -253,10 +265,10 @@ export default function AddProductScreen() {
                                     />
                                 </View>
                                 <Text className="text-sm text-gray-600 font-medium">
-                                    Upload Product Image
+                                    {t('upload_product_image')}
                                 </Text>
                                 <Text className="text-xs text-gray-400 mt-1 text-center">
-                                    Recommended: 4:3 aspect ratio
+                                    {t('recommended_aspect_ratio')}
                                 </Text>
                             </View>
                         )}
@@ -267,12 +279,12 @@ export default function AddProductScreen() {
                         {/* Product Name */}
                         <View className="mb-3">
                             <Text className="text-sm font-medium text-gray-700 mb-2">
-                                Product Name *
+                                {t('product_name')} *
                             </Text>
                             <TextInput
                                 value={formData.name}
                                 onChangeText={(value) => handleInputChange('name', value)}
-                                placeholder="Enter product name"
+                                placeholder={t('enter_product_name')}
                                 className="border border-gray-300 rounded-lg px-4 py-3 text-sm"
                                 editable={!isSubmitting}
                             />
@@ -281,7 +293,7 @@ export default function AddProductScreen() {
                         {/* Category */}
                         <View className="mb-3">
                             <Text className="text-sm font-medium text-gray-700 mb-2">
-                                Category
+                                {t('category')}
                             </Text>
                             <TouchableOpacity
                                 className="flex-row justify-between items-center border border-gray-300 rounded-lg px-4 py-3"
@@ -289,7 +301,7 @@ export default function AddProductScreen() {
                                 disabled={isSubmitting}
                             >
                                 <Text className={`text-sm ${formData.category ? 'text-gray-900' : 'text-gray-400'}`}>
-                                    {formData.category || "Select category"}
+                                    {formData.category || t('select_category')}
                                 </Text>
                                 <Ionicons
                                     name="chevron-down"
@@ -302,7 +314,7 @@ export default function AddProductScreen() {
                         {/* Status */}
                         <View className="mb-3">
                             <Text className="text-sm font-medium text-gray-700 mb-2">
-                                Status
+                                {t('status')}
                             </Text>
                             <TouchableOpacity
                                 className="flex-row justify-between items-center border border-gray-300 rounded-lg px-4 py-3"
@@ -312,7 +324,7 @@ export default function AddProductScreen() {
                                 <View className="flex-row items-center">
                                     <View className={`w-2 h-2 rounded-full mr-2 ${formData.status === 'active' ? 'bg-green-500' : 'bg-gray-400'}`} />
                                     <Text className="text-sm capitalize">
-                                        {formData.status}
+                                        {getTranslatedStatus(formData.status)}
                                     </Text>
                                 </View>
                                 <Ionicons
@@ -326,14 +338,14 @@ export default function AddProductScreen() {
                         {/* Description */}
                         <View className="mb-3">
                             <Text className="text-sm font-medium text-gray-700 mb-2">
-                                Description
+                                {t('description')}
                             </Text>
                             <TextInput
                                 value={formData.description}
                                 onChangeText={(value) => handleInputChange('description', value)}
                                 multiline
                                 numberOfLines={4}
-                                placeholder="Describe your product features, benefits, etc."
+                                placeholder={t('describe_product_features')}
                                 className="border border-gray-300 rounded-lg px-4 py-3 text-sm min-h-[100px]"
                                 textAlignVertical="top"
                                 editable={!isSubmitting}
@@ -345,7 +357,7 @@ export default function AddProductScreen() {
                             {/* Price */}
                             <View className="mb-3">
                                 <Text className="text-sm font-medium text-gray-700">
-                                    Price
+                                    {t('price')}
                                 </Text>
                                 <View className="flex-row items-center border border-gray-300 rounded-lg px-4">
                                     <TextInput
@@ -362,7 +374,7 @@ export default function AddProductScreen() {
                             {/* Compare at price */}
                             <View className="mb-2">
                                 <Text className="text-sm font-medium text-gray-700">
-                                    Compare at price
+                                    {t('compare_at_price')}
                                 </Text>
                                 <View className="flex-row items-center border border-gray-300 rounded-lg px-4">
                                     <TextInput
@@ -382,7 +394,7 @@ export default function AddProductScreen() {
                             {/* Stock Quantity */}
                             <View className="mb-3">
                                 <Text className="text-sm font-medium text-gray-700">
-                                    Stock Quantity
+                                    {t('stock_quantity')}
                                 </Text>
                                 <TextInput
                                     value={formData.stockQuantity}
@@ -397,7 +409,7 @@ export default function AddProductScreen() {
                             {/* Low Stock Alert */}
                             <View className="mb-3">
                                 <Text className="text-sm font-medium text-gray-700">
-                                    Low Stock Alert
+                                    {t('low_stock_alert')}
                                 </Text>
                                 <TextInput
                                     value={formData.lowStockAlert}
@@ -411,12 +423,12 @@ export default function AddProductScreen() {
                             {/* SKU */}
                             <View>
                                 <Text className="text-sm font-medium text-gray-700">
-                                    SKU (Stock Keeping Unit)
+                                    {t('sku')}
                                 </Text>
                                 <TextInput
                                     value={formData.sku}
                                     onChangeText={(value) => handleInputChange('sku', value)}
-                                    placeholder="e.g., PROD-001"
+                                    placeholder={t('sku_placeholder')}
                                     className="border border-gray-300 rounded-lg px-4 py-3 text-sm"
                                     editable={!isSubmitting}
                                 />
@@ -434,7 +446,7 @@ export default function AddProductScreen() {
                             activeOpacity={0.7}
                         >
                             <Text className="text-gray-700 font-medium text-center">
-                                Cancel
+                                {t('cancel')}
                             </Text>
                         </TouchableOpacity>
 
@@ -448,7 +460,7 @@ export default function AddProductScreen() {
                                 <ActivityIndicator color="#ffffff" size="small" />
                             ) : (
                                 <Text className="text-white font-semibold text-center">
-                                    Add Product
+                                    {t('add_product')}
                                 </Text>
                             )}
                         </TouchableOpacity>

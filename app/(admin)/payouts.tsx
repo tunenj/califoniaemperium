@@ -8,6 +8,7 @@ import {
   ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useLanguage } from '@/context/LanguageContext'; // Import hook
 
 /* ================= TYPES ================= */
 
@@ -80,22 +81,37 @@ const PENDING_BALANCES: PendingBalance[] = [
 /* ================= ROW ================= */
 
 const PayoutRowItem = memo(({ item }: { item: PayoutRow }) => {
+  const { t } = useLanguage(); // Add hook
+  
   const initial = item.vendor.charAt(0).toUpperCase();
 
   const statusMap = {
     Completed: {
       bg: "bg-green-100",
       text: "text-green-700",
+      label: t('completed'),
     },
     Pending: {
       bg: "bg-yellow-100",
       text: "text-yellow-700",
+      label: t('pending'),
     },
     Processing: {
       bg: "bg-orange-100",
       text: "text-orange-700",
+      label: t('processing'),
     },
   };
+
+  const getMethodTranslation = (method: string) => {
+    const methodTranslations: Record<string, string> = {
+      'paypal': t('paypal'),
+      'bank transfer': t('bank_transfer'),
+    };
+    return methodTranslations[method] || method;
+  };
+
+  const status = statusMap[item.status];
 
   return (
     <View className="flex-row px-5 py-4 bg-white border-b border-gray-100">
@@ -119,7 +135,7 @@ const PayoutRowItem = memo(({ item }: { item: PayoutRow }) => {
 
       {/* Method */}
       <Text className="w-28 text-sm text-gray-600 capitalize">
-        {item.method}
+        {getMethodTranslation(item.method)}
       </Text>
 
       {/* Transaction ID */}
@@ -127,13 +143,9 @@ const PayoutRowItem = memo(({ item }: { item: PayoutRow }) => {
 
       {/* Status */}
       <View className="w-32">
-        <View
-          className={`px-3 py-1 rounded-full self-start ${statusMap[item.status].bg}`}
-        >
-          <Text
-            className={`text-xs font-semibold ${statusMap[item.status].text}`}
-          >
-            {item.status}
+        <View className={`px-3 py-1 rounded-full self-start ${status.bg}`}>
+          <Text className={`text-xs font-semibold ${status.text}`}>
+            {status.label}
           </Text>
         </View>
       </View>
@@ -156,6 +168,7 @@ PayoutRowItem.displayName = "PayoutRowItem";
 const PayoutManagement = () => {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<StatusType>("All");
+  const { t } = useLanguage(); // Add hook
 
   const filteredData = useMemo(() => {
     return PAYOUTS.filter((item) => {
@@ -170,22 +183,34 @@ const PayoutManagement = () => {
     });
   }, [search, status]);
 
+  const statusFilters = ["All", "Pending", "Processing", "Completed"] as StatusType[];
+  
+  const getStatusTranslation = (status: StatusType) => {
+    const translations: Record<StatusType, string> = {
+      'All': t('all'),
+      'Pending': t('pending'),
+      'Processing': t('processing'),
+      'Completed': t('completed'),
+    };
+    return translations[status];
+  };
+
   return (
     <View className="flex-1 bg-white -mt-7">
       {/* HEADER */}
       <View className="px-5 pt-6">
         <Text className="text-lg font-semibold text-gray-900">
-          Payout Management
+          {t('payout_management')}
         </Text>
         <Text className="text-sm text-gray-500 mt-1">
-          Process and track vendor payouts
+          {t('process_and_track_payouts')}
         </Text>
 
         {/* SEARCH */}
         <View className="mt-4 flex-row items-center bg-gray-100 rounded-xl px-4 h-11">
           <Ionicons name="search" size={18} color="#6B7280" />
           <TextInput
-            placeholder="Search vendor or transaction ID..."
+            placeholder={t('search_vendor_transaction')}
             placeholderTextColor="#6b7280"
             className="flex-1 ml-2 text-sm text-gray-700"
             value={search}
@@ -196,42 +221,40 @@ const PayoutManagement = () => {
 
       {/* STATUS FILTER */}
       <View className="flex-row gap-3 px-5 mt-4">
-        {(["All", "Pending", "Processing", "Completed"] as StatusType[]).map(
-          (item) => (
-            <Pressable
-              key={item}
-              onPress={() => setStatus(item)}
-              className={`px-4 py-2 rounded-full ${
+        {statusFilters.map((item) => (
+          <Pressable
+            key={item}
+            onPress={() => setStatus(item)}
+            className={`px-4 py-2 rounded-full ${
+              status === item
+                ? "bg-gray-900"
+                : "bg-gray-100"
+            }`}
+          >
+            <Text
+              className={`text-xs font-medium ${
                 status === item
-                  ? "bg-gray-900"
-                  : "bg-gray-100"
+                  ? "text-white"
+                  : "text-gray-600"
               }`}
             >
-              <Text
-                className={`text-xs font-medium ${
-                  status === item
-                    ? "text-white"
-                    : "text-gray-600"
-                }`}
-              >
-                {item}
-              </Text>
-            </Pressable>
-          )
-        )}
+              {getStatusTranslation(item)}
+            </Text>
+          </Pressable>
+        ))}
       </View>
 
-      {/* SUMMARY CARDS — SAME DESIGN AS COMMISSION */}
+      {/* SUMMARY CARDS */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         className="mt-6 mb-4 pl-4"
       >
         {[
-          { title: "Pending Payout", value: "₦2,000,000", accent: "bg-orange-300" },
-          { title: "Processing", value: "2", accent: "bg-emerald-300" },
-          { title: "Completed", value: "₦2,000,000", accent: "bg-green-300" },
-          { title: "Total Vendors", value: "20", accent: "bg-purple-300" },
+          { title: t('pending_payout'), value: "₦2,000,000", accent: "bg-orange-300" },
+          { title: t('processing_count'), value: "2", accent: "bg-emerald-300" },
+          { title: t('completed_payout'), value: "₦2,000,000", accent: "bg-green-300" },
+          { title: t('total_vendors'), value: "20", accent: "bg-purple-300" },
         ].map((item, index) => (
           <View
             key={index}
@@ -254,16 +277,26 @@ const PayoutManagement = () => {
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View>
           <View className="flex-row bg-gray-100 px-5 py-3 border-y border-gray-200">
-            <Text className="w-44 text-xs font-semibold text-gray-500">Vendor</Text>
-            <Text className="w-28 text-xs font-semibold text-gray-500">Amount</Text>
-            <Text className="w-28 text-xs font-semibold text-gray-500">Method</Text>
-            <Text className="w-40 text-xs font-semibold text-gray-500">
-              Transaction ID
+            <Text className="w-44 text-xs font-semibold text-gray-500">
+              {t('vendor')}
             </Text>
-            <Text className="w-32 text-xs font-semibold text-gray-500">Status</Text>
-            <Text className="w-28 text-xs font-semibold text-gray-500">Date</Text>
+            <Text className="w-28 text-xs font-semibold text-gray-500">
+              {t('amount')}
+            </Text>
+            <Text className="w-28 text-xs font-semibold text-gray-500">
+              {t('method')}
+            </Text>
+            <Text className="w-40 text-xs font-semibold text-gray-500">
+              {t('transaction_id')}
+            </Text>
+            <Text className="w-32 text-xs font-semibold text-gray-500">
+              {t('status')}
+            </Text>
+            <Text className="w-28 text-xs font-semibold text-gray-500">
+              {t('date')}
+            </Text>
             <Text className="w-16 text-xs font-semibold text-gray-500 text-center">
-              Action
+              {t('action')}
             </Text>
           </View>
 
@@ -276,10 +309,10 @@ const PayoutManagement = () => {
         </View>
       </ScrollView>
 
-      {/* VENDOR PENDING BALANCES (COMPACT HEIGHT) */}
+      {/* VENDOR PENDING BALANCES */}
       <View className="px-5 mt-8 mb-10">
         <Text className="text-sm font-semibold text-gray-900 mb-3">
-          Vendor Pending Balances
+          {t('vendor_pending_balances')}
         </Text>
 
         {PENDING_BALANCES.map((item) => (
@@ -300,7 +333,7 @@ const PayoutManagement = () => {
               </Text>
               <Pressable className="px-3 py-1 rounded-full bg-green-100">
                 <Text className="text-xs font-medium text-green-700">
-                  Pay Now
+                  {t('pay_now')}
                 </Text>
               </Pressable>
             </View>

@@ -8,6 +8,7 @@ import {
   ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useLanguage } from '@/context/LanguageContext'; // Import hook
 
 /* ================= TYPES ================= */
 
@@ -61,28 +62,44 @@ const DATA: Vendor[] = [
 
 /* ================= STATUS BADGE ================= */
 
-const statusStyle = (status: VendorStatus) => {
-  switch (status) {
-    case "Approved":
-      return { bg: "bg-green-100", text: "text-green-800" };
-    case "Pending":
-      return { bg: "bg-yellow-100", text: "text-yellow-800" };
-    case "Suspended":
-      return { bg: "bg-red-100", text: "text-red-800" };
-  }
-};
+const StatusBadge = memo(({ status }: { status: VendorStatus }) => {
+  const { t } = useLanguage(); // Add hook
+  
+  const statusStyle = (status: VendorStatus) => {
+    switch (status) {
+      case "Approved":
+        return { 
+          bg: "bg-green-100", 
+          text: "text-green-800",
+          label: t('approved')
+        };
+      case "Pending":
+        return { 
+          bg: "bg-yellow-100", 
+          text: "text-yellow-800",
+          label: t('pending')
+        };
+      case "Suspended":
+        return { 
+          bg: "bg-red-100", 
+          text: "text-red-800",
+          label: t('suspended')
+        };
+    }
+  };
 
-const StatusBadge = ({ status }: { status: VendorStatus }) => {
   const style = statusStyle(status);
 
   return (
     <View className={`px-3 py-1 rounded-full ${style.bg}`}>
       <Text className={`text-xs font-medium ${style.text}`}>
-        {status}
+        {style.label}
       </Text>
     </View>
   );
-};
+});
+
+StatusBadge.displayName = "StatusBadge";
 
 /* ================= ROW ================= */
 
@@ -138,6 +155,8 @@ const VendorRow = memo(function VendorRow({
   );
 });
 
+VendorRow.displayName = "VendorRow";
+
 /* ================= SCREEN ================= */
 
 export default function VendorManagementScreen() {
@@ -145,6 +164,7 @@ export default function VendorManagementScreen() {
     "All" | VendorStatus
   >("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const { t } = useLanguage(); // Add hook
 
   const filteredData = useMemo(() => {
     let data =
@@ -166,13 +186,25 @@ export default function VendorManagementScreen() {
     );
   }, [activeFilter, searchQuery]);
 
+  const getFilterTranslation = (filter: "All" | VendorStatus) => {
+    const translations: Record<string, string> = {
+      'All': t('all'),
+      'Approved': t('approved'),
+      'Pending': t('pending'),
+      'Suspended': t('suspended'),
+    };
+    return translations[filter];
+  };
+
+  const filters: ("All" | VendorStatus)[] = ["All", "Pending", "Approved", "Suspended"];
+
   return (
     <View className="flex-1 bg-white px-4">
       <Text className="text-lg font-bold text-gray-900">
-        Vendor Management
+        {t('vendor_management')}
       </Text>
       <Text className="text-sm text-gray-500 mb-4">
-        Review and manage marketplace vendors
+        {t('review_and_manage_vendors')}
       </Text>
 
       {/* Search */}
@@ -183,7 +215,7 @@ export default function VendorManagementScreen() {
           color="#6b7280"
         />
         <TextInput
-          placeholder="Search Vendors..."
+          placeholder={t('search_vendors')}
           placeholderTextColor="#6b7280"
           className="flex-1 ml-2 text-sm text-black"
           value={searchQuery}
@@ -193,33 +225,29 @@ export default function VendorManagementScreen() {
 
       {/* Filters */}
       <View className="flex-row gap-2 mb-4">
-        {["All", "Pending", "Approved", "Suspended"].map(
-          (filter) => {
-            const isActive = activeFilter === filter;
+        {filters.map((filter) => {
+          const isActive = activeFilter === filter;
 
-            return (
-              <TouchableOpacity
-                key={filter}
-                onPress={() =>
-                  setActiveFilter(filter as any)
-                }
-                className={`px-4 py-1 rounded-full ${
-                  isActive ? "bg-red-600" : "bg-gray-100"
+          return (
+            <TouchableOpacity
+              key={filter}
+              onPress={() => setActiveFilter(filter)}
+              className={`px-4 py-1 rounded-full ${
+                isActive ? "bg-red-600" : "bg-gray-100"
+              }`}
+            >
+              <Text
+                className={`text-xs ${
+                  isActive
+                    ? "text-white font-semibold"
+                    : "text-gray-600"
                 }`}
               >
-                <Text
-                  className={`text-xs ${
-                    isActive
-                      ? "text-white font-semibold"
-                      : "text-gray-600"
-                  }`}
-                >
-                  {filter}
-                </Text>
-              </TouchableOpacity>
-            );
-          }
-        )}
+                {getFilterTranslation(filter)}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* TABLE */}
@@ -235,22 +263,22 @@ export default function VendorManagementScreen() {
             ListHeaderComponent={() => (
               <View className="flex-row border-b border-gray-200 bg-white">
                 <Text className="w-44 px-3 text-sm font-semibold text-gray-500">
-                  Vendor
+                  {t('vendor')}
                 </Text>
                 <Text className="w-44 px-3 text-sm font-semibold text-gray-500">
-                  Contact
+                  {t('contact')}
                 </Text>
                 <Text className="w-28 px-3 text-sm font-semibold text-gray-500">
-                  Joined
+                  {t('joined')}
                 </Text>
                 <Text className="w-28 px-3 text-sm font-semibold text-gray-500">
-                  Commission
+                  {t('commission')}
                 </Text>
                 <Text className="w-32 px-3 text-sm font-semibold text-gray-500">
-                  Total Sales
+                  {t('total_sales')}
                 </Text>
                 <Text className="w-32 px-6 text-sm font-semibold text-gray-500">
-                  Status
+                  {t('status')}
                 </Text>
               </View>
             )}

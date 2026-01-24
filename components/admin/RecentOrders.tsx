@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text } from "react-native";
+import { useLanguage } from '@/context/LanguageContext'; // Import hook
 
 type OrderStatus =
   | "Delivered"
@@ -24,28 +25,28 @@ const ORDERS: Order[] = [
     date: "Jan 3, 2025",
   },
   {
-    id: "ORD-0001",
+    id: "ORD-0002",
     customer: "Alice Brown",
     total: "₦20,000",
     status: "Shipped",
     date: "Jan 3, 2025",
   },
   {
-    id: "ORD-0001",
+    id: "ORD-0003",
     customer: "Alice Brown",
     total: "₦20,000",
     status: "Processed",
     date: "Jan 3, 2025",
   },
   {
-    id: "ORD-0001",
+    id: "ORD-0004",
     customer: "Alice Brown",
     total: "₦20,000",
     status: "Pending",
     date: "Jan 3, 2025",
   },
   {
-    id: "ORD-0001",
+    id: "ORD-0005",
     customer: "Alice Brown",
     total: "₦20,000",
     status: "Delivered",
@@ -53,34 +54,40 @@ const ORDERS: Order[] = [
   },
 ];
 
-const statusStyles: Record<
-  OrderStatus,
-  { bg: string; text: string }
-> = {
-  Delivered: {
-    bg: "bg-green-100",
-    text: "text-green-600",
-  },
-  Shipped: {
-    bg: "bg-purple-100",
-    text: "text-purple-600",
-  },
-  Processed: {
-    bg: "bg-red-100",
-    text: "text-red-500",
-  },
-  Pending: {
-    bg: "bg-orange-100",
-    text: "text-orange-500",
-  },
-};
-
 const RecentOrders = () => {
+  const { t } = useLanguage(); // Add hook
+
+  const statusStyles: Record<
+    OrderStatus,
+    { bg: string; text: string; label: string }
+  > = {
+    Delivered: {
+      bg: "bg-green-100",
+      text: "text-green-600",
+      label: t('delivered'),
+    },
+    Shipped: {
+      bg: "bg-purple-100",
+      text: "text-purple-600",
+      label: t('shipped'),
+    },
+    Processed: {
+      bg: "bg-red-100",
+      text: "text-red-500",
+      label: t('processed'),
+    },
+    Pending: {
+      bg: "bg-orange-100",
+      text: "text-orange-500",
+      label: t('pending'),
+    },
+  };
+
   return (
     <View className="px-4 mt-6">
       {/* Title */}
       <Text className="text-lg font-semibold text-gray-900 mb-3">
-        Recent Order
+        {t('recent_orders')}
       </Text>
 
       {/* Card */}
@@ -88,19 +95,19 @@ const RecentOrders = () => {
         {/* Header */}
         <View className="flex-row bg-[#FDECEF] px-4 py-3">
           <Text className="flex-1 text-xs font-semibold text-gray-700">
-            Order #
+            {t('order_number')}
           </Text>
           <Text className="flex-1 text-xs font-semibold text-gray-700">
-            Customer
+            {t('customer')}
           </Text>
           <Text className="flex-1 text-xs font-semibold text-gray-700">
-            Total
+            {t('total')}
           </Text>
           <Text className="flex-1 text-xs font-semibold text-gray-700">
-            Status
+            {t('status')}
           </Text>
           <Text className="flex-1 text-xs font-semibold text-gray-700">
-            Date
+            {t('date')}
           </Text>
         </View>
 
@@ -132,7 +139,7 @@ const RecentOrders = () => {
                   <Text
                     className={`text-xs font-medium ${status.text}`}
                   >
-                    {order.status}
+                    {status.label}
                   </Text>
                 </View>
               </View>

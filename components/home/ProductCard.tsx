@@ -1,12 +1,15 @@
 import React from "react";
 import { View, Text, Image, TouchableOpacity } from "react-native";
 import { Heart, ShoppingCart } from "lucide-react-native";
+import { useLanguage } from "@/context/LanguageContext"; // Add this import
 
 interface Props {
   item: any;
 }
 
 const ProductCard: React.FC<Props> = ({ item }) => {
+  const { t } = useLanguage(); // Add this hook
+
   return (
     <View className="bg-white w-[48%] rounded-xl mb-4 shadow overflow-hidden">
       {/* Product Image */}
@@ -16,7 +19,7 @@ const ProductCard: React.FC<Props> = ({ item }) => {
         {/* Discount Badge */}
         <View className="absolute left-2 top-2 bg-red-500 rounded-full px-2 py-[1px]">
           <Text className="text-white text-xs font-semibold">
-            {item.discount || "50%"}
+            {item.discount || t("discount_50") || "50%"} {/* Use translation */}
           </Text>
         </View>
 
@@ -36,7 +39,9 @@ const ProductCard: React.FC<Props> = ({ item }) => {
         {/* Rating */}
         <View className="flex-row items-center mt-1">
           <Text className="text-yellow-500 text-xs">★★★★☆</Text>
-          <Text className="text-gray-500 text-xs ml-1">(234)</Text>
+          <Text className="text-gray-500 text-xs ml-1">
+            ({t("reviews_count", { count: 234 }) || "(234)"}) {/* Use translation */}
+          </Text>
         </View>
 
         {/* Price + Old Price + Cart */}
@@ -44,7 +49,7 @@ const ProductCard: React.FC<Props> = ({ item }) => {
           <View className="flex-row items-center space-x-2 gap-2">
             <Text className="text-red-600 font-semibold">{item.price}</Text>
             <Text className="text-xs text-gray-400 line-through">
-              {item.oldPrice || "₦109,000"}
+              {item.oldPrice || t("original_price") || "₦109,000"} {/* Use translation */}
             </Text>
           </View>
 

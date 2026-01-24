@@ -3,9 +3,11 @@ import { View, Text, TouchableOpacity, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { CheckCircle } from "lucide-react-native";
 import images from "@/constants/images";
+import { useLanguage } from "@/context/LanguageContext"; // Add import
 
 export default function ProfileSetupSuccess() {
   const router = useRouter();
+  const { t } = useLanguage(); // Add hook
 
   const handleProceed = () => {
     // Change to your actual dashboard route if different
@@ -34,13 +36,12 @@ export default function ProfileSetupSuccess() {
 
         {/* Title */}
         <Text className="text-xl font-bold text-black mb-3 text-center">
-          Successful
+          {t('setup_successful')}
         </Text>
 
         {/* Description */}
         <Text className="text-gray-500 text-center mb-10 leading-5">
-          Our team is currently reviewing your details, and the process may take
-          up to 24 hours. We’ll notify you once it’s complete!
+          {t('setup_success_description')}
         </Text>
 
         {/* CTA */}
@@ -50,7 +51,7 @@ export default function ProfileSetupSuccess() {
           className="w-full bg-secondary rounded-xl py-4 items-center"
         >
           <Text className="text-white text-lg font-semibold">
-            Proceed to Dashboard
+            {t('proceed_to_dashboard')}
           </Text>
         </TouchableOpacity>
       </View>

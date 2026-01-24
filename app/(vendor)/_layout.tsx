@@ -2,8 +2,11 @@ import { Drawer } from "expo-router/drawer";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import TopNav from "@/components/vendor/TopNav/TopNav";
 import { DrawerHeaderProps } from "@react-navigation/drawer";
+import { useLanguage } from '@/context/LanguageContext'; // Add import
 
 export default function VendorLayout() {
+  const { t } = useLanguage(); // Add hook
+
   return (
     <Drawer
       initialRouteName="dashboard"
@@ -16,7 +19,7 @@ export default function VendorLayout() {
       <Drawer.Screen
         name="dashboard"
         options={{
-          title: "Dashboard",
+          title: t('dashboard'), // Use translation
           drawerIcon: ({ color, size }) => (
             <Ionicons name="grid-outline" size={size} color={color} />
           ),
@@ -26,7 +29,7 @@ export default function VendorLayout() {
       <Drawer.Screen
         name="products"
         options={{
-          title: "Products",
+          title: t('products'), // Use translation
           drawerIcon: ({ color, size }) => (
             <MaterialCommunityIcons
               name="cube-outline"
@@ -40,7 +43,7 @@ export default function VendorLayout() {
       <Drawer.Screen
         name="orders"
         options={{
-          title: "Orders",
+          title: t('orders'), // Use translation
           drawerIcon: ({ color, size }) => (
             <Ionicons name="bag-handle-outline" size={size} color={color} />
           ),
@@ -50,7 +53,7 @@ export default function VendorLayout() {
       <Drawer.Screen
         name="inventory"
         options={{
-          title: "Inventory",
+          title: t('inventory'), // Use translation
           drawerIcon: ({ color, size }) => (
             <MaterialCommunityIcons
               name="clipboard-list-outline"
@@ -64,7 +67,7 @@ export default function VendorLayout() {
       <Drawer.Screen
         name="messages"
         options={{
-          title: "Messages",
+          title: t('messages'), // Use translation
           drawerIcon: ({ color, size }) => (
             <Ionicons name="mail-outline" size={size} color={color} />
           ),
@@ -74,7 +77,7 @@ export default function VendorLayout() {
       <Drawer.Screen
         name="profile"
         options={{
-          title: "Store Profile",
+          title: t('store_profile'), // Use translation
           drawerIcon: ({ color, size }) => (
             <Ionicons name="storefront-outline" size={size} color={color} />
           ),
@@ -83,4 +86,3 @@ export default function VendorLayout() {
     </Drawer>
   );
 }
-
