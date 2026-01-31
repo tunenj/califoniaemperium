@@ -1,6 +1,7 @@
 import images from "@/constants/images";
 import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from 'expo-router';
 import React from "react";
 import {
   Image,
@@ -15,6 +16,7 @@ import { useLanguage } from "@/context/LanguageContext"; // Add this import
 
 const HomeScreen = () => {
   const { t } = useLanguage(); // Add this hook
+  const router = useRouter();
 
   const categories = [
     t("all_store") || "All Store", // Use translation
@@ -52,7 +54,10 @@ const HomeScreen = () => {
                 <View className="absolute -top-0.5 -right-1 bg-red-600 w-3 h-3 rounded-full" />
               </TouchableOpacity>
 
-              <TouchableOpacity className="mx-2">
+              <TouchableOpacity
+                className="mx-2"
+                onPress={() => router.push('/(customer)/account')}
+              >
                 <MaterialIcons name="person-outline" size={28} color="white" />
               </TouchableOpacity>
             </View>
@@ -71,9 +76,8 @@ const HomeScreen = () => {
                     activeOpacity={0.8}
                   >
                     <Text
-                      className={`text-base ${
-                        cat === categories[0] ? "font-bold" : "font-normal"
-                      } text-white`}
+                      className={`text-base ${cat === categories[0] ? "font-bold" : "font-normal"
+                        } text-white`}
                     >
                       {cat}
                     </Text>

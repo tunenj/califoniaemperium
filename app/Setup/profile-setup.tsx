@@ -89,7 +89,7 @@ const CustomerProfileSetup: React.FC = () => {
       <View className="items-center">
         <View className="w-20 h-20 items-center justify-center mb-4">
           <Image
-            source={require("@/assets/images/icon.png")}
+            source={require("@/assets/icons/setupIcon.png")}
             className="w-24 h-24"
             resizeMode="contain"
           />

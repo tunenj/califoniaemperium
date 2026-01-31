@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, Image, TouchableOpacity } from "react-native";
 import { Heart, ShoppingCart } from "lucide-react-native";
 import { useLanguage } from "@/context/LanguageContext"; // Add this import
+import { router } from "expo-router";
 
 interface Props {
   item: any;
@@ -24,7 +25,10 @@ const ProductCard: React.FC<Props> = ({ item }) => {
         </View>
 
         {/* Wishlist Icon */}
-        <TouchableOpacity className="absolute right-2 top-2">
+        <TouchableOpacity
+          onPress={() => router.push("/productOverview")}
+          className="absolute right-2 top-2"
+        >
           <Heart size={18} color="black" />
         </TouchableOpacity>
       </View>

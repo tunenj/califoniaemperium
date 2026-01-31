@@ -22,7 +22,7 @@ const TopNav: React.FC<Props> = ({ navigation }) => {
           accessibilityLabel={t("menu") || "Menu"} // Optional: for screen readers
           accessibilityHint={t("open_navigation_drawer") || "Opens the navigation drawer"} // Optional: for screen readers
         >
-          <Ionicons name="menu" size={24} color="#1F2937" />
+          <Ionicons name="menu" size={28} color="#1F2937" />
         </TouchableOpacity>
 
         {/* Spacer (keeps icons aligned) */}
