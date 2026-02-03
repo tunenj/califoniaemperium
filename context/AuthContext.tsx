@@ -2,11 +2,23 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface AuthContextType {
+  user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   userRole: 'business' | 'customer' | null;
   login: (token: string, role: 'business' | 'customer') => void;
   logout: () => Promise<void>;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  name?: string;
+  role: 'admin' | 'superadmin' | 'vendor' | 'customer';
+  phone?: string;
+  avatar?: string;
+  uploadImage?: string;
+  // Add other user fields as needed
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -57,6 +69,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AuthContext.Provider value={{ 
+       user: null,
       isAuthenticated, 
       isLoading, 
       userRole,

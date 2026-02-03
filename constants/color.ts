@@ -5,4 +5,5 @@ export const colors = {
   accent: "#AD2831",
   darkRed: "#7B2A2A",
   lightPink: "#FFB6C1",
+   blue: "#3b82f6",
 };

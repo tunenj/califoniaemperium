@@ -6,20 +6,104 @@ import {
   TouchableOpacity,
   Switch,
   Image,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import Icon from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useLanguage } from '@/context/LanguageContext'; // Add import
+import { useLanguage } from '@/context/LanguageContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '@/api/api';
+import { endpoints } from '@/api/endpoints';
 
 /* ================= PROFILE SCREEN ================= */
 
 export default function ProfileScreen() {
   const [darkMode, setDarkMode] = useState(false);
   const [allowScreenshot, setAllowScreenshot] = useState(true);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const router = useRouter();
-  const { t } = useLanguage(); // Add hook
+  const { t } = useLanguage();
+
+  // Sign Out Function
+  const handleSignOut = async () => {
+    try {
+      setIsSigningOut(true);
+      
+      // Get the refresh token
+      const refreshToken = await AsyncStorage.getItem('refreshToken');
+      
+      if (refreshToken) {
+        // Call sign-out endpoint
+        await api.post(endpoints.signOut, {
+          refresh: refreshToken
+        });
+      }
+      
+      // Clear all stored data
+      await AsyncStorage.multiRemove([
+        'accessToken',
+        'refreshToken',
+        'userData',
+        'email',
+        'userId'
+      ]);
+      
+      // Clear API headers
+      delete api.defaults.headers.common['Authorization'];
+      
+      // Navigate to login screen
+      router.replace('/signIn');
+      
+      Alert.alert(
+        t('signed_out') || 'Signed Out',
+        t('signed_out_message') || 'You have been successfully signed out.'
+      );
+      
+    } catch (error: any) {
+      console.error('Sign out error:', error);
+      
+      // Even if API call fails, clear local data
+      await AsyncStorage.multiRemove([
+        'accessToken',
+        'refreshToken',
+        'userData',
+        'email',
+        'userId'
+      ]);
+      delete api.defaults.headers.common['Authorization'];
+      
+      router.replace('/signIn');
+      
+      Alert.alert(
+        t('signed_out') || 'Signed Out',
+        t('signed_out_message') || 'You have been successfully signed out.'
+      );
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
+
+  // Confirm Sign Out
+  const confirmSignOut = () => {
+    Alert.alert(
+      t('confirm_sign_out') || 'Sign Out',
+      t('confirm_sign_out_message') || 'Are you sure you want to sign out?',
+      [
+        {
+          text: t('cancel') || 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: t('sign_out') || 'Sign Out',
+          onPress: handleSignOut,
+          style: 'destructive',
+        },
+      ]
+    );
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -118,14 +202,26 @@ export default function ProfileScreen() {
 
       {/* Sign Out */}
       <View className="items-center mt-10">
-        <TouchableOpacity className="flex-row items-center">
-          <Icon
-            name="log-out-outline"
-            size={22}
-            color="red"
-            style={{ transform: [{ scaleX: -1 }] }}
-          />
-          <Text className="text-red-600 text-base ml-2">{t('sign_out')}</Text>
+        <TouchableOpacity 
+          className="flex-row items-center"
+          onPress={confirmSignOut}
+          disabled={isSigningOut}
+        >
+          {isSigningOut ? (
+            <ActivityIndicator size="small" color="red" />
+          ) : (
+            <>
+              <Icon
+                name="log-out-outline"
+                size={22}
+                color="red"
+                style={{ transform: [{ scaleX: -1 }] }}
+              />
+              <Text className="text-red-600 text-base ml-2">
+                {t('sign_out')}
+              </Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>

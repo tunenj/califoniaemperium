@@ -1,76 +1,113 @@
-import React from 'react';
-import { View, Text, Image, TouchableOpacity } from 'react-native';
-import { useLanguage } from '@/context/LanguageContext'; // Add this import
+import React from "react";
+import { View, Text, TouchableOpacity, ImageBackground, Image } from "react-native";
+import { Heart } from "lucide-react-native";
+import { colors } from "@/constants/color";
 
-interface Props {
+interface StoreCardProps {
   title: string;
   bg: any;
   front: any;
-  onVisitStore?: () => void;
-  onFollow?: () => void;
+  rating?: string;
+  sales?: number;
+  isVerified?: boolean;
+  onVisitStore: () => void;
+  onFollow: () => void;
 }
 
-const StoreCard: React.FC<Props> = ({ title, bg, front, onVisitStore, onFollow }) => {
-  const { t } = useLanguage(); // Add this hook
+const StoreCard: React.FC<StoreCardProps> = ({
+  title,
+  bg,
+  front,
+  rating = "0.0",
+  sales = 0,
+  isVerified = false,
+  onVisitStore,
+  onFollow,
+}) => {
+  // Format sales number
+  const formatSales = (salesNum: number) => {
+    if (salesNum >= 1000) {
+      return `${(salesNum / 1000).toFixed(1)}k sales`;
+    }
+    return `${salesNum} sales`;
+  };
 
   return (
-    <View className="bg-white w-[48%] rounded-xl mb-2 shadow relative overflow-hidden">
-      {/* Background image */}
-      <Image
-        source={bg}
-        className="w-full h-24 rounded-t-xl"
-        resizeMode="cover"
-      />
-
-      {/* Front image */}
-      <Image
-        source={front}
-        className="w-14 h-14 rounded-xl relative bottom-4 left-3 z-10"
-        resizeMode="cover"
-      />
-
-      <View className="p-4 pt-3">
-        <Text className="font-semibold">{title}</Text>
-
-        <Text className="text-xs text-gray-500 mt-1">
-          {t("one_stop_shop_description") || "Your one-stop shop for quality items"} {/* Use translation */}
-        </Text>
-
-        <View className="flex-row items-center mt-2">
-          <Text className="text-yellow-500 text-xs">★ 4.8</Text>
-          <Text className="text-xs text-gray-400 ml-2">
-            {t("followers_count_short", { count: 2240 }) || "2,240"} {/* Use translation */}
-          </Text>
-        </View>
-
-        {/* Clickable buttons */}
-        <View className="flex-row justify-between mt-3 gap-1">
+    <TouchableOpacity
+      className="w-[48%] mb-8"
+      activeOpacity={0.8}
+      onPress={onVisitStore}
+    >
+      <View className="bg-gray-50 rounded-xl overflow-hidden">
+        {/* Store Background Image */}
+        <ImageBackground
+          source={bg}
+          className="h-36 w-full items-center justify-center"
+          resizeMode="cover"
+        >
+          {/* Follow Button */}
           <TouchableOpacity
-            className="bg-darkRed px-3 py-1 rounded-full"
-            onPress={onVisitStore}
+            className="absolute top-2 right-2 w-8 h-8 bg-white/80 rounded-full items-center justify-center"
+            onPress={(e) => {
+              e.stopPropagation();
+              onFollow();
+            }}
           >
-            <TouchableOpacity
-              className="bg-darkRed px-2 py-1 rounded-full"
-              onPress={onVisitStore}
-            >
-              <Text className="text-xs text-white">
-                {t("visit_store") || "Visit Store"} {/* Use translation */}
-              </Text>
-            </TouchableOpacity>
-
+            <Heart size={18} color={colors.darkRed} />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            className="bg-lightPink px-3 py-1 rounded-full"
-            onPress={onFollow}
+          {/* Store Logo */}
+          <View className="w-12 h-12 mt-4 mb-6">
+            <Image
+              source={front}
+              className="rounded-xl relative -bottom-12 -left-14 z-10"
+              resizeMode="contain"
+            />
+          </View>
+
+          {/* Verified Badge */}
+          {isVerified && (
+            <View className="absolute bottom-2 right-2 bg-green-500 px-2 py-1 rounded-full">
+              <Text className="text-white text-xs">✓ Verified</Text>
+            </View>
+          )}
+        </ImageBackground>
+
+        {/* Store Info */}
+        <View className="p-3">
+          <Text 
+            className="text-sm font-semibold text-gray-800 mb-1" 
+            numberOfLines={1}
           >
-            <Text className="text-xs text-secondary pt-1">
-              {t("follow") || "Follow"} {/* Use translation */}
+            {title}
+          </Text>
+          
+          {/* Rating and Sales */}
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center">
+              <Text className="text-yellow-500 text-xs">★</Text>
+              <Text className="text-xs text-gray-600 ml-1">{rating}</Text>
+            </View>
+            
+            {sales > 0 && (
+              <Text className="text-xs text-gray-500">
+                {formatSales(sales)}
+              </Text>
+            )}
+          </View>
+          
+          {/* Visit Store Button */}
+          <TouchableOpacity
+            className="mt-2 bg-darkRed py-2 rounded-lg"
+            onPress={onVisitStore}
+          >
+            <Text className="text-white text-xs text-center font-medium">
+              Visit Store
             </Text>
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 

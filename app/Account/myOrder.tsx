@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useLanguage } from '@/context/LanguageContext'; // Add import
+import { useRouter } from "expo-router";
 
 type OrderStatus = "Ongoing" | "Delivered" | "Cancelled";
 
@@ -92,7 +93,7 @@ const ordersData: Record<OrderStatus, OrderItem[]> = {
 
 function OrderCard({ item }: { item: OrderItem }) {
     const { t } = useLanguage(); // Add hook to OrderCard
-
+    const router = useRouter();
     const getTranslatedStatus = (status: OrderStatus) => {
         switch (status) {
             case "Ongoing": return t('ongoing');
@@ -129,7 +130,15 @@ function OrderCard({ item }: { item: OrderItem }) {
                 </View>
 
                 <View className="mt-2 flex-row justify-between space-x-3 gap-4">
-                    <TouchableOpacity className="flex-1 bg-red-600 rounded-full py-2 px-4 flex-row items-center justify-center">
+                    <TouchableOpacity className="flex-1 bg-red-600 rounded-full py-2 px-4 flex-row items-center justify-center"
+                        activeOpacity={0.8}
+                        onPress={() =>
+                            router.push({
+                                pathname: "/track/tracking-order",
+                                params: { orderId: "ORD-2025-001" },
+                            })
+                        }
+                    >
                         <Text className="text-white text-sm">{t('track_order')}</Text>
                         <Ionicons name="chevron-forward" size={18} color="white" />
                     </TouchableOpacity>

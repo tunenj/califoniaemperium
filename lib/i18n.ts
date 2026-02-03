@@ -22,6 +22,9 @@ const resources = {
             business: "Business",
             customer: "Customer",
             vendor: "Vendor",
+            loading_products: "Loading Products",
+            trending_products: "Trending Products",
+            most_viewed_this_week: "Most Viewed This Week",
 
             // Common
             next: "Next",
@@ -365,6 +368,7 @@ const resources = {
             ok: "OK",
             clear_cart: "Clear Cart",
             remove_all_items_confirmation: "Are you sure you want to remove all items from your cart?",
+            setup_success_description: "Our team is currently reviewing your details. The process may take up to 24 hours. We'll notify you once completed!",
             clear_all: "Clear All",
             remove: "Remove",
             color: "Color",
@@ -621,6 +625,8 @@ const resources = {
             change_email: "Change Email",
             enter_new_email: "Enter new email address",
             update: "Update",
+            expected_monthly_sales: "Expected Monthly Sales",
+            next_to_documents: "Next: Upload Documents",
 
             // Validation messages
             email_cannot_be_empty: "Email cannot be empty",
@@ -661,6 +667,7 @@ const resources = {
             conversion_rate: "Conversion Rate",
             yearly_sales: "Yearly Sales",
             todays_orders: "Today's Orders",
+            products_services_description: "Products/Services Description",
 
             // Stat Card Subtitles - without quotes
             orders_this_month: "Orders this month",
@@ -724,9 +731,13 @@ const resources = {
             new_categories: "New Categories",
             seasonal_categories: "Seasonal Categories",
             sale_categories: "Sale Categories",
+            stores_available: "Stores Available",
             // Sidebar Menu
             home_office: "Home & Office",
-
+            next_to_business_details: "Next: Business Details",
+            hight_rated: "High Rated", // or "Highly Rated" if that's what you meant
+            // If you meant "highest_rated" (with typo corrected):
+            highest_rated: "Highest Rated",
             // Sidebar Menu Items
             phones_tablets: "Phones & Tablets",
             computing: "Computing",
@@ -804,6 +815,53 @@ const resources = {
             menu: "Menu",
             open_navigation_drawer: "Opens the navigation drawer",
             notifications: "Notifications",
+            registration_successful: 'Registration Successful',
+            registration_success_message: 'Your account has been created successfully.',
+            confirm_password: 'Confirm Password',
+            // English
+            account_not_found: 'Account not found',
+            confirm_sign_out: "Sign Out",
+            confirm_sign_out_message: "Are you sure you want to sign out?",
+            signed_out: "Signed Out",
+            signed_out_message: "You have been signed out successfully.",
+            needs_updates: "Needs Updates",
+            view_application_status: "View Application Status",
+            go_to_vendor_dashboard: "Go to Vendor Dashboard",
+            skip_to_dashboard: "Skip to Dashboard",
+            session_expired: "Session Expired",
+            please_login_again: "Please login again to continue.",
+            checking_status: "Checking...",
+            under_review: "Under Review",
+            approving_vendor: "Approving Vendor",
+            vendor_approved_successfully: "Vendor Approved Successfully",
+            application_details: "Application Details",
+            no_vendors_available: "No Vendors Available",
+            refresh_categories: "Refresh Categories",
+            no_more_product: "No More Products",
+            loading_vendors: "Loading Vendors",
+            loading_stores: "Loading Stores",
+            more_stores: "More Stores",
+            all_stores: "All Stores",
+            store_available: "Store Available",
+            search_stores: "Search Stores",
+            higest_rated: "Highest Rated",
+            most_sales: "Most Sales",
+            name_az: "Name A-Z",
+            filter_by: "Filter By",
+            verified_only: "Verified Only",
+            accepting_orders: "Accepting Orders",
+            loading_store: "Loading Store",
+            follow_store: "Follow Store",
+            store_id: "Store ID",
+            no_return_policy: "No Return Policy",
+            no_shipping_policy: "No Shipping Policy",
+            verification_status: "Verification Status",
+            verified_since: "Verified Since",
+            member_since: "Member Since",
+            add_to_cart: "Add to Cart",
+            buy_now: "Buy Now",
+            best_selling_products: "Best Selling Products",
+            top_sellers_for_you: "Top Sellers For You"
         }
 
     },
@@ -824,6 +882,7 @@ const resources = {
             business: "Entreprise",
             customer: "Client",
             vendor: "Vendeur",
+            expected_monthly_sales: "Ventes Mensuelles Attendues",
 
             // Common
             next: "Suivant",
@@ -885,6 +944,7 @@ const resources = {
             tech_zone: "TechZone",
             total_vendors: "Total vendeurs",
             customers: "Clients",
+            next_to_documents: "Suivant: Télécharger Documents",
 
             // Commission Management
             commission_management: "Gestion des commissions",
@@ -1422,6 +1482,39 @@ const resources = {
             pending_review: "En Attente de Vérification",
             account_pending: "Compte en Vérification",
             account_approved: "Compte Approuvé",
+            approving_vendor: "Approbation du Vendeur",
+            vendor_approved_successfully: "Vendeur Approuvé avec Succès",
+            application_details: "Détails de la Demande",
+            no_vendors_available: "Aucun Vendeur Disponible",
+            refresh_categories: "Actualiser les Catégories",
+            no_more_product: "Plus de Produits",
+            loading_vendors: "Chargement des Vendeurs",
+            loading_stores: "Chargement des Boutiques",
+            more_stores: "Plus de Boutiques",
+            all_stores: "Toutes les Boutiques",
+            store_available: "Boutique Disponible",
+            search_stores: "Rechercher des Boutiques",
+            stores_available: "Boutiques Disponibles",
+            higest_rated: "Mieux Noté",
+            most_sales: "Plus de Ventes",
+            name_az: "Nom A-Z",
+            filter_by: "Filtrer Par",
+            verified_only: "Vérifié Uniquement",
+            accepting_orders: "Accepte les Commandes",
+            loading_store: "Chargement de la Boutique",
+            follow_store: "Suivre la Boutique",
+            store_id: "ID de la Boutique",
+            no_return_policy: "Aucune Politique de Retour",
+            no_shipping_policy: "Aucune Politique d'Expédition",
+            verification_status: "Statut de Vérification",
+            verified_since: "Vérifié Depuis",
+            member_since: "Membre Depuis",
+            add_to_cart: "Ajouter au Panier",
+            buy_now: "Acheter Maintenant",
+            best_selling_products: "Produits les Plus Vendus",
+            hight_rated: "Bien Noté", // or "Très Bien Noté"
+            highest_rated: "Mieux Noté", // or "Le Mieux Noté"
+            top_sellers_for_you: "Meilleurs Vendeurs Pour Vous",
             // Customer Profile Setup
             vivian_cooker: "Vivian Cooker",
             billing_address: "Adresse de facturation",
@@ -1433,6 +1526,14 @@ const resources = {
             email_updated_successfully: "Email mis à jour avec succès",
             // Profile Setup Success Screen
             profile_updated_successfully: "Votre profil a été mis à jour",
+            under_review: "En Cours d'Examen",
+            needs_updates: "Nécessite des Mises à Jour",
+            view_application_status: "Voir l'État de la Demande",
+            go_to_vendor_dashboard: "Aller au Tableau de Bord Vendeur",
+            skip_to_dashboard: "Passer au Tableau de Bord",
+            session_expired: "Session Expirée",
+            please_login_again: "Veuillez vous reconnecter pour continuar.",
+            checking_status: "Vérification...",
             // Cart Screen
             checkout: "Commander",
             quantity: "Quantité",
@@ -1513,7 +1614,7 @@ const resources = {
             view_all: "Voir Tout",
             show_more: "Voir Plus",
             show_less: "Voir Moins",
-
+            account_not_found: 'Compte non trouvé',
             popular_categories: "Catégories Populaires",
             trending_categories: "Catégories Tendances",
             featured_categories: "Catégories en Vedette",
@@ -1601,6 +1702,17 @@ const resources = {
             menu: "Menu",
             open_navigation_drawer: "Ouvre le tiroir de navigation",
             notifications: "Notifications",
+            registration_successful: 'Inscription Réussie',
+            registration_success_message: 'Votre compte a été créé avec succès.',
+            confirm_password: 'Confirmer le Mot de Passe',
+            confirm_sign_out: "Se déconnecter",
+            confirm_sign_out_message: "Êtes-vous sûr de vouloir vous déconnecter?",
+            signed_out: "Déconnecté",
+            signed_out_message: "Vous avez été déconnecté avec succès.",
+            products_services_description: "Description des Produits/Services",
+            loading_products: "Chargement des Produits",
+            trending_products: "Produits Tendances",
+            most_viewed_this_week: "Plus Consultés Cette Semaine",
         }
     },
     es: {
@@ -1620,7 +1732,7 @@ const resources = {
             business: "Negocio",
             customer: "Cliente",
             vendor: "Vendedor",
-
+            stores_available: "Tiendas Disponibles",
             // Common
             next: "Siguiente",
             back: "Atrás",
@@ -1681,7 +1793,41 @@ const resources = {
             tech_zone: "TechZone",
             total_vendors: "Total vendedores",
             customers: "Clientes",
-
+            hight_rated: "Bien Calificado", // or "Muy Bien Calificado"
+            highest_rated: "Mejor Calificado", // or "El Mejor Calificado"
+            approving_vendor: "Aprobando Vendedor",
+            vendor_approved_successfully: "Vendedor Aprobado Exitosamente",
+            application_details: "Detalles de la Solicitud",
+            no_vendors_available: "No Hay Vendedores Disponibles",
+            refresh_categories: "Actualizar Categorías",
+            no_more_product: "No Hay Más Productos",
+            loading_vendors: "Cargando Vendedores",
+            loading_stores: "Cargando Tiendas",
+            more_stores: "Más Tiendas",
+            all_stores: "Todas las Tiendas",
+            store_available: "Tienda Disponible",
+            search_stores: "Buscar Tiendas",
+            higest_rated: "Mejor Calificado",
+            most_sales: "Más Ventas",
+            name_az: "Nombre A-Z",
+            filter_by: "Filtrar Por",
+            loading_products: "Cargando Productos",
+            trending_products: "Productos en Tendencia",
+            most_viewed_this_week: "Más Vistos Esta Semana",
+            verified_only: "Solo Verificados",
+            accepting_orders: "Aceptando Pedidos",
+            loading_store: "Cargando Tienda",
+            follow_store: "Seguir Tienda",
+            store_id: "ID de Tienda",
+            no_return_policy: "Sin Política de Devolución",
+            no_shipping_policy: "Sin Política de Envío",
+            verification_status: "Estado de Verificación",
+            verified_since: "Verificado Desde",
+            member_since: "Miembro Desde",
+            add_to_cart: "Añadir al Carrito",
+            buy_now: "Comprar Ahora",
+            best_selling_products: "Productos Más Vendidos",
+            top_sellers_for_you: "Mejores Vendedores Para Ti",
             //commission management
             commission_management: "Gestión de comisiones",
             manage_vendor_commissions: "Gestionar tasas de comisión de vendedores y seguir ganancias",
@@ -1702,6 +1848,7 @@ const resources = {
             platform_earnings: "Ganancias plataforma",
             vendor_earnings: "Ganancias vendedor",
             action: "Acción",
+            next_to_documents: "Siguiente: Subir Documentos",
 
             // Product Moderation
             dropshipping_products: "Productos Dropshipping",
@@ -2000,6 +2147,7 @@ const resources = {
             products_count: "{count} productos",
             products_with_count: "Productos ({count})",
             reviews_with_count: "Reseñas ({count})",
+            expected_monthly_sales: "Ventas Mensuales Esperadas",
             reviews: "Reseñas",
             sort_by: "Ordenar por",
             stars_5: "5 Estrellas",
@@ -2163,6 +2311,7 @@ const resources = {
             no_categories_selected: "No se han seleccionado categorías",
             no_categories_found: "No se encontraron categorías que coincidan con su búsqueda",
             all_categories_selected: "Todas las categorías disponibles han sido seleccionadas",
+            products_services_description: "Descripción de Productos/Servicios",
 
             // Category names
             fashion_apparel: "Moda y Ropa",
@@ -2398,6 +2547,22 @@ const resources = {
             menu: "Menú",
             open_navigation_drawer: "Abre el cajón de navegación",
             notifications: "Notificaciones",
+            // Spanish
+            account_not_found: 'Cuenta no encontrada',
+            confirm_sign_out: "Cerrar sesión",
+            confirm_sign_out_message: "¿Estás seguro de que quieres cerrar sesión?",
+            signed_out: "Sesión cerrada",
+
+            signed_out_message: "Has cerrado sesión correctamente.",
+            under_review: "En Revisión",
+            needs_updates: "Requiere Actualizaciones",
+            view_application_status: "Ver Estado de Solicitud",
+            go_to_vendor_dashboard: "Ir al Panel de Vendedor",
+            skip_to_dashboard: "Saltar al Panel",
+            session_expired: "Sesión Expirada",
+            please_login_again: "Por favor, inicie sesión nuevamente para continuar.",
+            checking_status: "Verificando...",
+            next_to_business_details: "Siguiente: Detalles del Negocio",
         }
     },
     pt: {
@@ -2417,6 +2582,7 @@ const resources = {
             business: "Empresa",
             customer: "Cliente",
             vendor: "Vendedor",
+            account_not_found: 'Conta não encontrada',
 
             // Common
             next: "Próximo",
@@ -2478,7 +2644,11 @@ const resources = {
             tech_zone: "TechZone",
             total_vendors: "Total vendedores",
             customers: "Clientes",
-
+            loading_products: "Carregando Produtos",
+            trending_products: "Produtos em Alta",
+            most_viewed_this_week: "Mais Vistos Esta Semana",
+            hight_rated: "Bem Avaliado", // or "Muito Bem Avaliado"
+            highest_rated: "Melhor Avaliado", // or "O Melhor Avaliado"
             //commission management
             commission_management: "Gestão de comissões",
             manage_vendor_commissions: "Gerenciar taxas de comissão de vendedores e acompanhar ganhos",
@@ -2527,7 +2697,7 @@ const resources = {
             need_moderation: "Precisa moderação",
             open_ticket: "Ticket aberto",
             need_attention: "Precisa atenção",
-
+            stores_available: "Lojas Disponíveis",
             //recent order
             recent_orders: "Pedidos recentes",
             order_number: "Pedido #",
@@ -2543,6 +2713,36 @@ const resources = {
             x_products_running_low_one: "{{count}} produto com estoque baixo", // singular
             x_left: "{{count}} restantes",
             x_left_one: "{{count}} restante", // singular
+            approving_vendor: "Aprovando Fornecedor",
+            vendor_approved_successfully: "Fornecedor Aprovado com Sucesso",
+            application_details: "Detalhes da Aplicação",
+            no_vendors_available: "Nenhum Fornecedor Disponível",
+            refresh_categories: "Atualizar Categorias",
+            no_more_product: "Não Há Mais Produtos",
+            loading_vendors: "Carregando Fornecedores",
+            loading_stores: "Carregando Lojas",
+            more_stores: "Mais Lojas",
+            all_stores: "Todas as Lojas",
+            store_available: "Loja Disponível",
+            search_stores: "Buscar Lojas",
+            higest_rated: "Melhor Avaliado",
+            most_sales: "Mais Vendas",
+            name_az: "Nome A-Z",
+            filter_by: "Filtrar Por",
+            verified_only: "Apenas Verificados",
+            accepting_orders: "Aceitando Pedidos",
+            loading_store: "Carregando Loja",
+            follow_store: "Seguir Loja",
+            store_id: "ID da Loja",
+            no_return_policy: "Sem Política de Devolução",
+            no_shipping_policy: "Sem Política de Envio",
+            verification_status: "Status de Verificação",
+            verified_since: "Verificado Desde",
+            member_since: "Membro Desde",
+            add_to_cart: "Adicionar ao Carrinho",
+            buy_now: "Comprar Agora",
+            best_selling_products: "Produtos Mais Vendidos",
+            top_sellers_for_you: "Melhores Vendedores Para Você",
 
             //metric carousel
             welcome_back_message: "Bem-vindo de volta! Aqui está o que está acontecendo hoje.",
@@ -2572,6 +2772,8 @@ const resources = {
             paid: "Pago",
             payment_pending: "Pendente",
             not_paid: "Não pago",
+            next_to_documents: "Próximo: Enviar Documentos",
+            next_to_business_details: "Próximo: Detalhes do Negócio",
 
             //payout management
             payout_management: "Gestão de pagamentos",
@@ -2812,6 +3014,7 @@ const resources = {
             inventory: "Inventário",
             messages: "Mensagens",
             store_profile: "Perfil da loja",
+            expected_monthly_sales: "Vendas Mensais Esperadas",
             // Inventory Screen
             track_manage_stock: "Acompanhe e gerencie seus níveis de estoque.",
             in_stock: "Em estoque",
@@ -3196,6 +3399,21 @@ const resources = {
             menu: "Menu",
             open_navigation_drawer: "Abre o gaveta de navegação",
             notifications: "Notificações",
+            registration_successful: 'Cadastro Bem-Sucedido',
+            registration_success_message: 'Sua conta foi criada com sucesso.',
+            confirm_password: 'Confirmar Senha',
+            confirm_sign_out: "Sair",
+            confirm_sign_out_message: "Tem certeza de que deseja sair?",
+            signed_out: "Sessão encerrada",
+            signed_out_message: "Você saiu com sucesso.",
+            under_review: "Em Revisão",
+            view_application_status: "Ver Status da Aplicação",
+            go_to_vendor_dashboard: "Ir para Painel do Vendedor",
+            skip_to_dashboard: "Pular para o Painel",
+            session_expired: "Sessão Expirada",
+            please_login_again: "Por favor, faça login novamente para continuar.",
+            checking_status: "Verificando...",
+            products_services_description: "Descrição de Produtos/Serviços",
         }
     }
 };

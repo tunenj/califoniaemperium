@@ -2,8 +2,7 @@ import React from "react";
 import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLanguage } from '@/context/LanguageContext'; // Import hook
-
-import MetricsCarousel from "@/components/vendor/MetricsCarousel/MetricsCarousel";
+import MetricsCarousel from "@/components/admin/matricCarousel";
 import RecentOrders from "@/components/admin/RecentOrders";
 import LowStockAlert from "@/components/vendor/LowStockAlert/LowStockAlert";
 import StatCard from "@/components/admin/StatsCards";

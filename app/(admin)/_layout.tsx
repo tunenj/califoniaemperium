@@ -2,13 +2,12 @@ import { Drawer } from "expo-router/drawer";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import TopNav from "@/components/vendor/TopNav/TopNav";
-import { useLanguage } from '@/context/LanguageContext'; // Import hook
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function AdminLayout() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
-  const { t } = useLanguage(); // Add hook
+  const { t } = useLanguage();
 
   useEffect(() => {
     const isAdmin = true;
@@ -26,8 +25,7 @@ export default function AdminLayout() {
   return (
     <Drawer
       screenOptions={{
-        headerShown: true, 
-        header: (props) => <TopNav {...props} />,
+        headerShown: true, // ✅ TopNav removed, drawer still works
         drawerActiveTintColor: "#000",
         drawerInactiveTintColor: "#555",
         drawerLabelStyle: { fontSize: 15 },
@@ -36,7 +34,7 @@ export default function AdminLayout() {
       <Drawer.Screen
         name="home"
         options={{
-          title: t('dashboard'),
+          title: t('Dashboard'),
           drawerIcon: ({ color, size }) => (
             <Ionicons name="grid-outline" size={size} color={color} />
           ),
