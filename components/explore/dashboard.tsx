@@ -9,10 +9,11 @@ import {
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from 'expo-router';
 
 const HomeScreen = () => {
   const categories = ["All Store", "Electronics", "Fashion", "Home & Garden", "Sports"];
-
+  const router = useRouter();
   return (
     <View className="rounded-b-2xl overflow-hidden">
       <LinearGradient
@@ -40,8 +41,10 @@ const HomeScreen = () => {
                 {/* Notification Badge - Now properly positioned */}
                 <View className="absolute -top-0.5 -right-1 bg-red-600 w-3 h-3 rounded-full" />
               </View>
-
-              <TouchableOpacity className="mx-2">
+              <TouchableOpacity
+                className="mx-2"
+                onPress={() => router.push('/Setup/profile-setup')}
+              >
                 <MaterialIcons name="person-outline" size={28} color="white" />
               </TouchableOpacity>
             </View>

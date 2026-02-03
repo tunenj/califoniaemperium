@@ -56,7 +56,7 @@ const HomeScreen = () => {
 
               <TouchableOpacity
                 className="mx-2"
-                onPress={() => router.push('/(customer)/account')}
+                onPress={() => router.push('/Setup/profile-setup')}
               >
                 <MaterialIcons name="person-outline" size={28} color="white" />
               </TouchableOpacity>

@@ -1,9 +1,19 @@
 import { Tabs } from "expo-router";
 import { Ionicons, Feather } from "@expo/vector-icons";
-import { useLanguage } from '@/context/LanguageContext'; // Add import
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function CustomerLayout() {
-  const { t } = useLanguage(); // Add hook
+  const { t } = useLanguage();
+
+  // Screens that should be hidden from tab bar
+  const hiddenScreens = [
+    'store',
+    'store/index',
+    'store/[slug]',
+    'store-reviews',
+    'profile-setup',
+    'product/[slug]',
+  ];
 
   return (
     <Tabs
@@ -18,7 +28,7 @@ export default function CustomerLayout() {
       <Tabs.Screen
         name="main"
         options={{
-          title: t('home'), // Use translation
+          title: t('home'),
           tabBarIcon: ({ color, focused, size }) => (
             <Ionicons name={focused ? "home" : "home-outline"} size={size} color={color} />
           )
@@ -28,7 +38,7 @@ export default function CustomerLayout() {
       <Tabs.Screen
         name="category"
         options={{
-          title: t('category'), // Use translation
+          title: t('category'),
           tabBarIcon: ({ color, size }) => (
             <Feather name="grid" size={size} color={color} />
           )
@@ -38,7 +48,7 @@ export default function CustomerLayout() {
       <Tabs.Screen
         name="explore"
         options={{
-          title: t('explore'), // Use translation
+          title: t('explore'),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="compass-outline" size={size} color={color} />
           )
@@ -48,7 +58,7 @@ export default function CustomerLayout() {
       <Tabs.Screen
         name="cart"
         options={{
-          title: t('cart'), // Use translation
+          title: t('cart'),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="cart-outline" size={size} color={color} />
           )
@@ -58,32 +68,23 @@ export default function CustomerLayout() {
       <Tabs.Screen
         name="account"
         options={{
-          title: t('account'), // Use translation
+          title: t('account'),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person-circle-outline" size={size} color={color} />
           )
         }}
       />
 
-      {/* Store - shows tabs but NOT in tab bar */}
-      <Tabs.Screen
-        name="store"
-        options={{
-          href: null, // This hides it from tab bar
-        }}
-      />
-      <Tabs.Screen
-        name="store-reviews"
-        options={{
-          href: null, // This hides it from tab bar
-        }}
-      />
-      <Tabs.Screen
-        name="profile-setup"
-        options={{
-          href: null, // This hides it from tab bar
-        }}
-      />
+      {/* Hidden screens - NOT in tab bar */}
+      {hiddenScreens.map((screenName) => (
+        <Tabs.Screen
+          key={screenName}
+          name={screenName as any}
+          options={{
+            href: null,
+          }}
+        />
+      ))}
     </Tabs>
   );
 }

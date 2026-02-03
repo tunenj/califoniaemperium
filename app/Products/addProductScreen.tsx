@@ -183,7 +183,7 @@ export default function AddProductScreen() {
     // Load categories from API
     const loadCategories = async () => {
         if (!isAuthenticated || !token) {
-            showToast("Please login to load categories", "error");
+            showToast("Refresh your categories", "error");
             return;
         }
 

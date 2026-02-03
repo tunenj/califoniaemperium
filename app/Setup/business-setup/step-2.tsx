@@ -414,12 +414,12 @@ export default function Step2() {
           </View>
 
           {/* Navigation Buttons */}
-          <View className="flex-row space-x-3 mb-4">
+          <View className="flex-row space-x-3 mb-4 gap-2">
             <TouchableOpacity
               onPress={handleBack}
               className="flex-1 border border-gray-300 py-4 rounded-lg items-center"
             >
-              <Text className="text-gray-700 font-medium">
+              <Text className="text-gray-700 text-sm font-medium">
                 ← {t('back')}
               </Text>
             </TouchableOpacity>
@@ -427,10 +427,10 @@ export default function Step2() {
             <TouchableOpacity
               disabled={!isValid}
               onPress={handleNext}
-              className={`flex-1 py-4 rounded-lg items-center ${isValid ? "bg-red-600" : "bg-gray-300"
+              className={`flex-1 py-3 rounded-lg items-center ${isValid ? "bg-red-600" : "bg-gray-300"
                 }`}
             >
-              <Text className="text-white font-medium">
+              <Text className="text-white text-sm font-medium">
                 {t('next_to_documents')} →
               </Text>
             </TouchableOpacity>
