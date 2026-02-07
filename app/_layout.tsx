@@ -1,14 +1,16 @@
-// app/_layout.tsx
 import { Stack } from "expo-router";
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { ExploreSearchProvider } from "@/context/ExploreSearchContext";
+import { CategorySearchProvider } from "@/context/CategorySearchContext";
 import "@/lib/i18n";
 import "../global.css";
 import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
 import { SetupProvider } from "@/context/VendorApplicationContext";
+import { WishlistProvider } from '@/context/WishlistContext';
 
-// Toast configuration with margin
+
 const toastConfig = {
   success: (props: any) => (
     <BaseToast
@@ -16,8 +18,8 @@ const toastConfig = {
       style={{ 
         borderLeftColor: '#4CAF50', 
         backgroundColor: '#E8F5E9',
-        marginTop: 10, // Add margin top
-        marginHorizontal: 20, // Add horizontal margin
+        marginTop: 10,
+        marginHorizontal: 20,
         borderRadius: 8,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -43,8 +45,8 @@ const toastConfig = {
       style={{ 
         borderLeftColor: '#F44336', 
         backgroundColor: '#FFEBEE',
-        marginTop: 10, // Add margin top
-        marginHorizontal: 20, // Add horizontal margin
+        marginTop: 10,
+        marginHorizontal: 20,
         borderRadius: 8,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -70,8 +72,8 @@ const toastConfig = {
       style={{ 
         borderLeftColor: '#2196F3', 
         backgroundColor: '#E3F2FD',
-        marginTop: 10, // Add margin top
-        marginHorizontal: 20, // Add horizontal margin
+        marginTop: 10,
+        marginHorizontal: 20,
         borderRadius: 8,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -98,20 +100,25 @@ export default function RootLayout() {
     <LanguageProvider>
       <AuthProvider>
         <CartProvider>
-          <SetupProvider>
-          <>
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(Onboarding)" />
-              <Stack.Screen name="(customer)" />
-              <Stack.Screen name="(vendor)" />
-              <Stack.Screen name="(admin)" />
-            </Stack>
-            <Toast 
-              config={toastConfig}
-              topOffset={50} // This adds margin from the top of the screen
-            />
-          </>
-           </SetupProvider>
+          <WishlistProvider>
+            <SetupProvider>
+              <ExploreSearchProvider>
+                <CategorySearchProvider>
+                  {/* REMOVE the View wrapper - Toast might be conflicting with it */}
+                  <Stack screenOptions={{ headerShown: false }}>
+                    <Stack.Screen name="(Onboarding)" />
+                    <Stack.Screen name="(customer)" />
+                    <Stack.Screen name="(vendor)" />
+                    <Stack.Screen name="(admin)" />
+                  </Stack>
+                  <Toast 
+                    config={toastConfig}
+                    topOffset={50}
+                  />
+                </CategorySearchProvider>
+              </ExploreSearchProvider>
+            </SetupProvider>
+          </WishlistProvider>
         </CartProvider>
       </AuthProvider>
     </LanguageProvider>

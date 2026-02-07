@@ -14,6 +14,8 @@ export const endpoints = {
   signOut: '/accounts/logout/',
   // Password Management
   forgotPassword: '/accounts/password/reset/',
+  // refresh token
+  refreshToken: '/accounts/token/refresh/',
   // categories
   categories: '/products/categories/',
   //Vendor account creation
@@ -21,6 +23,10 @@ export const endpoints = {
   getVendorList: '/vendors/',
   //To get individual ventor details
   getVendorDetails: (slug: string) => `/vendors/${slug}/`,
+  //get vendor details
+  getMyVendorDetails: 'vendors/me/dashboard/',
+  //edit vendor details
+  editVendorDetails: (slug: string) => `/vendors/${slug}/`,
   //vendor application to admin
   vendorApplication: '/vendors/applications/',
   getUserDetails: '/accounts/me/',
@@ -41,4 +47,18 @@ export const endpoints = {
   bestSellingProducts: '/products/best_sellers/',
   //vendor Dashboard
   vendorDashboard: '/vendors/me/dashboard/',
+  //to get dropship products
+  dropshipProducts: '/products/dropship-products/',
+  //add to cart
+  addToCart: '/orders/cart/add/',
+  toGetCart: '/orders/cart/',
+  // to update the cart quantity
+  updateCart: '/orders/cart/:item_id/update/',
+  removeCart: '/orders/cart/:item_id/remove/',
+  clearCart: '/orders/cart/clear/',
+  //wish list
+  createWishList: '/orders/wishlist/',
+  listWishList: '/orders/wishlist/',
+  toRemove: '/orders/wishlist/:wishlist_id/'
+
 };

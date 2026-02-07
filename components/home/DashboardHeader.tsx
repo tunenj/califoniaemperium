@@ -1,8 +1,9 @@
+// app/(customer)/index.tsx
 import images from "@/constants/images";
 import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from 'expo-router';
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Image,
   ScrollView,
@@ -12,19 +13,95 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLanguage } from "@/context/LanguageContext"; // Add this import
+import { useLanguage } from "@/context/LanguageContext";
+import { useExploreSearch } from "@/context/ExploreSearchContext";
+import { useCart } from "@/context/CartContext"; // Import cart context
 
 const HomeScreen = () => {
-  const { t } = useLanguage(); // Add this hook
+  const { t } = useLanguage();
   const router = useRouter();
+  const { setSearchQuery } = useExploreSearch();
+  const { getItemCount, loading: cartLoading } = useCart(); // Get cart context
+  
+  const [localSearchQuery, setLocalSearchQuery] = useState('');
 
-  const categories = [
-    t("all_store") || "All Store", // Use translation
-    t("electronics") || "Electronics", // Use translation
-    t("fashion") || "Fashion", // Use translation
-    t("home_garden") || "Home & Garden", // Use translation
-    t("sports") || "Sports", // Use translation
-  ];
+  // Get cart item count
+  const cartItemCount = getItemCount();
+
+  // Get categories with safety checks
+  const getCategories = () => {
+    const categoryKeys = ["all_store", "electronics", "fashion", "home_garden", "sports"];
+    return categoryKeys.map(key => {
+      const translation = t(key);
+      // Ensure we always return a string
+      if (typeof translation === 'string' && translation.trim()) {
+        return translation;
+      }
+      // Fallbacks
+      const fallbacks = ["All Store", "Electronics", "Fashion", "Home & Garden", "Sports"];
+      const index = categoryKeys.indexOf(key);
+      return fallbacks[index] || `Category ${index + 1}`;
+    });
+  };
+
+  const categories = getCategories();
+
+  // Debug: Check for undefined text
+  useEffect(() => {
+    if (__DEV__) {
+      const checkText = (value: any, location: string) => {
+        if (value !== undefined && typeof value !== 'string') {
+          console.warn(`Non-string text at ${location}:`, value);
+        }
+      };
+      
+      categories.forEach((cat, index) => checkText(cat, `categories[${index}]`));
+    }
+  }, [categories]);
+
+  const handleSearch = () => {
+    if (localSearchQuery.trim()) {
+      setSearchQuery(localSearchQuery.trim());
+      router.push('/(customer)/explore');
+    }
+  };
+
+  const handleClearSearch = () => {
+    setLocalSearchQuery('');
+  };
+
+  const handleCategoryPress = (category: string) => {
+    // Ensure category is a string
+    const safeCategory = typeof category === 'string' ? category : '';
+    setSearchQuery(safeCategory);
+    router.push('/(customer)/explore');
+  };
+
+  // Navigate to cart screen
+  const handleCartPress = () => {
+    router.push("/(customer)/cart");
+  };
+
+  // Navigate to wishlist screen
+  const handleWishlistPress = () => {
+    router.push("/(customer)/wishlist");
+  };
+
+  // Navigate to notifications screen
+  // const handleNotificationsPress = () => {
+  //   router.push("/(customer)/notifications");
+  // };
+
+  // // Navigate to messages screen
+  // const handleMessagesPress = () => {
+  //   router.push("/(customer)/messages");
+  // };
+
+  // Helper function to safely get text
+  const getSafeText = (translationKey: string, fallback: string) => {
+    const text = t(translationKey);
+    return typeof text === 'string' ? text : fallback;
+  };
 
   return (
     <View className="rounded-b-3xl overflow-hidden">
@@ -34,25 +111,29 @@ const HomeScreen = () => {
         start={[0, 0]}
         end={[1, 0]}
       >
-        <SafeAreaView className="flex-1 ">
+        <SafeAreaView className="flex-1">
           <View className="flex-1">
             {/* Top Icons Row */}
             <View className="flex-row justify-end items-center px-4 pt-4 mb-1">
-              <TouchableOpacity className="mx-2">
+              {/* <TouchableOpacity 
+                className="mx-2 relative"
+                onPress={handleMessagesPress}
+              >
                 <Ionicons name="mail-outline" size={26} color="white" />
-                {/* Notification Badge */}
                 <View className="absolute -top-0.5 -right-1 bg-red-600 w-3 h-3 rounded-full" />
-              </TouchableOpacity>
+              </TouchableOpacity> */}
 
-              <TouchableOpacity className="mx-2 relative">
+              {/* <TouchableOpacity 
+                className="mx-2 relative"
+                onPress={handleNotificationsPress}
+              >
                 <Ionicons
                   name="notifications-outline"
                   size={26}
                   color="white"
                 />
-                {/* Notification Badge */}
                 <View className="absolute -top-0.5 -right-1 bg-red-600 w-3 h-3 rounded-full" />
-              </TouchableOpacity>
+              </TouchableOpacity> */}
 
               <TouchableOpacity
                 className="mx-2"
@@ -69,47 +150,88 @@ const HomeScreen = () => {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ paddingHorizontal: 3 }}
               >
-                {categories.map((cat, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    className="px-1.5 py-2"
-                    activeOpacity={0.8}
-                  >
-                    <Text
-                      className={`text-base ${cat === categories[0] ? "font-bold" : "font-normal"
-                        } text-white`}
+                {categories.map((cat, index) => {
+                  const categoryText = cat || `Category ${index + 1}`;
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      className="px-1.5 py-2"
+                      activeOpacity={0.8}
+                      onPress={() => handleCategoryPress(categoryText)}
                     >
-                      {cat}
-                    </Text>
-                    {cat === categories[0] && (
-                      <View className="absolute bottom-0 left-3 right-3 h-1 bg-white rounded-full" />
-                    )}
-                  </TouchableOpacity>
-                ))}
+                      <Text
+                        className={`text-base ${
+                          index === 0 ? "font-bold" : "font-normal"
+                        } text-white`}
+                      >
+                        {categoryText}
+                      </Text>
+                      {index === 0 && (
+                        <View className="absolute bottom-0 left-3 right-3 h-1 bg-white rounded-full" />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
               </ScrollView>
             </View>
 
             {/* Search Bar */}
             <View className="flex-row items-center px-4">
               {/* Search Bar */}
-              <View className="flex-1 flex-row items-center bg-white rounded-full h-10 px-4 shadow-md">
+              <View className="flex-1 flex-row items-center bg-white rounded-full h-12 px-4 shadow-md">
                 <Feather name="camera" size={22} color="#666" />
                 <TextInput
-                  placeholder={t("search") || "Search products, stores..."} // Use translation
+                  placeholder={getSafeText("search", "Search products, stores...")}
                   placeholderTextColor="#999"
                   className="flex-1 mx-3 text-base text-black"
+                  value={localSearchQuery}
+                  onChangeText={setLocalSearchQuery}
+                  onSubmitEditing={handleSearch}
+                  returnKeyType="search"
                 />
-                <Ionicons name="search" size={22} color="#666" />
+                {localSearchQuery ? (
+                  <TouchableOpacity onPress={handleClearSearch}>
+                    <Ionicons name="close-circle" size={20} color="#999" />
+                  </TouchableOpacity>
+                ) : null}
+                <TouchableOpacity onPress={handleSearch}>
+                  <Ionicons name="search" size={22} color="#666" />
+                </TouchableOpacity>
               </View>
+              
               {/* Icons outside search bar */}
-              <TouchableOpacity className="ml-4">
+              <TouchableOpacity 
+                className="ml-4"
+                onPress={handleWishlistPress}
+              >
                 <Ionicons name="heart-outline" size={24} color="#ffffff" />
               </TouchableOpacity>
 
-              <TouchableOpacity className="ml-4">
+              <TouchableOpacity 
+                className="ml-4 relative"
+                onPress={handleCartPress}
+                disabled={cartLoading}
+              >
                 <Feather name="shopping-cart" size={24} color="#ffffff" />
+                
+                {/* Cart badge with item count */}
+                {cartItemCount > 0 && (
+                  <View className="absolute -top-2 -right-2 bg-red-600 min-w-5 h-5 rounded-full items-center justify-center">
+                    <Text className="text-white text-xs font-bold px-1">
+                      {cartItemCount > 99 ? '99+' : cartItemCount}
+                    </Text>
+                  </View>
+                )}
+                
+                {/* Loading indicator when cart is loading */}
+                {cartLoading && cartItemCount === 0 && (
+                  <View className="absolute -top-2 -right-2 bg-yellow-500 w-4 h-4 rounded-full items-center justify-center">
+                    <View className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  </View>
+                )}
               </TouchableOpacity>
             </View>
+            
             {/* Banner Section */}
             <View className="mb-4 relative h-64 overflow-hidden">
               {/* Left Side - Text Content */}
@@ -117,7 +239,7 @@ const HomeScreen = () => {
                 {/* Title */}
                 <View className="relative inline-block">
                   <Text className="text-3xl font-bold text-white leading-tight">
-                    {t("holiday_style_rush") || "Holiday\nStyle Rush"} {/* Use translation */}
+                    {getSafeText("holiday_style_rush", "Holiday\nStyle Rush")}
                   </Text>
 
                   {/* Image on the edge */}
@@ -132,20 +254,20 @@ const HomeScreen = () => {
                 <View className="mt-2 flex-row items-center">
                   {/* Text on left in front */}
                   <Text className="relative z-10 text-[12px] text-white font-medium">
-                    {t("on_checkout") || "On checkout"} {/* Use translation */}
+                    {getSafeText("on_checkout", "On checkout")}
                   </Text>
 
                   {/* Pill on right behind */}
-                  <View className="absolute -right-7 top-0.5 bg-[#C7A66A] px-2 py-2 rounded-full w-24 z-0">
+                  <View className="absolute -right-9 top-0.5 bg-[#C7A66A] px-2 py-2 rounded-full w-24 z-0">
                     <Text className="text-[10px] font-semibold text-white text-center">
-                      {t("extra_10_off") || "Extra 10% OFF"} {/* Use translation */}
+                      {getSafeText("extra_10_off", "Extra 10% OFF")}
                     </Text>
                   </View>
                 </View>
 
                 {/* Footer */}
                 <Text className="text-xs text-white opacity-90 mt-1">
-                  {t("terms_conditions_apply") || "T&C Applies"} {/* Use translation */}
+                  {getSafeText("terms_conditions_apply", "T&C Applies")}
                 </Text>
               </View>
 

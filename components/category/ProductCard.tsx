@@ -1,9 +1,9 @@
 // components/category/ProductCard.tsx
 import React from "react";
-import { View, Text, Image, TouchableOpacity } from "react-native";
+import { View, Text, Image, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
-import { ShoppingCart } from "lucide-react-native"; // Only cart icon
-
+import { ShoppingCart, Heart, Check } from "lucide-react-native";
+import { colors } from "@/constants/color";
 
 interface Product {
   id: string;
@@ -25,9 +25,28 @@ interface ProductCardProps {
   product: Product;
   viewMode: 'grid' | 'list';
   onPress?: () => void;
+  // Cart and wishlist props
+  onAddToCart?: (event?: any) => void;
+  onToggleWishlist?: (event?: any) => void;
+  isInCart?: boolean;
+  isInWishlist?: boolean;
+  isAddingToCart?: boolean;
+  isTogglingWishlist?: boolean;
+  cartSyncing?: boolean;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode, onPress }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ 
+  product, 
+  viewMode, 
+  onPress,
+  onAddToCart,
+  onToggleWishlist,
+  isInCart = false,
+  isInWishlist = false,
+  isAddingToCart = false,
+  isTogglingWishlist = false,
+  cartSyncing = false,
+}) => {
   const router = useRouter();
 
   const formatPrice = (priceValue: string) => {
@@ -46,8 +65,26 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode, onPress })
     }
   };
 
-  const handleAddToCart = () => {
-    console.log("Add to cart:", product.id);
+  const handleCartPress = (e?: any) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    if (onAddToCart) {
+      onAddToCart(e);
+    } else {
+      console.log("Add to cart:", product.id);
+    }
+  };
+
+  const handleWishlistPress = (e?: any) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    if (onToggleWishlist) {
+      onToggleWishlist(e);
+    } else {
+      console.log("Toggle wishlist:", product.id);
+    }
   };
 
   const renderRating = () => {
@@ -72,28 +109,46 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode, onPress })
       >
         <View className="relative">
           {product.main_image ? (
-            <Image source={{ uri: product.main_image }} className="w-28 h-28" resizeMode="cover" />
+            <Image source={{ uri: product.main_image }} className="w-32 h-full" resizeMode="cover" />
           ) : (
-            <View className="w-28 h-28 bg-gray-100 items-center justify-center">
+            <View className="w-32 h-full bg-gray-100 items-center justify-center">
               <Text className="text-gray-400 text-xs">No Image</Text>
             </View>
           )}
-
+          
           {product.discount_percentage > 0 && (
             <View className="absolute top-2 left-2 bg-darkRed px-2 py-0.5 rounded">
               <Text className="text-white text-xs font-bold">-{product.discount_percentage}%</Text>
             </View>
           )}
 
-          {/* Cart Icon Top-Right */}
-          <TouchableOpacity
-            onPress={handleAddToCart}
-            disabled={!product.is_in_stock}
-            className="absolute top-2 right-2 bg-darkRed p-2 rounded-lg"
-            style={{ opacity: product.is_in_stock ? 1 : 0.5 }}
-          >
-            <ShoppingCart size={16} color="white" />
-          </TouchableOpacity>
+          {/* Wishlist Icon - Top Right of Image */}
+          {onToggleWishlist && (
+            <TouchableOpacity
+              onPress={handleWishlistPress}
+              disabled={isTogglingWishlist}
+              className="absolute top-2 right-2 bg-white p-1.5 rounded-full shadow-md"
+              style={{ opacity: isTogglingWishlist ? 0.6 : 1 }}
+            >
+              {isTogglingWishlist ? (
+                <ActivityIndicator size="small" color={colors.darkRed} />
+              ) : (
+                <Heart 
+                  size={14} 
+                  color={colors.darkRed}
+                  fill={isInWishlist ? colors.darkRed : "transparent"}
+                  strokeWidth={2}
+                />
+              )}
+            </TouchableOpacity>
+          )}
+
+          {/* In Cart Badge */}
+          {isInCart && !isAddingToCart && (
+            <View className="absolute bottom-2 left-2 bg-green-100 px-2 py-0.5 rounded border border-green-300">
+              <Text className="text-xs text-green-800 font-medium">In Cart</Text>
+            </View>
+          )}
         </View>
 
         <View className="flex-1 p-3 justify-between">
@@ -112,6 +167,30 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode, onPress })
                 <Text className="text-xs text-gray-400 line-through">{formatPrice(product.compare_at_price)}</Text>
               )}
             </View>
+
+            {/* Cart Button */}
+            {onAddToCart && (
+              <TouchableOpacity
+                onPress={handleCartPress}
+                disabled={!product.is_in_stock || isAddingToCart || cartSyncing}
+                className={`p-2 rounded-lg ${isInCart ? 'bg-green-600' : 'bg-darkRed'}`}
+                style={{ 
+                  opacity: !product.is_in_stock ? 0.5 : 1,
+                  minWidth: 36,
+                  minHeight: 36,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {isAddingToCart ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : isInCart ? (
+                  <Check size={16} color="white" />
+                ) : (
+                  <ShoppingCart size={16} color="white" />
+                )}
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </TouchableOpacity>
@@ -135,24 +214,44 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode, onPress })
         )}
 
         {product.discount_percentage > 0 && (
-          <View className="absolute top-2 left-2 bg-darkRed px-2 py-1 rounded">
+          <View className="absolute top-2 left-2 bg-darkRed px-2 py-1 rounded z-10">
             <Text className="text-white text-xs font-bold">-{product.discount_percentage}%</Text>
           </View>
         )}
 
-        {/* Cart Icon Top-Right */}
-        <TouchableOpacity
-          className="absolute top-2 right-2 bg-darkRed p-2 rounded-lg"
-          onPress={handleAddToCart}
-          disabled={!product.is_in_stock}
-          style={{ opacity: product.is_in_stock ? 1 : 0.5 }}
-        >
-          <ShoppingCart size={16} color="white" />
-        </TouchableOpacity>
+        {/* Wishlist Icon - Top Right */}
+        {onToggleWishlist && (
+          <TouchableOpacity
+            className="absolute top-2 right-2 bg-white p-2 rounded-full shadow-md z-20"
+            onPress={handleWishlistPress}
+            disabled={isTogglingWishlist}
+            style={{
+              opacity: isTogglingWishlist ? 0.6 : 1,
+            }}
+          >
+            {isTogglingWishlist ? (
+              <ActivityIndicator size="small" color={colors.darkRed} />
+            ) : (
+              <Heart 
+                size={16} 
+                color={colors.darkRed}
+                fill={isInWishlist ? colors.darkRed : "transparent"}
+                strokeWidth={2}
+              />
+            )}
+          </TouchableOpacity>
+        )}
 
         {!product.is_in_stock && (
           <View className="absolute bottom-0 left-0 right-0 bg-black/50 py-1">
             <Text className="text-white text-xs text-center font-medium">Out of Stock</Text>
+          </View>
+        )}
+
+        {/* In Cart Badge */}
+        {isInCart && !isAddingToCart && product.is_in_stock && (
+          <View className="absolute bottom-2 left-2 bg-green-100 px-2 py-0.5 rounded border border-green-300 z-10">
+            <Text className="text-xs text-green-800 font-medium">In Cart</Text>
           </View>
         )}
       </View>
@@ -165,10 +264,36 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode, onPress })
 
         {renderRating()}
 
-        <View className="mt-2">
-          <Text className="text-lg font-bold text-darkRed">{formatPrice(product.price)}</Text>
-          {product.compare_at_price && parseFloat(product.compare_at_price) > 0 && (
-            <Text className="text-xs text-gray-400 line-through">{formatPrice(product.compare_at_price)}</Text>
+        <View className="flex-row items-center justify-between mt-2">
+          <View>
+            <Text className="text-lg font-bold text-darkRed">{formatPrice(product.price)}</Text>
+            {product.compare_at_price && parseFloat(product.compare_at_price) > 0 && (
+              <Text className="text-xs text-gray-400 line-through">{formatPrice(product.compare_at_price)}</Text>
+            )}
+          </View>
+
+          {/* Cart Button */}
+          {onAddToCart && (
+            <TouchableOpacity
+              className={`p-2 rounded-lg ${isInCart ? 'bg-green-600' : 'bg-darkRed'}`}
+              onPress={handleCartPress}
+              disabled={!product.is_in_stock || isAddingToCart || cartSyncing}
+              style={{
+                opacity: !product.is_in_stock ? 0.5 : 1,
+                minWidth: 32,
+                minHeight: 32,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {isAddingToCart ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : isInCart ? (
+                <Check size={16} color="white" />
+              ) : (
+                <ShoppingCart size={16} color="white" />
+              )}
+            </TouchableOpacity>
           )}
         </View>
       </View>

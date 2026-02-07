@@ -5,11 +5,15 @@ import {
   Text,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { Heart, ShoppingCart, Star } from "lucide-react-native";
+import { Heart, ShoppingCart, Star, Check } from "lucide-react-native";
 import { colors } from "@/constants/color";
 import { useLanguage } from "@/context/LanguageContext";
+import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
+import { useAuth } from "@/context/AuthContext";
 import api from "@/api/api";
 import { endpoints } from "@/api/endpoints";
 
@@ -25,6 +29,8 @@ interface Product {
   rating_count: number;
   category: { name: string | undefined };
   images: any[];
+  brand_name?: string;
+  main_image?: string | null;
 }
 
 /* ================= COMPONENT ================= */
@@ -32,46 +38,58 @@ const BestSellingProducts = () => {
   const router = useRouter();
   const { t } = useLanguage();
 
+  // Use the cart context
+  const { 
+    addItem, 
+    isInCart, 
+    syncing: cartSyncing
+  } = useCart();
+
+  // Use the wishlist context
+  const {
+    addToWishlist,
+    removeFromWishlist,
+    isInWishlist,
+    getWishlistId,
+  } = useWishlist();
+
+  // Use auth context
+  const { isAuthenticated } = useAuth();
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // State to track which products are being added to cart
+  const [addingToCart, setAddingToCart] = useState<{[key: string]: boolean}>({});
+  
+  // State to track which products are being toggled in wishlist
+  const [togglingWishlist, setTogglingWishlist] = useState<{[key: string]: boolean}>({});
 
   /* ---------- Helpers ---------- */
-  const formatPrice = (price: string | undefined | null) => {
+  const formatPrice = useCallback((price: string | undefined | null) => {
     if (!price) return "₦0";
     const numPrice = parseFloat(price);
     if (isNaN(numPrice)) return "₦0";
     return `₦${numPrice.toLocaleString("en-NG", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
-  };
+  }, []);
 
-  const calculateDiscount = (price: string | undefined | null, comparePrice: string | null | undefined) => {
+  const calculateDiscount = useCallback((price: string | undefined | null, comparePrice: string | null | undefined) => {
     if (!price || !comparePrice) return 0;
     const currentPrice = parseFloat(price);
     const originalPrice = parseFloat(comparePrice);
     if (isNaN(currentPrice) || isNaN(originalPrice) || originalPrice <= 0) return 0;
     return Math.round(((originalPrice - currentPrice) / originalPrice) * 100);
-  };
+  }, []);
 
-  const getRating = (rating: string | undefined | null) => {
+  const getRating = useCallback((rating: string | undefined | null) => {
     if (!rating) return "0.0";
     const numRating = parseFloat(rating);
     if (isNaN(numRating)) return "0.0";
     return numRating.toFixed(1);
-  };
+  }, []);
 
-  const getRatingCount = (count: number | undefined | null) => (count || count === 0 ? count : 0);
-
-  const getCategoryIcon = (categoryName: string | undefined) => {
-    const name = (categoryName || "").toLowerCase();
-    if (name.includes("fashion") || name.includes("clothing") || name.includes("shoes")) return "👕";
-    if (name.includes("electronics") || name.includes("smartphone")) return "📱";
-    if (name.includes("home")) return "🏠";
-    if (name.includes("gaming")) return "🎮";
-    if (name.includes("audio")) return "🎧";
-    if (name.includes("watch")) return "⌚";
-    if (name.includes("computer")) return "💻";
-    return "📦";
-  };
+  const getRatingCount = useCallback((count: number | undefined | null) => (count || count === 0 ? count : 0), []);
 
   /* ---------- Fetch ---------- */
   const fetchBestSellingProducts = useCallback(async () => {
@@ -95,29 +113,169 @@ const BestSellingProducts = () => {
     }
   }, [t]);
 
-
   useEffect(() => {
     fetchBestSellingProducts();
   }, [fetchBestSellingProducts]);
 
   /* ---------- Actions ---------- */
-  const handleProductPress = (product: Product | null) => {
+  const handleProductPress = useCallback((product: Product | null) => {
     if (!product?.slug) return;
     router.push({
       pathname: "/(customer)/product/[slug]",
       params: { slug: product.slug, productName: product.name || "Product" },
     });
-  };
+  }, [router]);
 
-  const handleAddToCart = (product: Product | null) => {
-    if (!product?.id) return;
-    console.log("Add to cart:", product.id);
-  };
+  const handleAddToCart = useCallback(async (product: Product | null, event?: any) => {
+    if (event) {
+      event.stopPropagation();
+    }
 
-  const handleAddToWishlist = (product: Product | null) => {
     if (!product?.id) return;
-    console.log("Add to wishlist:", product.id);
-  };
+
+    // Check if product is in stock
+    if (!product.is_in_stock) {
+      Alert.alert(
+        "Out of Stock",
+        "This product is currently out of stock",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    // Check if already in cart
+    if (isInCart(product.id)) {
+      Alert.alert(
+        "Already in Cart",
+        `${product.name} is already in your cart`,
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    // Set loading state for this specific product
+    setAddingToCart(prev => ({ ...prev, [product.id]: true }));
+
+    try {
+      // Prepare item data for the cart
+      const itemData = {
+        productId: product.id,
+        storeName: product.brand_name || 'Unknown Store',
+        productName: product.name,
+        price: parseFloat(product.price),
+        originalPrice: product.compare_at_price 
+          ? parseFloat(product.compare_at_price)
+          : parseFloat(product.price),
+        image: product.main_image || (product.images && product.images.length > 0 ? product.images[0] : null),
+      };
+
+      console.log('🛒 Adding product to cart:', itemData);
+
+      // Add to cart via API
+      const result = await addItem(itemData, 1);
+      
+      if (result.success) {
+        console.log("✅ Added to cart:", product.name);
+      }
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      // Error is already handled in the CartContext
+    } finally {
+      // Clear loading state for this product
+      setAddingToCart(prev => ({ ...prev, [product.id]: false }));
+    }
+  }, [addItem, isInCart]);
+
+  const handleWishlistToggle = useCallback(async (product: Product | null, event?: any) => {
+    if (event) {
+      event.stopPropagation();
+    }
+
+    if (!product?.id) return;
+
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      Alert.alert(
+        'Sign In Required',
+        'Please sign in to save items to your wishlist',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Sign In',
+            onPress: () => router.push('/(auth)/signIn')
+          }
+        ]
+      );
+      return;
+    }
+
+    const productId = product.id;
+    const isCurrentlyInWishlist = isInWishlist(productId);
+
+    // Prevent multiple simultaneous operations on the same product
+    if (togglingWishlist[productId]) {
+      return;
+    }
+
+    // Set loading state for this specific product
+    setTogglingWishlist(prev => ({ ...prev, [productId]: true }));
+
+    try {
+      if (isCurrentlyInWishlist) {
+        // Get the wishlist ID for this product
+        const wishlistId = getWishlistId(productId);
+        
+        if (!wishlistId) {
+          console.error('[Wishlist] No wishlist ID found for product:', productId);
+          Alert.alert('Error', 'Failed to remove from wishlist');
+          setTogglingWishlist(prev => ({ ...prev, [productId]: false }));
+          return;
+        }
+        
+        // Remove from wishlist using wishlist_id
+        // This calls DELETE /orders/wishlist/:wishlist_id/
+        const success = await removeFromWishlist(wishlistId);
+        
+        if (success) {
+          console.log("✅ Removed from wishlist:", product.name);
+        }
+      } else {
+        // Add to wishlist
+        const result = await addToWishlist(productId);
+        
+        if (result.success) {
+          console.log("✅ Added to wishlist:", product.name);
+        }
+      }
+    } catch (error: any) {
+      console.error("Error toggling wishlist:", error);
+      
+      // Error is already handled in WishlistContext, but show a user-friendly message
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.detail ||
+                          error.message ||
+                          "Failed to update wishlist";
+      
+      Alert.alert(
+        "Wishlist Error",
+        errorMessage,
+        [{ text: "OK" }]
+      );
+    } finally {
+      // Clear loading state for this product
+      setTogglingWishlist(prev => ({ ...prev, [productId]: false }));
+    }
+  }, [isAuthenticated, router, isInWishlist, addToWishlist, removeFromWishlist, getWishlistId, togglingWishlist]);
+
+  // Check if a product is currently being added to cart
+  const isAddingToCart = useCallback((productId: string) => {
+    return addingToCart[productId] || false;
+  }, [addingToCart]);
+
+  // Check if wishlist operation is in progress for a product
+  const isTogglingWishlist = useCallback((productId: string) => {
+    return togglingWishlist[productId] || false;
+  }, [togglingWishlist]);
 
   /* ---------- Loading/Error ---------- */
   if (loading) {
@@ -160,27 +318,45 @@ const BestSellingProducts = () => {
           const discount = calculateDiscount(product.price, product.compare_at_price);
           const rating = getRating(product.rating_average);
           const ratingCount = getRatingCount(product.rating_count);
-          const icon = getCategoryIcon(product.category?.name);
+          const isProductInCart = isInCart(product.id);
+          const isProductAddingToCart = isAddingToCart(product.id);
+          const isProductOutOfStock = !product.is_in_stock;
+          const isProductInWishlist = isInWishlist(product.id);
+          const isWishlistToggling = isTogglingWishlist(product.id);
 
           return (
             <TouchableOpacity
               key={product.id}
-              className="w-[48%] mb-4 bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200"
+              className="w-[48%] mb-4 bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 relative"
               onPress={() => handleProductPress(product)}
             >
               {/* Image Placeholder */}
               <View className="h-36 bg-gray-200 items-center justify-center">
-                <Text className="text-3xl">{icon}</Text>
                 {discount > 0 && (
-                  <View className="absolute top-2 left-2 bg-darkRed rounded-full px-2 py-1">
+                  <View className="absolute top-2 left-2 bg-darkRed rounded-full px-2 py-1 z-10">
                     <Text className="text-white text-xs font-bold">-{discount}%</Text>
                   </View>
                 )}
+                
+                {/* Wishlist Button */}
                 <TouchableOpacity
-                  className="absolute bottom-2 right-2 bg-white p-2 rounded-full"
-                  onPress={() => handleAddToWishlist(product)}
+                  className="absolute top-2 right-2 bg-white p-2 rounded-full shadow-md z-20"
+                  onPress={(e) => handleWishlistToggle(product, e)}
+                  disabled={isWishlistToggling}
+                  style={{
+                    opacity: isWishlistToggling ? 0.6 : 1,
+                  }}
                 >
-                  <Heart size={16} color={colors.darkRed} />
+                  {isWishlistToggling ? (
+                    <ActivityIndicator size="small" color={colors.darkRed} />
+                  ) : (
+                    <Heart 
+                      size={16} 
+                      color={colors.darkRed}
+                      fill={isProductInWishlist ? colors.darkRed : "transparent"}
+                      strokeWidth={2}
+                    />
+                  )}
                 </TouchableOpacity>
               </View>
 
@@ -196,15 +372,37 @@ const BestSellingProducts = () => {
                 </View>
                 <View className="flex-row justify-between items-center">
                   <Text className="text-lg font-bold text-darkRed">{formatPrice(product.price)}</Text>
+                  
+                  {/* Add to Cart Button */}
                   <TouchableOpacity
-                    className="bg-darkRed p-2 rounded-lg"
-                    onPress={() => handleAddToCart(product)}
-                    disabled={!product.is_in_stock}
+                    className={`p-2 rounded-lg ${isProductInCart ? 'bg-green-600' : 'bg-darkRed'}`}
+                    onPress={(e) => handleAddToCart(product, e)}
+                    disabled={isProductOutOfStock || isProductAddingToCart || cartSyncing}
+                    style={{
+                      opacity: isProductOutOfStock ? 0.5 : 1,
+                      minWidth: 32,
+                      minHeight: 32,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
                   >
-                    <ShoppingCart size={16} color="white" />
+                    {isProductAddingToCart ? (
+                      <ActivityIndicator size="small" color="white" />
+                    ) : isProductInCart ? (
+                      <Check size={16} color="white" />
+                    ) : (
+                      <ShoppingCart size={16} color="white" />
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>
+
+              {/* Optional: Show "In Cart" badge */}
+              {isProductInCart && !isProductAddingToCart && (
+                <View className="absolute bottom-3 left-2 bg-green-100 px-2 py-0.5 rounded-full border border-green-300">
+                  <Text className="text-xs text-green-800 font-medium">In Cart</Text>
+                </View>
+              )}
             </TouchableOpacity>
           );
         })}

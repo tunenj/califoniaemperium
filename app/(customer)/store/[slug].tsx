@@ -9,7 +9,7 @@ import {
     Image,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft, Star, Phone, Mail, Globe, CheckCircle } from "lucide-react-native";
+import { ArrowLeft, Star, CheckCircle } from "lucide-react-native";
 import { colors } from "@/constants/color";
 import { useLanguage } from "@/context/LanguageContext";
 import api from '@/api/api';
@@ -149,7 +149,6 @@ const StoreDetailsPage = () => {
             </View>
         );
     }
-
     if (error || !vendor) {
         return (
             <View className="flex-1 bg-white">
@@ -159,7 +158,7 @@ const StoreDetailsPage = () => {
                         <ArrowLeft size={24} color={colors.darkRed} />
                     </TouchableOpacity>
                     <Text className="text-lg font-semibold ml-4">
-                        {storeName || t('store_details') || "Store Details"}
+                        {storeName || "Store Details"}
                     </Text>
                 </View>
 
@@ -169,30 +168,30 @@ const StoreDetailsPage = () => {
                             <Text className="text-4xl">🏪</Text>
                         </View>
                         <Text className="text-lg font-semibold text-gray-800 mb-2">
-                            {storeName || t('store_not_found') || "Store not found"}
+                            {storeName || "Store not found"}
                         </Text>
                     </View>
-                    
+
                     <Text className="text-red-500 text-base mb-6 text-center">
-                        {error}
+                        {typeof error === 'string' ? error : 'Failed to load store details'}
                     </Text>
-                    
+
                     <View className="flex-row space-x-4">
                         <TouchableOpacity
                             className="flex-1 bg-darkRed px-6 py-3 rounded-lg"
                             onPress={handleRetry}
                         >
                             <Text className="text-white text-sm font-medium text-center">
-                                {t('retry') || "Try Again"}
+                                Try Again
                             </Text>
                         </TouchableOpacity>
-                        
+
                         <TouchableOpacity
                             className="flex-1 border border-gray-300 px-6 py-3 rounded-lg"
                             onPress={() => router.back()}
                         >
                             <Text className="text-gray-700 text-sm font-medium text-center">
-                                {t('go_back') || "Go Back"}
+                                Go Back
                             </Text>
                         </TouchableOpacity>
                     </View>
@@ -287,7 +286,7 @@ const StoreDetailsPage = () => {
                         <View className="items-center flex-1">
                             <View className={`px-3 py-1 rounded-full ${vendor.is_accepting_orders ? 'bg-green-100' : 'bg-red-100'}`}>
                                 <Text className={`text-xs font-medium ${vendor.is_accepting_orders ? 'text-green-700' : 'text-red-700'}`}>
-                                    {vendor.is_accepting_orders 
+                                    {vendor.is_accepting_orders
                                         ? (t('open') || 'Open')
                                         : (t('closed') || 'Closed')
                                     }
@@ -304,11 +303,6 @@ const StoreDetailsPage = () => {
                         <TouchableOpacity className="flex-1 bg-darkRed py-3 rounded-lg">
                             <Text className="text-white text-center font-medium">
                                 {t('follow_store') || 'Follow Store'}
-                            </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity className="flex-1 bg-gray-100 py-3 rounded-lg">
-                            <Text className="text-gray-800 text-center font-medium">
-                                {t('contact') || 'Contact'}
                             </Text>
                         </TouchableOpacity>
                     </View>
@@ -329,45 +323,12 @@ const StoreDetailsPage = () => {
                 </View>
             )}
 
-            {/* Contact Information */}
-            <View className="px-4 mt-6">
-                <Text className="text-lg font-bold text-gray-800 mb-3">
-                    {t('contact_information') || 'Contact Information'}
-                </Text>
-                <View className="bg-gray-50 p-4 rounded-xl space-y-3">
-                    {vendor.business_phone && (
-                        <View className="flex-row items-center">
-                            <Phone size={18} color={colors.darkRed} />
-                            <Text className="text-gray-700 ml-3">
-                                {vendor.business_phone}
-                            </Text>
-                        </View>
-                    )}
-                    {vendor.business_email && (
-                        <View className="flex-row items-center mt-3">
-                            <Mail size={18} color={colors.darkRed} />
-                            <Text className="text-gray-700 ml-3">
-                                {vendor.business_email}
-                            </Text>
-                        </View>
-                    )}
-                    {vendor.website && (
-                        <View className="flex-row items-center mt-3">
-                            <Globe size={18} color={colors.darkRed} />
-                            <Text className="text-gray-700 ml-3">
-                                {vendor.website}
-                            </Text>
-                        </View>
-                    )}
-                </View>
-            </View>
-
             {/* Policies */}
             <View className="px-4 mt-6 mb-8">
                 <Text className="text-lg font-bold text-gray-800 mb-3">
                     {t('policies') || 'Policies'}
                 </Text>
-                
+
                 {vendor.return_policy ? (
                     <View className="bg-gray-50 p-4 rounded-xl mb-3">
                         <Text className="font-semibold text-gray-800 mb-2">

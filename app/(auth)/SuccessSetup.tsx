@@ -79,7 +79,7 @@ const SuccessSetup: React.FC = () => {
         };
 
         verifySession();
-    }, []);
+    }, [t, router]); // ✅ Added missing dependencies: t and router
 
     // FIXED: Check for existing vendor application with improved logic
     useEffect(() => {
@@ -140,7 +140,7 @@ const SuccessSetup: React.FC = () => {
         };
 
         checkExistingApplication();
-    }, [isBusiness, email]);
+    }, [isBusiness, email]); // ✅ Already has correct dependencies
 
     const handleBack = () => {
         router.back();
@@ -176,8 +176,7 @@ const SuccessSetup: React.FC = () => {
                 return;
             }
 
-            console.log('✅ Token verified in AsyncStorage before navigation');
-            console.log('==========================================');
+            console.log('Token verified in AsyncStorage before navigation');
             console.log('NAVIGATING TO STEP 1 FOR FRESH SETUP');
             console.log('Token in AsyncStorage: EXISTS');
             console.log('Refresh token:', storedRefresh ? 'EXISTS' : 'MISSING');
@@ -199,19 +198,19 @@ const SuccessSetup: React.FC = () => {
                     firstName,
                     lastName,
                     role: userRole,
-                    // ✅ IMPORTANT: Mark as fresh registration
+                    // IMPORTANT: Mark as fresh registration
                     isFreshRegistration: 'true',
-                    // ✅ NO TOKEN PARAMS - They're in AsyncStorage
+                    // NO TOKEN PARAMS - They're in AsyncStorage
                 },
             });
         } else {
-            // ✅ FIX: Verify token for customer profile setup too
-            console.log('🔍 Verifying token before customer profile setup...');
+            // FIX: Verify token for customer profile setup too
+            console.log('Verifying token before customer profile setup...');
             
             const storedToken = await AsyncStorage.getItem('authToken');
             
             if (!storedToken) {
-                console.error('❌ No token found for customer profile setup');
+                console.error('No token found for customer profile setup');
                 Alert.alert(
                     t('session_expired') || 'Session Expired',
                     t('please_login_again') || 'Please login again to continue.',
@@ -225,7 +224,7 @@ const SuccessSetup: React.FC = () => {
                 return;
             }
 
-            console.log('✅ Token verified for customer profile setup');
+            console.log('Token verified for customer profile setup');
 
             // Save user email
             await AsyncStorage.setItem('userEmail', email);
@@ -239,7 +238,7 @@ const SuccessSetup: React.FC = () => {
                     firstName,
                     lastName,
                     role: userRole,
-                    // ✅ NO TOKEN PARAMS
+                    // NO TOKEN PARAMS
                 },
             });
         }
@@ -255,11 +254,11 @@ const SuccessSetup: React.FC = () => {
         }
     };
 
-    // ✅ FIXED: Always show "Set Up Store" for NEW registrations
+    // FIXED: Always show "Set Up Store" for NEW registrations
     const getSetupButtonText = () => {
         if (!isBusiness) return t('set_up_profile');
 
-        // ✅ CRITICAL FIX: Always show "Set Up Store" for fresh registration flow
+        // CRITICAL FIX: Always show "Set Up Store" for fresh registration flow
         // This screen appears right after registration, so user is NEW
         // Even if there's old application data in AsyncStorage, ignore it
         
@@ -270,7 +269,7 @@ const SuccessSetup: React.FC = () => {
         return t('set_up_store');
     };
 
-    // ✅ FIXED: Show appropriate later button text
+    // FIXED: Show appropriate later button text
     const getLaterButtonText = () => {
         if (isBusiness && hasExistingApplication && applicationStatus === 'approved') {
             return t('skip_to_dashboard');

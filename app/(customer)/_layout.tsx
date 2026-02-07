@@ -13,6 +13,8 @@ export default function CustomerLayout() {
     'store-reviews',
     'profile-setup',
     'product/[slug]',
+    'explore-dropship',
+    'wishlist'
   ];
 
   return (

@@ -21,6 +21,7 @@ const resources = {
             switch_to: "Switch to",
             business: "Business",
             customer: "Customer",
+            account: "Account",
             vendor: "Vendor",
             loading_products: "Loading Products",
             trending_products: "Trending Products",
