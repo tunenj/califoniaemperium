@@ -1,4 +1,4 @@
-// app/(customer)/product/[slug].tsx - UPDATED WITHOUT VENDOR VISIT
+// app/(customer)/product/[slug].tsx - UPDATED WITH PROPER CART/WISHLIST INTEGRATION
 import React, { useEffect, useState, useCallback } from "react";
 import {
     View,
@@ -19,12 +19,15 @@ import {
     Image as ImageIcon,
     ChevronDown,
     ChevronUp,
+    ShoppingCart,
 } from "lucide-react-native";
 import { colors } from "@/constants/color";
 import { useLanguage } from "@/context/LanguageContext";
 import api from '@/api/api';
 import { endpoints } from '@/api/endpoints';
-
+import { useCart } from '@/context/CartContext';
+import { useWishlist } from '@/context/WishlistContext';
+import { useAuth } from '@/context/AuthContext';
 
 // Define interfaces
 interface Category {
@@ -82,7 +85,6 @@ interface Attribute {
     order: number;
 }
 
-// VendorInfo interface from product API
 interface VendorInfo {
     vendor_name: string;
     vendor_id: string;
@@ -97,8 +99,8 @@ interface Product {
     sku: string;
     description: string;
     short_description: string;
-    category: Category;
-    brand: Brand;
+    category: Category | null;
+    brand: Brand | null;
     tags: string[];
     price: string;
     compare_at_price: string | null;
@@ -123,7 +125,7 @@ interface Product {
     purchase_count: number;
     rating_average: string;
     rating_count: number;
-    vendor_info: VendorInfo;
+    vendor_info: VendorInfo | null;
     dropship_info: any;
     meta_title: string;
     meta_description: string;
@@ -142,9 +144,13 @@ const ProductDetailsPage = () => {
     const router = useRouter();
     const params = useLocalSearchParams();
     const { t } = useLanguage();
+    const { addItem, isInCart, getItemCount } = useCart();
+    const { addToWishlist, isInWishlist, removeFromWishlist } = useWishlist();
+    const { isAuthenticated } = useAuth();
 
     const slug = params.slug as string;
     const productName = params.productName as string;
+    const isDropship = params.isDropship === "true";
 
     const [product, setProduct] = useState<Product | null>(null);
     const [loading, setLoading] = useState(true);
@@ -152,10 +158,36 @@ const ProductDetailsPage = () => {
     const [quantity, setQuantity] = useState(1);
     const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
     const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
-    const [isInWishlist, setIsInWishlist] = useState(false);
     const [showFullDescription, setShowFullDescription] = useState(false);
     const [showSpecifications, setShowSpecifications] = useState(true);
     const [showShippingInfo, setShowShippingInfo] = useState(false);
+    const [addingToCart, setAddingToCart] = useState(false);
+    const [addingToWishlist, setAddingToWishlist] = useState(false);
+    
+    // State to track if product is in wishlist/cart
+    const [isInWishlistState, setIsInWishlistState] = useState(false);
+    const [isInCartState, setIsInCartState] = useState(false);
+
+    // Helper function to validate UUID
+    const isValidUUID = (uuid: string): boolean => {
+        if (!uuid || typeof uuid !== 'string') return false;
+        
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        return uuidRegex.test(uuid.trim());
+    };
+
+    // Smart navigation handler
+    const handleGoBack = useCallback(() => {
+        if (router.canGoBack()) {
+            router.back();
+        } else {
+            if (isDropship) {
+                router.replace("/(customer)/explore-dropship");
+            } else {
+                router.replace("/(customer)/explore");
+            }
+        }
+    }, [router, isDropship]);
 
     // Format rating display
     const formatRating = useCallback((rating: string) => {
@@ -202,17 +234,15 @@ const ProductDetailsPage = () => {
 
             if (response.data.success && response.data.data) {
                 const productData = response.data.data;
-                
-                // Debug logging
+
                 console.log("Product data received:", productData);
                 console.log("Vendor info from API:", productData.vendor_info);
-                
+
                 setProduct(productData);
 
                 // Set default variant (first variant or base product)
                 if (productData.variants && productData.variants.length > 0) {
                     setSelectedVariant(productData.variants[0]);
-                    // Extract options from first variant
                     const options: Record<string, string> = {};
                     if (productData.variants[0].options) {
                         Object.entries(productData.variants[0].options).forEach(([key, value]) => {
@@ -221,14 +251,31 @@ const ProductDetailsPage = () => {
                     }
                     setSelectedOptions(options);
                 }
+
+                // Check if product is in wishlist
+                try {
+                    const inWishlist = await isInWishlist(productData.id);
+                    setIsInWishlistState(inWishlist);
+                } catch (checkError) {
+                    console.warn('Could not check wishlist status:', checkError);
+                }
+                
+                // Check if product is in cart
+                try {
+                    const inCart = isInCart(productData.id);
+                    setIsInCartState(inCart);
+                } catch (cartError) {
+                    console.warn('Could not check cart status:', cartError);
+                }
+
             } else {
                 setError(response.data.message || t('product_not_found') || "Product not found");
             }
         } catch (error: any) {
             console.error("Error fetching product details:", error);
-            
+
             let errorMessage = t('failed_to_load_product') || "Failed to load product";
-            
+
             if (error.response?.status === 404) {
                 errorMessage = t('product_not_found') || "Product not found";
             } else if (error.response?.status === 401) {
@@ -236,12 +283,12 @@ const ProductDetailsPage = () => {
             } else if (error.message) {
                 errorMessage = error.message;
             }
-            
+
             setError(errorMessage);
         } finally {
             setLoading(false);
         }
-    }, [slug, t]);
+    }, [slug, t, isInWishlist, isInCart]);
 
     useEffect(() => {
         if (slug) {
@@ -249,13 +296,11 @@ const ProductDetailsPage = () => {
         }
     }, [fetchProductDetails, slug]);
 
-
     // Handle option selection for variants
     const handleOptionSelect = (optionType: string, optionValue: string) => {
         const newOptions = { ...selectedOptions, [optionType]: optionValue };
         setSelectedOptions(newOptions);
 
-        // Find matching variant
         if (product?.variants) {
             const matchingVariant = product.variants.find(variant => {
                 return Object.entries(newOptions).every(([key, value]) => {
@@ -278,54 +323,318 @@ const ProductDetailsPage = () => {
         }
     };
 
-    // Add to cart
-    const handleAddToCart = () => {
-        if (!product) return;
+    // Helper function to save to wishlist with validated UUID - FROM CART SCREEN LOGIC
+    const saveToWishlistWithId = async (productId: string, productName: string) => {
+        try {
+            console.log('✅ Valid UUID confirmed:', productId);
 
-        const productToAdd = {
-            id: product.id,
-            name: product.name,
-            price: selectedVariant ? parseFloat(selectedVariant.final_price) : parseFloat(product.price),
-            quantity,
-            variant: selectedVariant,
-            options: selectedOptions
-        };
+            // Check if already in wishlist first
+            try {
+                const alreadyInWishlist = await isInWishlist(productId);
+                if (alreadyInWishlist) {
+                    Alert.alert(
+                        'Already Saved',
+                        'This item is already in your wishlist.',
+                        [
+                            {
+                                text: 'View Wishlist',
+                                onPress: () => router.push('/(customer)/wishlist')
+                            },
+                            { text: 'OK', style: 'cancel' }
+                        ]
+                    );
+                    return { success: false, message: 'Already in wishlist' };
+                }
+            } catch (checkError) {
+                console.warn('Could not check wishlist status:', checkError);
+            }
 
-        console.log("Adding to cart:", productToAdd);
+            // Pass just the productId string to addToWishlist
+            const result = await addToWishlist(productId);
 
-        Alert.alert(
-            t('added_to_cart') || "Added to Cart",
-            `${product.name} has been added to your cart`,
-            [{ text: "OK" }]
-        );
+            console.log('📥 API Response:', result);
+
+            if (result.success) {
+                Alert.alert(
+                    'Saved Successfully!',
+                    `${productName} has been added to your wishlist.`,
+                    [
+                        {
+                            text: 'View Wishlist',
+                            onPress: () => router.push('/(customer)/wishlist')
+                        },
+                        {
+                            text: 'Continue Shopping',
+                            style: 'cancel'
+                        }
+                    ]
+                );
+                return { success: true };
+            } else {
+                let errorMsg = result.message || 'Failed to save to wishlist';
+
+                if (errorMsg.includes('400') || errorMsg.includes('invalid')) {
+                    errorMsg = `API Validation Error:\n\nProduct ID: ${productId}\n\nPlease ensure this is a valid product UUID.`;
+                }
+
+                Alert.alert('Error', errorMsg);
+                return { success: false, message: errorMsg };
+            }
+
+        } catch (error: unknown) {
+            console.error('API Call Error:', error);
+
+            let errorMessage = 'Network error occurred.';
+
+            if (error && typeof error === 'object' && 'response' in error) {
+                const apiError = error as any;
+                console.log('Response status:', apiError.response?.status);
+                console.log('Response data:', apiError.response?.data);
+
+                if (apiError.response?.data?.error) {
+                    const apiErr = apiError.response.data.error;
+                    errorMessage = `API Error (${apiError.response.status}):\n\n`;
+
+                    if (apiErr.details) {
+                        errorMessage += `Details: ${apiErr.details}`;
+                    } else if (apiErr.message) {
+                        errorMessage += `Message: ${apiErr.message}`;
+                    } else {
+                        errorMessage += JSON.stringify(apiErr, null, 2);
+                    }
+                } else {
+                    errorMessage = `Server Error (${apiError.response.status}): ${JSON.stringify(apiError.response.data, null, 2)}`;
+                }
+            } else if (error && typeof error === 'object' && 'request' in error) {
+                errorMessage = 'No response received from server.';
+            } else if (error instanceof Error) {
+                errorMessage = error.message;
+            } else if (typeof error === 'string') {
+                errorMessage = error;
+            }
+
+            Alert.alert('API Error', errorMessage);
+            return { success: false, message: errorMessage };
+        }
     };
 
-    // Toggle wishlist
-    const handleToggleWishlist = () => {
+    // Add to cart
+    const handleAddToCart = async () => {
         if (!product) return;
 
-        setIsInWishlist(!isInWishlist);
-
-        if (!isInWishlist) {
-            console.log("Added to wishlist:", product.id);
+        if (!isAuthenticated) {
             Alert.alert(
-                t('added_to_wishlist') || "Added to Wishlist",
-                `${product.name} has been added to your wishlist`
+                t('sign_in_required') || "Sign In Required",
+                t('sign_in_to_add_cart') || "Please sign in to add items to your cart",
+                [
+                    { text: t('cancel') || "Cancel", style: 'cancel' },
+                    {
+                        text: t('sign_in') || "Sign In",
+                        onPress: () => router.push('/(auth)/signIn')
+                    }
+                ]
             );
-        } else {
-            console.log("Removed from wishlist:", product.id);
+            return;
+        }
+
+        try {
+            setAddingToCart(true);
+            
+            const itemData = {
+                productId: product.id,
+                storeName: product.vendor_info?.vendor_name || product.brand?.name || 'Stock',
+                productName: product.name,
+                price: selectedVariant ? parseFloat(selectedVariant.final_price) : parseFloat(product.price),
+                originalPrice: product.compare_at_price ? parseFloat(product.compare_at_price) : parseFloat(product.price),
+                image: product.images?.[0] || null,
+                variantId: selectedVariant?.id,
+            };
+
+            console.log("Adding to cart:", itemData);
+            
+            const result = await addItem(itemData, quantity);
+            
+            if (result.success) {
+                setIsInCartState(true);
+                Alert.alert(
+                    t('added_to_cart') || "Added to Cart",
+                    `${product.name} has been added to your cart`,
+                    [
+                        { 
+                            text: t('view_cart') || "View Cart", 
+                            onPress: () => router.push('/cart') 
+                        },
+                        { text: "OK", style: 'cancel' }
+                    ]
+                );
+            } else {
+                Alert.alert(
+                    t('error') || "Error",
+                    result.message || t('failed_to_add_cart') || "Failed to add to cart"
+                );
+            }
+        } catch (error: any) {
+            console.error("Error adding to cart:", error);
+            Alert.alert(
+                t('error') || "Error",
+                error.message || t('failed_to_add_cart') || "Failed to add to cart"
+            );
+        } finally {
+            setAddingToCart(false);
+        }
+    };
+
+    // Toggle wishlist - UPDATED WITH CART SCREEN LOGIC
+    const handleToggleWishlist = async () => {
+        if (!product) return;
+
+        if (!isAuthenticated) {
+            Alert.alert(
+                t('sign_in_required') || "Sign In Required",
+                t('sign_in_to_save_wishlist') || "Please sign in to save items to your wishlist",
+                [
+                    { text: t('cancel') || "Cancel", style: 'cancel' },
+                    {
+                        text: t('sign_in') || "Sign In",
+                        onPress: () => router.push('/(auth)/signIn')
+                    }
+                ]
+            );
+            return;
+        }
+
+        try {
+            setAddingToWishlist(true);
+            
+            if (isInWishlistState) {
+                // Remove from wishlist
+                const success = await removeFromWishlist(product.id);
+                if (success) {
+                    setIsInWishlistState(false);
+                    Alert.alert(
+                        t('removed_from_wishlist') || "Removed from Wishlist",
+                        `${product.name} has been removed from your wishlist`
+                    );
+                }
+            } else {
+                // Get product ID
+                const productId = product.id;
+                
+                console.log('🔄 Attempting to save to wishlist:', {
+                    productId,
+                    productName: product.name,
+                    isUUID: isValidUUID(productId),
+                    productIdType: typeof productId,
+                });
+
+                // Validate product ID
+                if (!productId) {
+                    Alert.alert('Error', 'Product ID is missing.');
+                    setAddingToWishlist(false);
+                    return;
+                }
+
+                // Ensure it's a string
+                const productIdStr = String(productId).trim();
+
+                // Check if it's a valid UUID
+                if (!isValidUUID(productIdStr)) {
+                    console.error('❌ Invalid UUID format:', productIdStr);
+
+                    // Try to extract UUID if it's embedded in a longer string
+                    const uuidMatch = productIdStr.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+                    if (uuidMatch) {
+                        const extractedUuid = uuidMatch[0];
+                        console.log('✅ Extracted UUID:', extractedUuid);
+                        
+                        // Use the extracted UUID
+                        const result = await saveToWishlistWithId(extractedUuid, product.name);
+                        if (result.success) {
+                            setIsInWishlistState(true);
+                        }
+                    } else {
+                        Alert.alert(
+                            'Invalid Product ID',
+                            `The product ID "${productIdStr.substring(0, 50)}..." is not a valid UUID format.\n\nPlease contact support.`,
+                            [{ text: 'OK' }]
+                        );
+                    }
+                    setAddingToWishlist(false);
+                    return;
+                }
+
+                // If it's already a valid UUID
+                const result = await saveToWishlistWithId(productIdStr, product.name);
+                if (result.success) {
+                    setIsInWishlistState(true);
+                }
+            }
+        } catch (error: any) {
+            console.error("Error toggling wishlist:", error);
+            Alert.alert(
+                t('error') || "Error",
+                error.message || t('failed_to_toggle_wishlist') || "Failed to update wishlist"
+            );
+        } finally {
+            setAddingToWishlist(false);
         }
     };
 
     // Buy now
-    const handleBuyNow = () => {
+    const handleBuyNow = async () => {
         if (!product) return;
 
-        handleAddToCart();
-        // Navigate to checkout
-        setTimeout(() => {
-            router.push("/(customer)/cart");
-        }, 500);
+        if (!isAuthenticated) {
+            Alert.alert(
+                t('sign_in_required') || "Sign In Required",
+                t('sign_in_to_buy') || "Please sign in to purchase items",
+                [
+                    { text: t('cancel') || "Cancel", style: 'cancel' },
+                    {
+                        text: t('sign_in') || "Sign In",
+                        onPress: () => router.push('/(auth)/signIn')
+                    }
+                ]
+            );
+            return;
+        }
+
+        try {
+            setAddingToCart(true);
+            
+            const itemData = {
+                productId: product.id,
+                storeName: product.vendor_info?.vendor_name || product.brand?.name || 'Stock',
+                productName: product.name,
+                price: selectedVariant ? parseFloat(selectedVariant.final_price) : parseFloat(product.price),
+                originalPrice: product.compare_at_price ? parseFloat(product.compare_at_price) : parseFloat(product.price),
+                image: product.images?.[0] || null,
+                variantId: selectedVariant?.id,
+            };
+
+            const result = await addItem(itemData, quantity);
+            
+            if (result.success) {
+                setIsInCartState(true);
+                // Navigate to checkout after adding to cart
+                setTimeout(() => {
+                    router.push('/cart');
+                }, 500);
+            } else {
+                Alert.alert(
+                    t('error') || "Error",
+                    result.message || t('failed_to_add_cart') || "Failed to add to cart"
+                );
+            }
+        } catch (error: any) {
+            console.error("Error in buy now:", error);
+            Alert.alert(
+                t('error') || "Error",
+                error.message || t('failed_to_add_cart') || "Failed to add to cart"
+            );
+        } finally {
+            setAddingToCart(false);
+        }
     };
 
     // Navigate to category
@@ -337,6 +646,12 @@ const ProductDetailsPage = () => {
             params: { slug: product.category.slug }
         });
     };
+
+    // Navigate to cart
+    const handleNavigateToCart = () => {
+        router.push('/cart');
+    };
+
     // Retry function
     const handleRetry = useCallback(() => {
         fetchProductDetails();
@@ -357,7 +672,7 @@ const ProductDetailsPage = () => {
         return (
             <View className="flex-1 bg-white">
                 <View className="flex-row items-center px-4 py-4 border-b border-gray-200">
-                    <TouchableOpacity onPress={() => router.back()}>
+                    <TouchableOpacity onPress={handleGoBack}>
                         <ArrowLeft size={24} color={colors.darkRed} />
                     </TouchableOpacity>
                     <Text className="text-lg font-semibold ml-4">
@@ -367,19 +682,16 @@ const ProductDetailsPage = () => {
 
                 <View className="flex-1 items-center justify-center px-4">
                     <View className="items-center mb-6">
-                        <View className="w-24 h-24 bg-gray-100 rounded-full items-center justify-center mb-4">
-                            <Text className="text-4xl">📦</Text>
-                        </View>
                         <Text className="text-lg font-semibold text-gray-800 mb-2">
                             {t('product_not_found') || "Product not found"}
                         </Text>
                     </View>
-                    
+
                     <Text className="text-red-500 text-base mb-6 text-center">
-                        {error}
+                        {typeof error === 'string' ? error : 'An error occurred'}
                     </Text>
-                    
-                    <View className="flex-row space-x-4">
+
+                    <View className="flex-row space-x-4 gap-3">
                         <TouchableOpacity
                             className="flex-1 bg-darkRed px-6 py-3 rounded-lg"
                             onPress={handleRetry}
@@ -388,10 +700,10 @@ const ProductDetailsPage = () => {
                                 {t('retry') || "Try Again"}
                             </Text>
                         </TouchableOpacity>
-                        
+
                         <TouchableOpacity
                             className="flex-1 border border-gray-300 px-6 py-3 rounded-lg"
-                            onPress={() => router.back()}
+                            onPress={handleGoBack}
                         >
                             <Text className="text-gray-700 text-sm font-medium text-center">
                                 {t('go_back') || "Go Back"}
@@ -432,6 +744,9 @@ const ProductDetailsPage = () => {
     // Use a safe blue color
     const safeBlueColor = 'blue' in colors ? colors.blue : "#3b82f6";
 
+    // Determine if this is a dropship product
+    const isDropshipProduct = !product.vendor_info || isDropship;
+
     return (
         <View className="flex-1 bg-white pt-6">
             <ScrollView
@@ -439,14 +754,28 @@ const ProductDetailsPage = () => {
                 className="flex-1"
             >
                 {/* Header with Back Button */}
-                <View className="absolute top-0 left-0 right-0 z-10 flex-row items-center px-4 py-4">
+                <View className="absolute top-0 left-0 right-0 z-10 flex-row items-center justify-between px-4 py-4">
                     <TouchableOpacity
-                        onPress={() => router.back()}
+                        onPress={handleGoBack}
                         className="bg-white/80 p-2 rounded-full"
                     >
                         <ArrowLeft size={24} color={colors.darkRed} />
                     </TouchableOpacity>
-
+                    
+                    {/* Cart Icon with badge */}
+                    <TouchableOpacity
+                        onPress={handleNavigateToCart}
+                        className="bg-white/80 p-2 rounded-full relative"
+                    >
+                        <ShoppingCart size={24} color={colors.darkRed} />
+                        {getItemCount() > 0 && (
+                            <View className="absolute -top-1 -right-1 bg-darkRed rounded-full w-5 h-5 items-center justify-center">
+                                <Text className="text-white text-xs font-bold">
+                                    {getItemCount() > 99 ? '99+' : getItemCount()}
+                                </Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
                 </View>
 
                 {/* Product Image Placeholder */}
@@ -468,12 +797,17 @@ const ProductDetailsPage = () => {
                         <TouchableOpacity
                             className="bg-white/90 p-3 rounded-full shadow"
                             onPress={handleToggleWishlist}
+                            disabled={addingToWishlist}
                         >
-                            <Heart
-                                size={22}
-                                color={isInWishlist ? colors.darkRed : "#666"}
-                                fill={isInWishlist ? colors.darkRed : "none"}
-                            />
+                            {addingToWishlist ? (
+                                <ActivityIndicator size={22} color={colors.darkRed} />
+                            ) : (
+                                <Heart
+                                    size={22}
+                                    color={isInWishlistState ? colors.darkRed : "#666"}
+                                    fill={isInWishlistState ? colors.darkRed : "none"}
+                                />
+                            )}
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -481,14 +815,16 @@ const ProductDetailsPage = () => {
                 {/* Main Product Info */}
                 <View className="px-4 pt-6">
                     {/* Category Breadcrumb */}
-                    <TouchableOpacity
-                        className="mb-2"
-                        onPress={handleNavigateToCategory}
-                    >
-                        <Text className="text-sm text-gray-500">
-                            {product.category.full_path}
-                        </Text>
-                    </TouchableOpacity>
+                    {product.category && (
+                        <TouchableOpacity
+                            className="mb-2"
+                            onPress={handleNavigateToCategory}
+                        >
+                            <Text className="text-sm text-gray-500">
+                                {product.category.full_path || product.category.name}
+                            </Text>
+                        </TouchableOpacity>
+                    )}
 
                     {/* Product Name */}
                     <Text className="text-2xl font-bold text-gray-800 mb-2">
@@ -550,21 +886,20 @@ const ProductDetailsPage = () => {
                     </View>
 
                     {/* SKU & Brand */}
-                    <View className="flex-row justify-between items-center mb-6">
-                        <View>
-                            <Text className="text-sm text-gray-500">
-                                {t('sku') || 'SKU'}: {product.sku}
-                            </Text>
-                            <Text className="text-sm text-gray-500">
+                    <View className="mb-6">
+                        <Text className="text-sm text-gray-500 mb-1">
+                            {t('sku') || 'SKU'}: {product.sku}
+                        </Text>
+                        {product.brand && (
+                            <Text className="text-sm text-gray-500 mb-1">
                                 {t('brand') || 'Brand'}: {product.brand.name}
                             </Text>
-                        </View>
-                        {/* REMOVED VENDOR LINK - Just display vendor name as text */}
-                        <View className="flex-row items-center">
-                            <Text className="text-darkRed font-medium">
-                                {product.vendor_info.vendor_name}
+                        )}
+                        {!isDropshipProduct && product.vendor_info && (
+                            <Text className="text-sm text-darkRed font-medium mt-2">
+                                Sold by: {product.vendor_info.vendor_name}
                             </Text>
-                        </View>
+                        )}
                     </View>
 
                     {/* Variant Selection */}
@@ -633,16 +968,20 @@ const ProductDetailsPage = () => {
                         <TouchableOpacity
                             className={`flex-1 py-4 rounded-xl items-center justify-center ${isInStock ? 'bg-darkRed' : 'bg-gray-300'}`}
                             onPress={handleAddToCart}
-                            disabled={!isInStock}
+                            disabled={!isInStock || addingToCart || isInCartState}
                         >
-                            <Text className="text-white text-lg font-semibold">
-                                {t('add_to_cart') || 'Add to Cart'}
-                            </Text>
+                            {addingToCart ? (
+                                <ActivityIndicator size="small" color="white" />
+                            ) : (
+                                <Text className="text-white text-lg font-semibold">
+                                    {isInCartState ? 'In Cart' : t('add_to_cart') || 'Add to Cart'}
+                                </Text>
+                            )}
                         </TouchableOpacity>
                         <TouchableOpacity
                             className={`flex-1 py-4 rounded-xl items-center justify-center border ${isInStock ? 'border-darkRed' : 'border-gray-300'}`}
                             onPress={handleBuyNow}
-                            disabled={!isInStock}
+                            disabled={!isInStock || addingToCart}
                         >
                             <Text className={`text-lg font-semibold ${isInStock ? 'text-darkRed' : 'text-gray-500'}`}>
                                 {t('buy_now') || 'Buy Now'}
@@ -778,9 +1117,9 @@ const ProductDetailsPage = () => {
                                 {t('tags') || 'Tags'}
                             </Text>
                             <View className="flex-row flex-wrap gap-2">
-                                {product.tags.map((tag) => (
+                                {product.tags.map((tag, index) => (
                                     <TouchableOpacity
-                                        key={tag}
+                                        key={`${tag}-${index}`}
                                         className="bg-gray-100 px-3 py-1.5 rounded-full"
                                     >
                                         <Text className="text-gray-700 text-sm">{tag}</Text>
@@ -814,21 +1153,30 @@ const ProductDetailsPage = () => {
                     <TouchableOpacity
                         className="w-12 h-12 bg-gray-100 items-center justify-center rounded-xl"
                         onPress={handleToggleWishlist}
+                        disabled={addingToWishlist}
                     >
-                        <Heart
-                            size={24}
-                            color={isInWishlist ? colors.darkRed : "#666"}
-                            fill={isInWishlist ? colors.darkRed : "none"}
-                        />
+                        {addingToWishlist ? (
+                            <ActivityIndicator size={24} color={colors.darkRed} />
+                        ) : (
+                            <Heart
+                                size={24}
+                                color={isInWishlistState ? colors.darkRed : "#666"}
+                                fill={isInWishlistState ? colors.darkRed : "none"}
+                            />
+                        )}
                     </TouchableOpacity>
                     <TouchableOpacity
                         className="flex-1 bg-darkRed py-3 rounded-xl items-center justify-center"
                         onPress={handleBuyNow}
-                        disabled={!isInStock}
+                        disabled={!isInStock || addingToCart}
                     >
-                        <Text className="text-white text-lg font-semibold">
-                            {t('buy_now') || 'Buy Now'}
-                        </Text>
+                        {addingToCart ? (
+                            <ActivityIndicator size="small" color="white" />
+                        ) : (
+                            <Text className="text-white text-lg font-semibold">
+                                {t('buy_now') || 'Buy Now'}
+                            </Text>
+                        )}
                     </TouchableOpacity>
                 </View>
             </View>

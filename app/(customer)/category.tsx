@@ -7,17 +7,23 @@ import {
   TouchableOpacity, 
   FlatList,
   RefreshControl,
-  Alert 
+  Alert,
+  Dimensions
 } from "react-native";
 import { useRouter } from "expo-router";
 import ProductCard from "@/components/category/ProductCard";
 import SidebarMenu from "@/components/category/SidebarMenu";
-import DashboardHeader from "@/components/explore/dashboard";
+import DashboardHeader from "@/components/category/dashboard";
 import { useLanguage } from '@/context/LanguageContext';
+import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
+import { useAuth } from "@/context/AuthContext";
 import api from '@/api/api';
 import { endpoints } from '@/api/endpoints';
 import { Filter, X } from "lucide-react-native";
+import { CategorySearchProvider, useCategorySearch } from "@/context/CategorySearchContext";
 
+// Update the Category interface to match SidebarMenu's interface
 interface Category {
   id: string;
   name: string;
@@ -31,6 +37,11 @@ interface Category {
   order: number;
   is_active: boolean;
   product_count: number;
+  // Add the missing fields from the API response
+  meta_title: string;
+  meta_description: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface Product {
@@ -54,9 +65,37 @@ interface Product {
   created_at: string;
 }
 
-const CategoryScreen = () => {
+const { width } = Dimensions.get('window');
+const SIDEBAR_WIDTH = 110;
+const CONTENT_PADDING = 12;
+const GAP = 10;
+const ITEM_WIDTH = (width - SIDEBAR_WIDTH - CONTENT_PADDING * 2 - GAP) / 2;
+
+// Create the main component content
+const CategoryScreenContent = () => {
   const router = useRouter();
   const { t } = useLanguage();
+  const { searchQuery, clearSearch } = useCategorySearch();
+  
+  // Cart and Wishlist contexts
+  const { 
+    addItem, 
+    isInCart, 
+    syncing: cartSyncing
+  } = useCart();
+
+  const {
+    addToWishlist,
+    removeFromWishlist,
+    isInWishlist,
+    getWishlistId,
+  } = useWishlist();
+
+  const { isAuthenticated } = useAuth();
+  
+  // Ref to track if initial fetch has happened
+  const initialFetchDone = React.useRef(false);
+  
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -71,11 +110,18 @@ const CategoryScreen = () => {
   const [showSortOptions, setShowSortOptions] = useState(false);
   const [totalProducts, setTotalProducts] = useState(0);
 
+  // State to track which products are being added to cart
+  const [addingToCart, setAddingToCart] = useState<{[key: string]: boolean}>({});
+  
+  // State to track which products are being toggled in wishlist
+  const [togglingWishlist, setTogglingWishlist] = useState<{[key: string]: boolean}>({});
+
   // Fetch categories
   const fetchCategories = useCallback(async () => {
     try {
       const response = await api.get(endpoints.categories);
       if (response.data.success) {
+        // The API returns the full category data with all fields
         setCategories(response.data.data);
       }
     } catch (error) {
@@ -83,24 +129,6 @@ const CategoryScreen = () => {
       setError(t('failed_to_load_categories') || 'Failed to load categories');
     }
   }, [t]);
-
-  // Filter products by category
-  const filterProductsByCategory = useCallback((category: Category, productList?: Product[]) => {
-    const productsToFilter = productList || products;
-    const categoryNames = [category.name];
-
-    if (category.children && category.children.length > 0) {
-      category.children.forEach(child => {
-        categoryNames.push(child.name);
-      });
-    }
-
-    const filtered = productsToFilter.filter(product =>
-      categoryNames.includes(product.category_name)
-    );
-
-    setFilteredProducts(filtered);
-  }, [products]);
 
   // Get sort query parameter
   const getSortQuery = useCallback((sortOption: string) => {
@@ -137,28 +165,45 @@ const CategoryScreen = () => {
         url += `&category=${selectedCategory.slug}`;
       }
       
+      // Add search query if exists
+      if (searchQuery && searchQuery.trim()) {
+        url += `&search=${encodeURIComponent(searchQuery.trim())}`;
+      }
+      
       // Add sorting
       url += getSortQuery(sortBy);
 
       const response = await api.get(url);
 
       if (response.data) {
+        const newProducts = response.data.results || [];
+        
+        console.log('📦 Fetched products - Page:', page, 'Count:', newProducts.length, 'Has more:', response.data.next !== null);
+        
         if (page === 1 || isRefresh) {
-          setProducts(response.data.results || []);
+          setProducts(newProducts);
+          setFilteredProducts(newProducts);
+          console.log('🔄 Reset products to:', newProducts.length);
         } else {
-          setProducts(prev => [...prev, ...(response.data.results || [])]);
+          // Deduplicate products by ID before adding
+          setProducts(prev => {
+            const existingIds = new Set(prev.map((p: Product) => p.id));
+            const uniqueNewProducts = newProducts.filter((p: Product) => !existingIds.has(p.id));
+            const updated = [...prev, ...uniqueNewProducts];
+            console.log('➕ Added products. New unique:', uniqueNewProducts.length, 'Total now:', updated.length);
+            return updated;
+          });
+          setFilteredProducts(prev => {
+            const existingIds = new Set(prev.map((p: Product) => p.id));
+            const uniqueNewProducts = newProducts.filter((p: Product) => !existingIds.has(p.id));
+            return [...prev, ...uniqueNewProducts];
+          });
         }
 
         setHasMore(response.data.next !== null);
         setCurrentPage(page);
         setTotalProducts(response.data.count || 0);
-        
-        // If category is selected, update filtered products
-        if (selectedCategory) {
-          filterProductsByCategory(selectedCategory, response.data.results || []);
-        } else {
-          setFilteredProducts(response.data.results || []);
-        }
+        console.log('📊 Total products in DB:', response.data.count, 'Has more pages:', response.data.next !== null);
       }
     } catch (error: any) {
       console.error('Error fetching products:', error);
@@ -170,32 +215,63 @@ const CategoryScreen = () => {
       setProductsLoading(false);
       setRefreshing(false);
     }
-  }, [selectedCategory, sortBy, t, getSortQuery, filterProductsByCategory]);
+  }, [selectedCategory, searchQuery, sortBy, t, getSortQuery]);
 
-  // Initial load
+  // Initial load - only once
   useEffect(() => {
-    fetchCategories();
-    fetchProducts(1);
-  }, []);
+    if (!initialFetchDone.current) {
+      console.log('🚀 Initial mount - fetching categories and products');
+      initialFetchDone.current = true;
+      fetchCategories();
+      fetchProducts(1);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-fetch when search query changes (but not on initial mount)
+  useEffect(() => {
+    // Only fetch if searchQuery has been set by user interaction
+    if (initialFetchDone.current && searchQuery !== undefined && searchQuery !== '') {
+      console.log('🔍 Search query changed to:', searchQuery);
+      setCurrentPage(1);
+      fetchProducts(1, true);
+    }
+  }, [searchQuery]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle category selection
   const handleCategorySelect = useCallback((category: Category | null) => {
     setSelectedCategory(category);
     setCurrentPage(1);
     
+    // Clear search when selecting a category
     if (category) {
-      // Filter existing products
-      filterProductsByCategory(category);
-    } else {
-      // Show all products
-      setFilteredProducts(products);
+      clearSearch();
     }
-  }, [filterProductsByCategory, products]);
+    
+    // Fetch products for the selected category
+    fetchProducts(1, true);
+  }, [clearSearch, fetchProducts]);
+
+  // Clear search
+  const handleClearSearch = useCallback(() => {
+    clearSearch();
+    setCurrentPage(1);
+  }, [clearSearch]);
+
+  // Clear category filter
+  const handleClearCategory = useCallback(() => {
+    setSelectedCategory(null);
+    setCurrentPage(1);
+    fetchProducts(1, true);
+  }, [fetchProducts]);
 
   // Load more products
   const loadMoreProducts = () => {
+    console.log('🔽 onEndReached triggered - hasMore:', hasMore, 'productsLoading:', productsLoading, 'loading:', loading);
     if (hasMore && !productsLoading && !loading) {
+      console.log('✅ Loading more products - next page:', currentPage + 1);
       fetchProducts(currentPage + 1);
+    } else {
+      console.log('❌ Not loading more:', { hasMore, productsLoading, loading });
     }
   };
 
@@ -221,12 +297,163 @@ const CategoryScreen = () => {
     });
   }, [router, t]);
 
+  /* ---------- Cart Functionality ---------- */
+  const handleAddToCart = useCallback(async (product: Product, event?: any) => {
+    if (event) {
+      event.stopPropagation();
+    }
+
+    if (!product?.id) return;
+
+    // Check if product is in stock
+    if (!product.is_in_stock) {
+      Alert.alert(
+        "Out of Stock",
+        "This product is currently out of stock",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    // Check if already in cart
+    if (isInCart(product.id)) {
+      Alert.alert(
+        "Already in Cart",
+        `${product.name} is already in your cart`,
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    // Set loading state for this specific product
+    setAddingToCart(prev => ({ ...prev, [product.id]: true }));
+
+    try {
+      // Prepare item data for the cart
+      const itemData = {
+        productId: product.id,
+        storeName: product.brand_name || 'Unknown Store',
+        productName: product.name,
+        price: parseFloat(product.price),
+        originalPrice: product.compare_at_price 
+          ? parseFloat(product.compare_at_price)
+          : parseFloat(product.price),
+        image: product.main_image || null,
+      };
+
+      console.log('🛒 Adding product to cart:', itemData);
+
+      // Add to cart via API
+      const result = await addItem(itemData, 1);
+      
+      if (result.success) {
+        console.log("✅ Added to cart:", product.name);
+      }
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      // Error is already handled in the CartContext
+    } finally {
+      // Clear loading state for this product
+      setAddingToCart(prev => ({ ...prev, [product.id]: false }));
+    }
+  }, [addItem, isInCart]);
+
+  /* ---------- Wishlist Functionality ---------- */
+  const handleWishlistToggle = useCallback(async (product: Product, event?: any) => {
+    if (event) {
+      event.stopPropagation();
+    }
+
+    if (!product?.id) return;
+
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      Alert.alert(
+        'Sign In Required',
+        'Please sign in to save items to your wishlist',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Sign In',
+            onPress: () => router.push('/(auth)/signIn')
+          }
+        ]
+      );
+      return;
+    }
+
+    const productId = product.id;
+    const isCurrentlyInWishlist = isInWishlist(productId);
+
+    // Prevent multiple simultaneous operations on the same product
+    if (togglingWishlist[productId]) {
+      return;
+    }
+
+    // Set loading state for this specific product
+    setTogglingWishlist(prev => ({ ...prev, [productId]: true }));
+
+    try {
+      if (isCurrentlyInWishlist) {
+        // Get the wishlist ID for this product
+        const wishlistId = getWishlistId(productId);
+        
+        if (!wishlistId) {
+          console.error('[Wishlist] No wishlist ID found for product:', productId);
+          Alert.alert('Error', 'Failed to remove from wishlist');
+          setTogglingWishlist(prev => ({ ...prev, [productId]: false }));
+          return;
+        }
+        
+        // Remove from wishlist using wishlist_id
+        const success = await removeFromWishlist(wishlistId);
+        
+        if (success) {
+          console.log("✅ Removed from wishlist:", product.name);
+        }
+      } else {
+        // Add to wishlist
+        const result = await addToWishlist(productId);
+        
+        if (result.success) {
+          console.log("✅ Added to wishlist:", product.name);
+        }
+      }
+    } catch (error: any) {
+      console.error("Error toggling wishlist:", error);
+      
+      // Error is already handled in WishlistContext, but show a user-friendly message
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.detail ||
+                          error.message ||
+                          "Failed to update wishlist";
+      
+      Alert.alert(
+        "Wishlist Error",
+        errorMessage,
+        [{ text: "OK" }]
+      );
+    } finally {
+      // Clear loading state for this product
+      setTogglingWishlist(prev => ({ ...prev, [productId]: false }));
+    }
+  }, [isAuthenticated, router, isInWishlist, addToWishlist, removeFromWishlist, getWishlistId, togglingWishlist]);
+
+  // Check if a product is currently being added to cart
+  const isAddingToCart = useCallback((productId: string) => {
+    return addingToCart[productId] || false;
+  }, [addingToCart]);
+
+  // Check if wishlist operation is in progress for a product
+  const isTogglingWishlist = useCallback((productId: string) => {
+    return togglingWishlist[productId] || false;
+  }, [togglingWishlist]);
+
   // Handle sort change
   const handleSortChange = useCallback((sortOption: string) => {
     setSortBy(sortOption);
     setShowSortOptions(false);
     setCurrentPage(1);
-    // Refetch products with new sort
     fetchProducts(1, true);
   }, [fetchProducts]);
 
@@ -254,13 +481,27 @@ const CategoryScreen = () => {
   }, [categories]);
 
   // Render product item
-  const renderProductItem = useCallback(({ item }: { item: Product }) => (
-    <ProductCard
-      product={item}
-      viewMode="grid"
-      onPress={() => handleProductPress(item)}
-    />
-  ), [handleProductPress]);
+  const renderProductItem = useCallback(({ item, index }: { item: Product; index: number }) => (
+    <View style={{ 
+      width: ITEM_WIDTH, 
+      marginRight: index % 2 === 0 ? GAP : 0,
+      marginBottom: GAP 
+    }}>
+      <ProductCard
+        product={item}
+        viewMode="grid"
+        onPress={() => handleProductPress(item)}
+        // Pass cart and wishlist functionality
+        onAddToCart={(e) => handleAddToCart(item, e)}
+        onToggleWishlist={(e) => handleWishlistToggle(item, e)}
+        isInCart={isInCart(item.id)}
+        isInWishlist={isInWishlist(item.id)}
+        isAddingToCart={isAddingToCart(item.id)}
+        isTogglingWishlist={isTogglingWishlist(item.id)}
+        cartSyncing={cartSyncing}
+      />
+    </View>
+  ), [handleProductPress, handleAddToCart, handleWishlistToggle, isInCart, isInWishlist, isAddingToCart, isTogglingWishlist, cartSyncing]);
 
   // Render loading footer
   const renderFooter = useCallback(() => {
@@ -275,41 +516,59 @@ const CategoryScreen = () => {
     );
   }, [productsLoading, t]);
 
+  // Retry function
+  const handleRetry = useCallback(() => {
+    if (searchQuery) {
+      handleClearSearch();
+    } else {
+      onRefresh();
+    }
+  }, [searchQuery, handleClearSearch, onRefresh]);
+
   // Render empty state
   const renderEmpty = useCallback(() => {
     if (loading) return null;
     
+    let titleText = t('no_products_found') || 'No products found';
+    let descriptionText = t('no_products_available') || 'No products available at the moment';
+    
+    if (searchQuery && searchQuery.trim()) {
+      titleText = `No results for "${searchQuery}"`;
+      descriptionText = t('try_adjusting_search') || 'Try adjusting your search or browse different categories';
+    } else if (selectedCategory) {
+      descriptionText = t('no_products_in_category') || `No products found in ${selectedCategory?.name || 'this category'}`;
+    }
+    
+    if (error) {
+      descriptionText = error;
+    }
+    
     return (
       <View className="py-20 items-center px-4">
         <Text className="text-gray-600 text-lg font-medium mb-2">
-          {t('no_products_found') || 'No products found'}
+          {titleText}
         </Text>
         <Text className="text-gray-500 text-center mb-6">
-          {selectedCategory 
-            ? t('no_products_in_category') || `No products found in ${selectedCategory?.name}`
-            : t('no_products_available') || 'No products available at the moment'}
+          {descriptionText}
         </Text>
-        <TouchableOpacity
-          className="bg-red-600 px-6 py-3 rounded-lg"
-          onPress={() => onRefresh()}
+        <TouchableOpacity 
+          className="bg-red-600 px-6 py-3 rounded-lg" 
+          onPress={handleRetry}
         >
           <Text className="text-white font-medium">
-            {t('refresh') || 'Refresh'}
+            {searchQuery ? (t('browse_products') || 'Browse Products') : (t('refresh') || 'Refresh')}
           </Text>
         </TouchableOpacity>
       </View>
     );
-  }, [loading, selectedCategory, onRefresh, t]);
+  }, [loading, selectedCategory, searchQuery, error, t, handleRetry]);
 
   // Memoized values
   const parentCategories = useMemo(() => getParentCategoriesWithChildren(), [getParentCategoriesWithChildren]);
-  const displayedProducts = useMemo(() => 
-    selectedCategory ? filteredProducts : products, 
-    [selectedCategory, filteredProducts, products]
-  );
+  const displayedProducts = useMemo(() => filteredProducts, [filteredProducts]);
   const productCount = useMemo(() => 
-    selectedCategory ? filteredProducts.length : totalProducts, 
-    [selectedCategory, filteredProducts.length, totalProducts]
+    filteredProducts.length > 0 ? filteredProducts.length : totalProducts, 
+    [filteredProducts.length, totalProducts]
   );
   const sortDisplayText = useMemo(() => getSortDisplayText(), [getSortDisplayText]);
 
@@ -321,7 +580,7 @@ const CategoryScreen = () => {
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#DC2626" />
           <Text className="mt-4 text-gray-600">
-            {t('loading_products') || 'Loading products...'}
+            {searchQuery ? `Searching for "${searchQuery}"...` : t('loading_products') || 'Loading products...'}
           </Text>
         </View>
       </View>
@@ -375,25 +634,43 @@ const CategoryScreen = () => {
                 <Text className="text-lg font-bold text-gray-900">
                   {selectedCategory ? selectedCategory.name : t('all_products') || 'All Products'}
                 </Text>
-                {selectedCategory && selectedCategory.description && (
+                {searchQuery && (
+                  <Text className="text-xs text-gray-500 mt-1">
+                    {t('search_results_for') || 'Search results for'}: &quot;{searchQuery}&quot;
+                  </Text>
+                )}
+                {selectedCategory && selectedCategory.description && !searchQuery && (
                   <Text className="text-xs text-gray-500 mt-1">
                     {selectedCategory.description}
                   </Text>
                 )}
               </View>
               
-              {/* Clear filter button */}
-              {selectedCategory && (
-                <TouchableOpacity
-                  className="ml-2 flex-row items-center"
-                  onPress={() => handleCategorySelect(null)}
-                >
-                  <X size={16} color="#666" />
-                  <Text className="text-xs text-gray-600 ml-1">
-                    {t('clear') || 'Clear'}
-                  </Text>
-                </TouchableOpacity>
-              )}
+              {/* Clear filter/search buttons */}
+              <View className="flex-row items-center">
+                {searchQuery && (
+                  <TouchableOpacity
+                    className="ml-2 flex-row items-center bg-gray-100 px-2 py-1 rounded"
+                    onPress={handleClearSearch}
+                  >
+                    <X size={14} color="#666" />
+                    <Text className="text-xs text-gray-600 ml-1">
+                      {t('clear_search') || 'Clear Search'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                {selectedCategory && (
+                  <TouchableOpacity
+                    className="ml-2 flex-row items-center"
+                    onPress={handleClearCategory}
+                  >
+                    <X size={16} color="#666" />
+                    <Text className="text-xs text-gray-600 ml-1">
+                      {t('clear') || 'Clear'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
 
             {/* Product count and sort */}
@@ -470,17 +747,16 @@ const CategoryScreen = () => {
           <FlatList
             data={displayedProducts}
             renderItem={renderProductItem}
-            keyExtractor={(item) => `${item.id}-${item.slug}`}
+            keyExtractor={(item) => `${item.id}-${item.slug}-${item.sku}`}
             numColumns={2}
             contentContainerStyle={{
-              padding: 12,
+              padding: CONTENT_PADDING,
               paddingBottom: 80,
               flexGrow: displayedProducts.length === 0 ? 1 : 0,
             }}
-            columnWrapperStyle={{ 
+            columnWrapperStyle={{
               justifyContent: 'space-between',
-              gap: 10,
-              marginBottom: 10 
+              marginBottom: GAP,
             }}
             refreshControl={
               <RefreshControl
@@ -503,6 +779,15 @@ const CategoryScreen = () => {
         </View>
       </View>
     </View>
+  );
+};
+
+// Wrap with provider at the export level
+const CategoryScreen = () => {
+  return (
+    <CategorySearchProvider>
+      <CategoryScreenContent />
+    </CategorySearchProvider>
   );
 };
 
