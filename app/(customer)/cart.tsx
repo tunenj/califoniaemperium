@@ -302,7 +302,7 @@ export default function CartScreen() {
         t('empty_cart') || 'Empty Cart',
         t('add_items_before_checkout') || 'Please add items to your cart before checking out',
         [
-          { text: t('continue_shopping') || 'Continue Shopping', onPress: () => router.push('/(vendor)/dashboard') },
+          { text: t('continue_shopping') || 'Continue Shopping', onPress: () => router.push('/(customer)/main') },
           { text: t('ok') || 'OK', style: 'cancel' },
         ]
       );
