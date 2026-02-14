@@ -14,7 +14,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import api from "@/api/api";
 import { endpoints } from "@/api/endpoints";
 import { showToast } from "@/utils/toastHelper";
-import { useAuth } from "@/context/AuthContext"; // ✅ import your auth hook
+import { useAuth } from "@/context/AuthContext"; 
 
 const EmailLoginScreen: React.FC = () => {
   const router = useRouter();

@@ -1,13 +1,13 @@
 // app/(auth)/OtpVerification.tsx - FIXED VERSION
 import images from '@/constants/images';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft } from 'lucide-react-native';
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Alert, Image, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { useLanguage } from '@/context/LanguageContext';
 import api from '@/api/api';
 import { endpoints } from '@/api/endpoints';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 
 type UserRole = 'business' | 'customer' | 'vendor';
 
@@ -67,13 +67,13 @@ const OtpVerification: React.FC = () => {
         } catch (error: any) {
             console.error('❌ OTP verification API error:', error);
 
-            let errorMessage = t('verification_failed');
+            let errorMessage = t('verification_failed') || 'Verification failed';
             if (error.response?.data?.message) errorMessage = error.response.data.message;
-            else if (error.response?.status === 400) errorMessage = t('invalid_otp');
-            else if (error.response?.status === 404) errorMessage = t('verification_expired');
+            else if (error.response?.status === 400) errorMessage = t('invalid_otp') || 'Invalid OTP code';
+            else if (error.response?.status === 404) errorMessage = t('verification_expired') || 'Verification code expired';
             else if (error.message) errorMessage = error.message;
 
-            Alert.alert(t('verification_failed'), errorMessage);
+            Alert.alert(t('verification_failed') || 'Verification Failed', errorMessage);
             throw error;
         }
     }, [t]);
@@ -96,19 +96,19 @@ const OtpVerification: React.FC = () => {
                 console.log('==================================');
             }
 
-            const message = response.data?.message || t('otp_resent_successfully');
-            Alert.alert(t('success'), message);
+            const message = response.data?.message || t('otp_resent_successfully') || 'OTP resent successfully';
+            Alert.alert(t('success') || 'Success', message);
 
             return true;
         } catch (error: any) {
             console.error('❌ Resend OTP error:', error);
 
-            let errorMessage = t('failed_to_resend_otp');
+            let errorMessage = t('failed_to_resend_otp') || 'Failed to resend OTP';
             if (error.response?.data?.message) errorMessage = error.response.data.message;
-            else if (error.response?.status === 429) errorMessage = t('too_many_requests_try_later');
-            else if (error.response?.status === 404) errorMessage = t('email_not_found');
+            else if (error.response?.status === 429) errorMessage = t('too_many_requests_try_later') || 'Too many requests, try later';
+            else if (error.response?.status === 404) errorMessage = t('email_not_found') || 'Email not found';
 
-            Alert.alert(t('error'), errorMessage);
+            Alert.alert(t('error') || 'Error', errorMessage);
             return false;
         } finally {
             setIsResending(false);
@@ -119,7 +119,10 @@ const OtpVerification: React.FC = () => {
     const handleVerify = useCallback(async () => {
         const enteredCode = otp.join('');
         if (enteredCode.length !== 6) {
-            Alert.alert(t('invalid_otp'), t('enter_full_6_digit_code'));
+            Alert.alert(
+                t('invalid_otp') || 'Invalid OTP', 
+                t('enter_full_6_digit_code') || 'Please enter the full 6-digit code'
+            );
             return;
         }
 
@@ -128,7 +131,10 @@ const OtpVerification: React.FC = () => {
         try {
             const isVerified = await verifyOTPWithAPI(enteredCode);
             if (!isVerified) {
-                Alert.alert(t('verification_failed'), t('please_try_again'));
+                Alert.alert(
+                    t('verification_failed') || 'Verification Failed', 
+                    t('please_try_again') || 'Please try again'
+                );
                 return;
             }
 
@@ -223,16 +229,20 @@ const OtpVerification: React.FC = () => {
     };
 
     const getVerificationTitle = () => {
-        if (source === 'reset-password') return t('reset_your_password');
-        if (isEmailVerification) return t('verify_your_email');
-        return t('verify_your_phone_number');
+        if (source === 'reset-password') return t('reset_your_password') || 'Reset Your Password';
+        if (isEmailVerification) return t('verify_your_email') || 'Verify Your Email';
+        return t('verify_your_phone_number') || 'Verify Your Phone Number';
     };
 
     const getVerificationMessage = () => {
-        if (source === 'reset-password') return t('enter_6_digit_code_sent_to', { contact: getDisplayContact() });
-        if (isEmailVerification) return t('enter_6_digit_code_sent_to_email');
-        if (method === 'whatsapp') return t('enter_6_digit_code_sent_via_whatsapp');
-        return t('enter_6_digit_code_sent_via_sms');
+        if (source === 'reset-password') {
+            const displayContact = getDisplayContact();
+            const message = t('enter_6_digit_code_sent_to') || 'Enter the 6-digit code sent to';
+            return `${message} ${displayContact}`;
+        }
+        if (isEmailVerification) return t('enter_6_digit_code_sent_to_email') || 'Enter the 6-digit code sent to your email';
+        if (method === 'whatsapp') return t('enter_6_digit_code_sent_via_whatsapp') || 'Enter the 6-digit code sent via WhatsApp';
+        return t('enter_6_digit_code_sent_via_sms') || 'Enter the 6-digit code sent via SMS';
     };
 
     return (
@@ -245,13 +255,23 @@ const OtpVerification: React.FC = () => {
 
             <View className="flex-1 bg-white -mt-8 rounded-t-3xl px-6 pt-10">
                 <View className="relative mb-8">
-                    <TouchableOpacity className="absolute top-0 left-0 z-10" onPress={handleBack} disabled={isVerifying || isResending}>
-                        <ArrowLeft size={28} color="#C62828" />
+                    <TouchableOpacity 
+                        className="absolute top-0 left-0 z-10" 
+                        onPress={handleBack} 
+                        disabled={isVerifying || isResending}
+                    >
+                        <Ionicons name="arrow-back" size={28} color="#C62828" />
                     </TouchableOpacity>
 
-                    <Text className="text-2xl font-bold text-center text-black mb-2">{getVerificationTitle()}</Text>
-                    <Text className="text-base text-gray-500 text-center mb-6 px-4">{firstName !== 'User' ? `${t('hi')} ${firstName}! ` : ''}{getVerificationMessage()}</Text>
-                    <Text className="text-lg font-semibold text-center text-gray-800 mb-4">{getDisplayContact()}</Text>
+                    <Text className="text-2xl font-bold text-center text-black mb-2">
+                        {getVerificationTitle()}
+                    </Text>
+                    <Text className="text-base text-gray-500 text-center mb-6 px-4">
+                        {firstName !== 'User' ? `${t('hi') || 'Hi'} ${firstName}! ` : ''}{getVerificationMessage()}
+                    </Text>
+                    <Text className="text-lg font-semibold text-center text-gray-800 mb-4">
+                        {getDisplayContact()}
+                    </Text>
                 </View>
 
                 <View className="flex-row justify-center gap-3 mb-10">
@@ -261,8 +281,9 @@ const OtpVerification: React.FC = () => {
                             ref={(ref) => {
                                 otpInputRefs.current[index] = ref;
                             }}
-                            className={`w-14 h-14 bg-gray-50 border rounded-lg text-center text-2xl font-bold ${isVerifying ? 'border-gray-200' : 'border-gray-300'
-                                }`}
+                            className={`w-14 h-14 bg-gray-50 border rounded-lg text-center text-2xl font-bold ${
+                                isVerifying ? 'border-gray-200' : 'border-gray-300'
+                            }`}
                             keyboardType="number-pad"
                             maxLength={1}
                             value={digit}
@@ -278,28 +299,45 @@ const OtpVerification: React.FC = () => {
                 {isVerifying && (
                     <View className="items-center mb-4">
                         <ActivityIndicator size="large" color="#C62828" />
-                        <Text className="text-gray-500 mt-2">{t('verifying')}...</Text>
+                        <Text className="text-gray-500 mt-2">
+                            {t('verifying') || 'Verifying'}...
+                        </Text>
                     </View>
                 )}
 
                 <View className="items-center mb-8">
-                    <Text className="text-gray-500 text-sm mb-2">{t('didnt_receive_code')}</Text>
+                    <Text className="text-gray-500 text-sm mb-2">
+                        {t('didnt_receive_code') || "Didn't receive a code?"}
+                    </Text>
                     <TouchableOpacity onPress={resendOTP} disabled={isVerifying || isResending}>
                         {isResending ? (
                             <ActivityIndicator size="small" color="#C62828" />
                         ) : (
-                            <Text className={`text-secondary font-semibold text-sm ${isVerifying || isResending ? 'opacity-50' : ''}`}>{t('resend_code')}</Text>
+                            <Text className={`text-secondary font-semibold text-sm ${isVerifying || isResending ? 'opacity-50' : ''}`}>
+                                {t('resend_code') || 'Resend Code'}
+                            </Text>
                         )}
                     </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity className={`bg-secondary rounded-xl py-4 items-center shadow-lg ${isVerifying ? 'opacity-70' : ''}`} onPress={handleVerify} disabled={isVerifying || isResending}>
-                    <Text className="text-white text-lg font-semibold">{isVerifying ? t('verifying') : t('verify')}</Text>
+                <TouchableOpacity 
+                    className={`bg-secondary rounded-xl py-4 items-center shadow-lg ${isVerifying ? 'opacity-70' : ''}`} 
+                    onPress={handleVerify} 
+                    disabled={isVerifying || isResending}
+                >
+                    <Text className="text-white text-lg font-semibold">
+                        {isVerifying ? t('verifying') || 'Verifying' : t('verify') || 'Verify'}
+                    </Text>
                 </TouchableOpacity>
 
                 <View className="items-center mt-8">
                     <TouchableOpacity onPress={handleLogin} disabled={isVerifying || isResending}>
-                        <Text className="text-gray-600 text-base text-center">{t('already_have_account')} <Text className="text-secondary font-semibold">{t('log_in')}</Text></Text>
+                        <Text className="text-gray-600 text-base text-center">
+                            {t('already_have_account') || 'Already have an account?'}{' '}
+                            <Text className="text-secondary font-semibold">
+                                {t('log_in') || 'Log In'}
+                            </Text>
+                        </Text>
                     </TouchableOpacity>
                 </View>
             </View>

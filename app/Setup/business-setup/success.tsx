@@ -1,13 +1,13 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Image } from "react-native";
 import { useRouter } from "expo-router";
-import { CheckCircle } from "lucide-react-native";
+import { AntDesign } from "@expo/vector-icons";
 import images from "@/constants/images";
-import { useLanguage } from "@/context/LanguageContext"; // Add import
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function ProfileSetupSuccess() {
   const router = useRouter();
-  const { t } = useLanguage(); // Add hook
+  const { t } = useLanguage();
 
   const handleProceed = () => {
     // Change to your actual dashboard route if different
@@ -31,7 +31,7 @@ export default function ProfileSetupSuccess() {
       <View className="flex-1 bg-white -mt-10 rounded-t-3xl px-6 pt-16 items-center">
         {/* Success Icon */}
         <View className="w-24 h-24 rounded-full bg-green-100 items-center justify-center mb-6">
-          <CheckCircle size={48} color="#16A34A" />
+          <AntDesign name="check-circle" size={48} color="#16A34A" />
         </View>
 
         {/* Title */}

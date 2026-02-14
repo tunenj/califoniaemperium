@@ -1,12 +1,12 @@
 // app/(auth)/SuccessSetup.tsx - UPDATED VERSION
 import images from '@/constants/images';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { CheckCircle, ArrowLeft } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Image, Text, TouchableOpacity, View, Alert } from 'react-native';
 import { useLanguage } from '@/context/LanguageContext';
 import { useSetup } from '@/context/VendorApplicationContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 
 type UserRole = 'vendor' | 'customer';
 
@@ -256,7 +256,7 @@ const SuccessSetup: React.FC = () => {
 
     // FIXED: Always show "Set Up Store" for NEW registrations
     const getSetupButtonText = () => {
-        if (!isBusiness) return t('set_up_profile');
+        if (!isBusiness) return t('set_up_profile') || 'Set Up Profile';
 
         // CRITICAL FIX: Always show "Set Up Store" for fresh registration flow
         // This screen appears right after registration, so user is NEW
@@ -266,31 +266,35 @@ const SuccessSetup: React.FC = () => {
             return t('checking_status') || 'Checking...';
         }
         
-        return t('set_up_store');
+        return t('set_up_store') || 'Set Up Store';
     };
 
     // FIXED: Show appropriate later button text
     const getLaterButtonText = () => {
         if (isBusiness && hasExistingApplication && applicationStatus === 'approved') {
-            return t('skip_to_dashboard');
+            return t('skip_to_dashboard') || 'Skip to Dashboard';
         }
-        return isBusiness ? t('skip_store_setup') : t('skip_profile_setup');
+        return isBusiness 
+            ? t('skip_store_setup') || 'Skip Store Setup' 
+            : t('skip_profile_setup') || 'Skip Profile Setup';
     };
 
     // FIXED: Show appropriate role text
     const getRoleText = () => {
-        const baseText = isBusiness ? t('business_account') : t('customer_account');
+        const baseText = isBusiness 
+            ? t('business_account') || 'Business Account' 
+            : t('customer_account') || 'Customer Account';
 
         if (isBusiness && hasExistingApplication && !isCheckingApplication) {
             switch (applicationStatus) {
                 case 'approved':
-                    return `${baseText} • ${t('approved')}`;
+                    return `${baseText} • ${t('approved') || 'Approved'}`;
                 case 'under_review':
-                    return `${baseText} • ${t('under_review')}`;
+                    return `${baseText} • ${t('under_review') || 'Under Review'}`;
                 case 'submitted':
-                    return `${baseText} • ${t('pending')}`;
+                    return `${baseText} • ${t('pending') || 'Pending'}`;
                 case 'rejected':
-                    return `${baseText} • ${t('needs_updates')}`;
+                    return `${baseText} • ${t('needs_updates') || 'Needs Updates'}`;
                 default:
                     return baseText;
             }
@@ -320,19 +324,19 @@ const SuccessSetup: React.FC = () => {
                         className="absolute top-0 left-0 z-10"
                         onPress={handleBack}
                     >
-                        <ArrowLeft size={28} color="#C62828" />
+                        <Ionicons name="arrow-back" size={28} color="#C62828" />
                     </TouchableOpacity>
 
                     {/* Success Icon and Title */}
                     <View className="items-center mb-8">
                         <View className="w-20 h-20 bg-green-100 rounded-full items-center justify-center mb-4">
-                            <CheckCircle size={48} color="#10B981" />
+                            <MaterialIcons name="check-circle" size={48} color="#10B981" />
                         </View>
                         <Text className="text-3xl font-bold text-black mb-2">
-                            {t('successful')}
+                            {t('successful') || 'Successful!'}
                         </Text>
                         <Text className="text-gray-600 text-lg text-center px-4">
-                            {t('account_created_successfully')}
+                            {t('account_created_successfully') || 'Your account has been created successfully'}
                         </Text>
                     </View>
 

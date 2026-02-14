@@ -56,7 +56,7 @@ interface APIResponse {
   data: APICart;
 }
 
-// Local Cart Item Interface
+// Local Cart Item Interface - Using 'image' only, not 'productImage'
 type CartItem = {
   id: string; // This will be the cart item ID from API
   productId: string; // Product ID
@@ -65,7 +65,7 @@ type CartItem = {
   price: number;
   originalPrice: number;
   quantity: number;
-  image: any;
+  image: any; // This contains the product image data (string URL or image object)
   size?: string;
   color?: string;
   variantId?: string; // Optional variant ID
@@ -113,7 +113,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         ? parseFloat(apiItem.product.compare_at_price)
         : parseFloat(apiItem.price),
       quantity: apiItem.quantity,
-      image: apiItem.product.main_image,
+      image: apiItem.product.main_image, // This is the image data (string URL or null)
       variantId: apiItem.variant?.id,
     };
   };
@@ -132,14 +132,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         setItems(localItems);
       }
     } catch (error: any) {
-      console.error('Error fetching cart:', error);
-      
       // If cart doesn't exist (404), create an empty cart state
       if (error.response?.status === 404) {
         setCartData(null);
         setItems([]);
       } else {
-        Alert.alert('Error', 'Failed to load cart');
+        console.error('Error fetching cart:', error);
       }
     } finally {
       setLoading(false);
@@ -293,21 +291,27 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     return item ? item.id : null;
   };
 
-  // Local functions (no API sync needed)
+  // Move item to saved for later (local only)
   const moveToSaved = (id: string) => {
     const itemToSave = items.find(item => item.id === id);
     if (itemToSave) {
-      setSavedItems(prev => [...prev, itemToSave]);
-      // Note: This doesn't sync to backend. If you want to save for later in backend,
-      // you'll need additional API endpoint
+      // Remove from cart first via API
+      removeItem(id).then((success) => {
+        if (success) {
+          // Then add to saved items locally
+          setSavedItems(prev => [...prev, { ...itemToSave }]);
+          Alert.alert('Success', 'Item moved to saved for later');
+        }
+      });
     }
   };
 
-  const restoreFromSaved = (id: string) => {
+  // Restore item from saved to cart
+  const restoreFromSaved = async (id: string) => {
     const itemToRestore = savedItems.find(item => item.id === id);
     if (itemToRestore) {
       // Add back to cart via API
-      addItem({
+      const result = await addItem({
         productId: itemToRestore.productId,
         storeName: itemToRestore.storeName,
         productName: itemToRestore.productName,
@@ -315,11 +319,18 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         originalPrice: itemToRestore.originalPrice,
         image: itemToRestore.image,
         variantId: itemToRestore.variantId,
+        size: itemToRestore.size,
+        color: itemToRestore.color,
       }, itemToRestore.quantity);
-      removeFromSaved(id);
+      
+      if (result.success) {
+        // Remove from saved items
+        removeFromSaved(id);
+      }
     }
   };
 
+  // Remove item from saved list
   const removeFromSaved = (id: string) => {
     setSavedItems(prev => prev.filter(item => item.id !== id));
   };
@@ -339,10 +350,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     await fetchCart();
   };
 
-  // Sync local changes to server (if needed for offline support)
+  // Sync local changes to server (for offline support)
   const syncCartToServer = async () => {
-    // This would be useful if you implement offline cart functionality
-    // For now, we're always syncing immediately with the API
     console.log('Cart is already synced with server');
   };
 

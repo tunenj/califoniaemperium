@@ -11,6 +11,7 @@ import {
   Dimensions
 } from "react-native";
 import { useRouter } from "expo-router";
+import { MaterialIcons, FontAwesome } from "@expo/vector-icons";
 import ProductCard from "@/components/category/ProductCard";
 import SidebarMenu from "@/components/category/SidebarMenu";
 import DashboardHeader from "@/components/category/dashboard";
@@ -20,7 +21,6 @@ import { useWishlist } from "@/context/WishlistContext";
 import { useAuth } from "@/context/AuthContext";
 import api from '@/api/api';
 import { endpoints } from '@/api/endpoints';
-import { Filter, X } from "lucide-react-native";
 import { CategorySearchProvider, useCategorySearch } from "@/context/CategorySearchContext";
 
 // Update the Category interface to match SidebarMenu's interface
@@ -653,7 +653,7 @@ const CategoryScreenContent = () => {
                     className="ml-2 flex-row items-center bg-gray-100 px-2 py-1 rounded"
                     onPress={handleClearSearch}
                   >
-                    <X size={14} color="#666" />
+                    <MaterialIcons name="close" size={14} color="#666" />
                     <Text className="text-xs text-gray-600 ml-1">
                       {t('clear_search') || 'Clear Search'}
                     </Text>
@@ -664,7 +664,7 @@ const CategoryScreenContent = () => {
                     className="ml-2 flex-row items-center"
                     onPress={handleClearCategory}
                   >
-                    <X size={16} color="#666" />
+                    <MaterialIcons name="close" size={16} color="#666" />
                     <Text className="text-xs text-gray-600 ml-1">
                       {t('clear') || 'Clear'}
                     </Text>
@@ -685,7 +685,7 @@ const CategoryScreenContent = () => {
                   onPress={() => setShowSortOptions(!showSortOptions)}
                   activeOpacity={0.7}
                 >
-                  <Filter size={14} color="#666" />
+                  <FontAwesome name="filter" size={14} color="#666" />
                   <Text className="text-xs text-gray-600 ml-1 mr-1">
                     {t('sort_by') || 'Sort by'}:
                   </Text>

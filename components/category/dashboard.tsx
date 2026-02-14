@@ -1,5 +1,5 @@
 // components/explore/DashboardHeader.tsx
-import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useState, useCallback, memo } from "react";
 import {

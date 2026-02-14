@@ -13,7 +13,7 @@ import {
   Pressable,
   BackHandler
 } from "react-native";
-import { ArrowLeft, ChevronDown, Pencil, User } from "lucide-react-native";
+import { MaterialIcons, AntDesign } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useLanguage } from "@/context/LanguageContext";
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -610,7 +610,7 @@ const CustomerProfileSetup: React.FC = () => {
       {/* Top Bar */}
       <View className="flex-row items-center">
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={30} color="#000" />
+          <MaterialIcons name="arrow-back" size={30} color="#000" />
         </TouchableOpacity>
       </View>
 
@@ -645,7 +645,7 @@ const CustomerProfileSetup: React.FC = () => {
       {/* Section Title */}
       <View className="items-center">
         <View className="w-16 h-16 items-center justify-center mb-3">
-          <User size={24} color="#9CA3AF" />
+          <MaterialIcons name="person" size={24} color="#9CA3AF" />
         </View>
 
         <Text className="text-lg font-semibold text-black">
@@ -680,7 +680,7 @@ const CustomerProfileSetup: React.FC = () => {
             >
               {gender || t('select_from_list')}
             </Text>
-            <ChevronDown size={18} color="#9CA3AF" />
+            <MaterialIcons name="keyboard-arrow-down" size={18} color="#9CA3AF" />
           </TouchableOpacity>
         </View>
 
@@ -695,7 +695,7 @@ const CustomerProfileSetup: React.FC = () => {
               disabled={isUpdating}
             >
               <Text className="text-secondary text-sm">
-                <Pencil size={14} color="#C62828" /> {t('change')}
+                <AntDesign name="edit" size={14} color="#C62828" /> {t('change')}
               </Text>
             </TouchableOpacity>
           </View>

@@ -8,7 +8,7 @@ import {
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { Heart, ShoppingCart, Star, Check } from "lucide-react-native";
+import { AntDesign, Feather } from "@expo/vector-icons";
 import { colors } from "@/constants/color";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
@@ -350,11 +350,11 @@ const BestSellingProducts = () => {
                   {isWishlistToggling ? (
                     <ActivityIndicator size="small" color={colors.darkRed} />
                   ) : (
-                    <Heart 
+                    <AntDesign 
+                      name="heart" 
                       size={16} 
                       color={colors.darkRed}
-                      fill={isProductInWishlist ? colors.darkRed : "transparent"}
-                      strokeWidth={2}
+                      style={{ color: isProductInWishlist ? colors.darkRed : colors.darkRed }}
                     />
                   )}
                 </TouchableOpacity>
@@ -366,7 +366,7 @@ const BestSellingProducts = () => {
                   {product.name}
                 </Text>
                 <View className="flex-row items-center mb-1">
-                  <Star size={12} color="#FFD700" fill="#FFD700" />
+                  <AntDesign name="star" size={12} color="#FFD700" />
                   <Text className="text-xs ml-1">{rating}</Text>
                   <Text className="text-xs text-gray-500 ml-2">({ratingCount})</Text>
                 </View>
@@ -389,9 +389,9 @@ const BestSellingProducts = () => {
                     {isProductAddingToCart ? (
                       <ActivityIndicator size="small" color="white" />
                     ) : isProductInCart ? (
-                      <Check size={16} color="white" />
+                      <AntDesign name="check" size={16} color="white" />
                     ) : (
-                      <ShoppingCart size={16} color="white" />
+                      <Feather name="shopping-cart" size={16} color="white" />
                     )}
                   </TouchableOpacity>
                 </View>

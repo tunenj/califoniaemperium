@@ -1,5 +1,5 @@
-// app/(customer)/product/[slug].tsx - UPDATED WITH PROPER CART/WISHLIST INTEGRATION
-import React, { useEffect, useState, useCallback } from "react";
+// app/(customer)/product/[slug].tsx - COMPLETE WITH OPTIMIZED IMAGE LOADING
+import React, { useEffect, useState, useCallback, memo } from "react";
 import {
     View,
     Text,
@@ -7,20 +7,10 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     Alert,
+    Image,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import {
-    ArrowLeft,
-    Heart,
-    Star,
-    Shield,
-    Truck,
-    RotateCcw,
-    Image as ImageIcon,
-    ChevronDown,
-    ChevronUp,
-    ShoppingCart,
-} from "lucide-react-native";
+import { AntDesign, Feather, MaterialIcons } from "@expo/vector-icons";
 import { colors } from "@/constants/color";
 import { useLanguage } from "@/context/LanguageContext";
 import api from '@/api/api';
@@ -28,6 +18,46 @@ import { endpoints } from '@/api/endpoints';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { useAuth } from '@/context/AuthContext';
+
+// ✅ OPTIMIZED: Memoized Product Image Component
+const ProductImage = memo(({ uri }: { uri: string | null }) => {
+    const [imageLoading, setImageLoading] = useState(true);
+    const [imageError, setImageError] = useState(false);
+
+    if (!uri || imageError) {
+        return (
+            <View className="w-full h-full items-center justify-center bg-gray-100">
+                <MaterialIcons name="image" size={60} color="#9CA3AF" />
+                <Text className="text-sm text-gray-400 mt-2">No image available</Text>
+            </View>
+        );
+    }
+
+    return (
+        <>
+            {imageLoading && (
+                <View className="absolute inset-0 items-center justify-center bg-gray-100 z-10">
+                    <ActivityIndicator size="large" color="#DC2626" />
+                </View>
+            )}
+            <Image
+                source={{ uri }}
+                className="w-full h-full"
+                resizeMode="contain"
+                onLoadStart={() => setImageLoading(true)}
+                onLoadEnd={() => setImageLoading(false)}
+                onError={(error) => {
+                    console.error('Image load error:', error.nativeEvent.error);
+                    setImageError(true);
+                    setImageLoading(false);
+                }}
+                fadeDuration={300}
+            />
+        </>
+    );
+});
+
+ProductImage.displayName = 'ProductImage';
 
 // Define interfaces
 interface Category {
@@ -91,6 +121,15 @@ interface VendorInfo {
     is_approved: boolean;
 }
 
+interface ProductImageType {
+    id: string;
+    image: string;
+    alt_text: string;
+    is_primary: boolean;
+    order: number;
+    created_at: string;
+}
+
 interface Product {
     id: string;
     product_type: string;
@@ -118,7 +157,8 @@ interface Product {
     is_featured: boolean;
     requires_shipping: boolean;
     is_digital: boolean;
-    images: any[];
+    images: ProductImageType[];
+    main_image?: string | null;
     variants: Variant[];
     attributes: Attribute[];
     view_count: number;
@@ -145,7 +185,7 @@ const ProductDetailsPage = () => {
     const params = useLocalSearchParams();
     const { t } = useLanguage();
     const { addItem, isInCart, getItemCount } = useCart();
-    const { addToWishlist, isInWishlist, removeFromWishlist } = useWishlist();
+    const { addToWishlist, isInWishlist, removeFromWishlist, getWishlistId } = useWishlist();
     const { isAuthenticated } = useAuth();
 
     const slug = params.slug as string;
@@ -167,6 +207,35 @@ const ProductDetailsPage = () => {
     // State to track if product is in wishlist/cart
     const [isInWishlistState, setIsInWishlistState] = useState(false);
     const [isInCartState, setIsInCartState] = useState(false);
+
+    // Helper to get product image URL
+    const getProductImageUrl = useCallback((product: Product | null): string | null => {
+        if (!product) return null;
+        
+        // Try to get image from images array
+        if (product.images && product.images.length > 0) {
+            const primaryImage = product.images.find(img => img.is_primary);
+            if (primaryImage?.image) {
+                console.log('✅ Using primary image:', primaryImage.image);
+                return primaryImage.image;
+            }
+            
+            // Fallback to first image
+            if (product.images[0]?.image) {
+                console.log('✅ Using first image:', product.images[0].image);
+                return product.images[0].image;
+            }
+        }
+        
+        // Fallback to main_image if available
+        if (product.main_image) {
+            console.log('✅ Using main_image:', product.main_image);
+            return product.main_image;
+        }
+        
+        console.log('❌ No image found for product');
+        return null;
+    }, []);
 
     // Helper function to validate UUID
     const isValidUUID = (uuid: string): boolean => {
@@ -236,6 +305,7 @@ const ProductDetailsPage = () => {
                 const productData = response.data.data;
 
                 console.log("Product data received:", productData);
+                console.log("Product images:", productData.images);
                 console.log("Vendor info from API:", productData.vendor_info);
 
                 setProduct(productData);
@@ -323,101 +393,6 @@ const ProductDetailsPage = () => {
         }
     };
 
-    // Helper function to save to wishlist with validated UUID - FROM CART SCREEN LOGIC
-    const saveToWishlistWithId = async (productId: string, productName: string) => {
-        try {
-            console.log('✅ Valid UUID confirmed:', productId);
-
-            // Check if already in wishlist first
-            try {
-                const alreadyInWishlist = await isInWishlist(productId);
-                if (alreadyInWishlist) {
-                    Alert.alert(
-                        'Already Saved',
-                        'This item is already in your wishlist.',
-                        [
-                            {
-                                text: 'View Wishlist',
-                                onPress: () => router.push('/(customer)/wishlist')
-                            },
-                            { text: 'OK', style: 'cancel' }
-                        ]
-                    );
-                    return { success: false, message: 'Already in wishlist' };
-                }
-            } catch (checkError) {
-                console.warn('Could not check wishlist status:', checkError);
-            }
-
-            // Pass just the productId string to addToWishlist
-            const result = await addToWishlist(productId);
-
-            console.log('📥 API Response:', result);
-
-            if (result.success) {
-                Alert.alert(
-                    'Saved Successfully!',
-                    `${productName} has been added to your wishlist.`,
-                    [
-                        {
-                            text: 'View Wishlist',
-                            onPress: () => router.push('/(customer)/wishlist')
-                        },
-                        {
-                            text: 'Continue Shopping',
-                            style: 'cancel'
-                        }
-                    ]
-                );
-                return { success: true };
-            } else {
-                let errorMsg = result.message || 'Failed to save to wishlist';
-
-                if (errorMsg.includes('400') || errorMsg.includes('invalid')) {
-                    errorMsg = `API Validation Error:\n\nProduct ID: ${productId}\n\nPlease ensure this is a valid product UUID.`;
-                }
-
-                Alert.alert('Error', errorMsg);
-                return { success: false, message: errorMsg };
-            }
-
-        } catch (error: unknown) {
-            console.error('API Call Error:', error);
-
-            let errorMessage = 'Network error occurred.';
-
-            if (error && typeof error === 'object' && 'response' in error) {
-                const apiError = error as any;
-                console.log('Response status:', apiError.response?.status);
-                console.log('Response data:', apiError.response?.data);
-
-                if (apiError.response?.data?.error) {
-                    const apiErr = apiError.response.data.error;
-                    errorMessage = `API Error (${apiError.response.status}):\n\n`;
-
-                    if (apiErr.details) {
-                        errorMessage += `Details: ${apiErr.details}`;
-                    } else if (apiErr.message) {
-                        errorMessage += `Message: ${apiErr.message}`;
-                    } else {
-                        errorMessage += JSON.stringify(apiErr, null, 2);
-                    }
-                } else {
-                    errorMessage = `Server Error (${apiError.response.status}): ${JSON.stringify(apiError.response.data, null, 2)}`;
-                }
-            } else if (error && typeof error === 'object' && 'request' in error) {
-                errorMessage = 'No response received from server.';
-            } else if (error instanceof Error) {
-                errorMessage = error.message;
-            } else if (typeof error === 'string') {
-                errorMessage = error;
-            }
-
-            Alert.alert('API Error', errorMessage);
-            return { success: false, message: errorMessage };
-        }
-    };
-
     // Add to cart
     const handleAddToCart = async () => {
         if (!product) return;
@@ -440,13 +415,15 @@ const ProductDetailsPage = () => {
         try {
             setAddingToCart(true);
             
+            const productImageUrl = getProductImageUrl(product);
+            
             const itemData = {
                 productId: product.id,
                 storeName: product.vendor_info?.vendor_name || product.brand?.name || 'Stock',
                 productName: product.name,
                 price: selectedVariant ? parseFloat(selectedVariant.final_price) : parseFloat(product.price),
                 originalPrice: product.compare_at_price ? parseFloat(product.compare_at_price) : parseFloat(product.price),
-                image: product.images?.[0] || null,
+                image: productImageUrl,
                 variantId: selectedVariant?.id,
             };
 
@@ -484,7 +461,7 @@ const ProductDetailsPage = () => {
         }
     };
 
-    // Toggle wishlist - UPDATED WITH CART SCREEN LOGIC
+    // Toggle wishlist
     const handleToggleWishlist = async () => {
         if (!product) return;
 
@@ -503,12 +480,28 @@ const ProductDetailsPage = () => {
             return;
         }
 
+        const productId = product.id;
+        const isCurrentlyInWishlist = isInWishlist(productId);
+
+        if (addingToWishlist) {
+            return;
+        }
+
+        setAddingToWishlist(true);
+
         try {
-            setAddingToWishlist(true);
-            
-            if (isInWishlistState) {
-                // Remove from wishlist
-                const success = await removeFromWishlist(product.id);
+            if (isCurrentlyInWishlist) {
+                const wishlistId = getWishlistId(productId);
+                
+                if (!wishlistId) {
+                    console.error('[Wishlist] No wishlist ID found for product:', productId);
+                    Alert.alert('Error', 'Failed to remove from wishlist');
+                    setAddingToWishlist(false);
+                    return;
+                }
+                
+                const success = await removeFromWishlist(wishlistId);
+                
                 if (success) {
                     setIsInWishlistState(false);
                     Alert.alert(
@@ -517,64 +510,50 @@ const ProductDetailsPage = () => {
                     );
                 }
             } else {
-                // Get product ID
-                const productId = product.id;
-                
-                console.log('🔄 Attempting to save to wishlist:', {
-                    productId,
-                    productName: product.name,
-                    isUUID: isValidUUID(productId),
-                    productIdType: typeof productId,
-                });
-
-                // Validate product ID
                 if (!productId) {
                     Alert.alert('Error', 'Product ID is missing.');
                     setAddingToWishlist(false);
                     return;
                 }
 
-                // Ensure it's a string
                 const productIdStr = String(productId).trim();
 
-                // Check if it's a valid UUID
                 if (!isValidUUID(productIdStr)) {
                     console.error('❌ Invalid UUID format:', productIdStr);
-
-                    // Try to extract UUID if it's embedded in a longer string
                     const uuidMatch = productIdStr.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
                     if (uuidMatch) {
                         const extractedUuid = uuidMatch[0];
-                        console.log('✅ Extracted UUID:', extractedUuid);
-                        
-                        // Use the extracted UUID
-                        const result = await saveToWishlistWithId(extractedUuid, product.name);
+                        const result = await addToWishlist(extractedUuid);
                         if (result.success) {
                             setIsInWishlistState(true);
                         }
-                    } else {
-                        Alert.alert(
-                            'Invalid Product ID',
-                            `The product ID "${productIdStr.substring(0, 50)}..." is not a valid UUID format.\n\nPlease contact support.`,
-                            [{ text: 'OK' }]
-                        );
                     }
                     setAddingToWishlist(false);
                     return;
                 }
 
-                // If it's already a valid UUID
-                const result = await saveToWishlistWithId(productIdStr, product.name);
+                const result = await addToWishlist(productIdStr);
                 if (result.success) {
                     setIsInWishlistState(true);
+                    Alert.alert(
+                        'Saved Successfully!',
+                        `${product.name} has been added to your wishlist.`,
+                        [
+                            {
+                                text: 'View Wishlist',
+                                onPress: () => router.push('/(customer)/wishlist')
+                            },
+                            {
+                                text: 'Continue Shopping',
+                                style: 'cancel'
+                            }
+                        ]
+                    );
                 }
             }
         } catch (error: any) {
             console.error("Error toggling wishlist:", error);
-            Alert.alert(
-                t('error') || "Error",
-                error.message || t('failed_to_toggle_wishlist') || "Failed to update wishlist"
-            );
+            Alert.alert(t('error') || "Error", error.message || "Failed to update wishlist");
         } finally {
             setAddingToWishlist(false);
         }
@@ -602,13 +581,15 @@ const ProductDetailsPage = () => {
         try {
             setAddingToCart(true);
             
+            const productImageUrl = getProductImageUrl(product);
+            
             const itemData = {
                 productId: product.id,
                 storeName: product.vendor_info?.vendor_name || product.brand?.name || 'Stock',
                 productName: product.name,
                 price: selectedVariant ? parseFloat(selectedVariant.final_price) : parseFloat(product.price),
                 originalPrice: product.compare_at_price ? parseFloat(product.compare_at_price) : parseFloat(product.price),
-                image: product.images?.[0] || null,
+                image: productImageUrl,
                 variantId: selectedVariant?.id,
             };
 
@@ -616,43 +597,29 @@ const ProductDetailsPage = () => {
             
             if (result.success) {
                 setIsInCartState(true);
-                // Navigate to checkout after adding to cart
                 setTimeout(() => {
                     router.push('/cart');
                 }, 500);
-            } else {
-                Alert.alert(
-                    t('error') || "Error",
-                    result.message || t('failed_to_add_cart') || "Failed to add to cart"
-                );
             }
         } catch (error: any) {
             console.error("Error in buy now:", error);
-            Alert.alert(
-                t('error') || "Error",
-                error.message || t('failed_to_add_cart') || "Failed to add to cart"
-            );
         } finally {
             setAddingToCart(false);
         }
     };
 
-    // Navigate to category
     const handleNavigateToCategory = () => {
         if (!product?.category?.slug) return;
-
         router.push({
             pathname: "/(customer)/category",
             params: { slug: product.category.slug }
         });
     };
 
-    // Navigate to cart
     const handleNavigateToCart = () => {
         router.push('/cart');
     };
 
-    // Retry function
     const handleRetry = useCallback(() => {
         fetchProductDetails();
     }, [fetchProductDetails]);
@@ -673,7 +640,7 @@ const ProductDetailsPage = () => {
             <View className="flex-1 bg-white">
                 <View className="flex-row items-center px-4 py-4 border-b border-gray-200">
                     <TouchableOpacity onPress={handleGoBack}>
-                        <ArrowLeft size={24} color={colors.darkRed} />
+                        <Feather name="arrow-left" size={24} color={colors.darkRed} />
                     </TouchableOpacity>
                     <Text className="text-lg font-semibold ml-4">
                         {productName || t('product_details') || "Product Details"}
@@ -681,12 +648,9 @@ const ProductDetailsPage = () => {
                 </View>
 
                 <View className="flex-1 items-center justify-center px-4">
-                    <View className="items-center mb-6">
-                        <Text className="text-lg font-semibold text-gray-800 mb-2">
-                            {t('product_not_found') || "Product not found"}
-                        </Text>
-                    </View>
-
+                    <Text className="text-lg font-semibold text-gray-800 mb-2">
+                        {t('product_not_found') || "Product not found"}
+                    </Text>
                     <Text className="text-red-500 text-base mb-6 text-center">
                         {typeof error === 'string' ? error : 'An error occurred'}
                     </Text>
@@ -724,7 +688,6 @@ const ProductDetailsPage = () => {
     const rating = formatRating(product.rating_average || "0");
     const ratingCount = product.rating_count || 0;
 
-    // Get available options from variants
     const availableOptions: Record<string, string[]> = {};
     if (product.variants && product.variants.length > 0) {
         product.variants.forEach(variant => {
@@ -741,11 +704,9 @@ const ProductDetailsPage = () => {
         });
     }
 
-    // Use a safe blue color
     const safeBlueColor = 'blue' in colors ? colors.blue : "#3b82f6";
-
-    // Determine if this is a dropship product
     const isDropshipProduct = !product.vendor_info || isDropship;
+    const productImageUrl = getProductImageUrl(product);
 
     return (
         <View className="flex-1 bg-white pt-6">
@@ -753,21 +714,20 @@ const ProductDetailsPage = () => {
                 showsVerticalScrollIndicator={false}
                 className="flex-1"
             >
-                {/* Header with Back Button */}
+                {/* Header */}
                 <View className="absolute top-0 left-0 right-0 z-10 flex-row items-center justify-between px-4 py-4">
                     <TouchableOpacity
                         onPress={handleGoBack}
                         className="bg-white/80 p-2 rounded-full"
                     >
-                        <ArrowLeft size={24} color={colors.darkRed} />
+                        <Feather name="arrow-left" size={24} color={colors.darkRed} />
                     </TouchableOpacity>
                     
-                    {/* Cart Icon with badge */}
                     <TouchableOpacity
                         onPress={handleNavigateToCart}
                         className="bg-white/80 p-2 rounded-full relative"
                     >
-                        <ShoppingCart size={24} color={colors.darkRed} />
+                        <Feather name="shopping-cart" size={24} color={colors.darkRed} />
                         {getItemCount() > 0 && (
                             <View className="absolute -top-1 -right-1 bg-darkRed rounded-full w-5 h-5 items-center justify-center">
                                 <Text className="text-white text-xs font-bold">
@@ -778,74 +738,55 @@ const ProductDetailsPage = () => {
                     </TouchableOpacity>
                 </View>
 
-                {/* Product Image Placeholder */}
+                {/* Product Image */}
                 <View className="relative">
-                    <View className="w-full h-80 bg-gradient-to-br from-gray-100 to-gray-200 items-center justify-center">
-                        {/* No Image Text */}
-                        <View className="absolute bottom-4 left-0 right-0 items-center">
-                            <View className="flex-row items-center bg-black/60 rounded-full px-4 py-2">
-                                <ImageIcon size={18} color="white" />
-                                <Text className="text-white text-sm ml-2">
-                                    {t('product_image_coming_soon') || 'Product images coming soon'}
-                                </Text>
-                            </View>
-                        </View>
+                    <View className="w-full h-80 bg-gray-100 overflow-hidden">
+                        <ProductImage uri={productImageUrl} />
                     </View>
 
-                    {/* Action Buttons */}
-                    <View className="absolute top-4 right-4 flex-row space-x-2">
-                        <TouchableOpacity
-                            className="bg-white/90 p-3 rounded-full shadow"
-                            onPress={handleToggleWishlist}
-                            disabled={addingToWishlist}
-                        >
-                            {addingToWishlist ? (
-                                <ActivityIndicator size={22} color={colors.darkRed} />
-                            ) : (
-                                <Heart
-                                    size={22}
-                                    color={isInWishlistState ? colors.darkRed : "#666"}
-                                    fill={isInWishlistState ? colors.darkRed : "none"}
-                                />
-                            )}
-                        </TouchableOpacity>
-                    </View>
+                    <TouchableOpacity
+                        className="absolute top-4 right-4 bg-white/90 p-3 rounded-full shadow"
+                        onPress={handleToggleWishlist}
+                        disabled={addingToWishlist}
+                    >
+                        {addingToWishlist ? (
+                            <ActivityIndicator size={22} color={colors.darkRed} />
+                        ) : (
+                            <MaterialIcons
+                                name={isInWishlistState ? "favorite" : "favorite-border"}
+                                size={22}
+                                color={isInWishlistState ? colors.darkRed : "#666"}
+                            />
+                        )}
+                    </TouchableOpacity>
                 </View>
 
-                {/* Main Product Info */}
+                {/* Product Info */}
                 <View className="px-4 pt-6">
-                    {/* Category Breadcrumb */}
                     {product.category && (
-                        <TouchableOpacity
-                            className="mb-2"
-                            onPress={handleNavigateToCategory}
-                        >
+                        <TouchableOpacity className="mb-2" onPress={handleNavigateToCategory}>
                             <Text className="text-sm text-gray-500">
                                 {product.category.full_path || product.category.name}
                             </Text>
                         </TouchableOpacity>
                     )}
 
-                    {/* Product Name */}
                     <Text className="text-2xl font-bold text-gray-800 mb-2">
                         {product.name}
                     </Text>
 
-                    {/* Rating */}
                     <View className="flex-row items-center mb-3">
                         <View className="flex-row items-center mr-2">
                             {[1, 2, 3, 4, 5].map((star) => (
-                                <Star
+                                <AntDesign
                                     key={star}
+                                    name="star"
                                     size={18}
                                     color={star <= Math.floor(parseFloat(rating)) ? "#FFD700" : "#E5E7EB"}
-                                    fill={star <= Math.floor(parseFloat(rating)) ? "#FFD700" : "none"}
                                 />
                             ))}
                         </View>
-                        <Text className="text-gray-600 font-semibold mr-2">
-                            {rating}
-                        </Text>
+                        <Text className="text-gray-600 font-semibold mr-2">{rating}</Text>
                         <Text className="text-gray-500">
                             ({ratingCount} {t('reviews') || 'reviews'})
                         </Text>
@@ -855,7 +796,6 @@ const ProductDetailsPage = () => {
                         </Text>
                     </View>
 
-                    {/* Price Section */}
                     <View className="mb-4">
                         <View className="flex-row items-center">
                             <Text className="text-3xl font-bold text-darkRed mr-3">
@@ -874,7 +814,6 @@ const ProductDetailsPage = () => {
                         )}
                     </View>
 
-                    {/* Stock Status */}
                     <View className={`flex-row items-center p-3 rounded-lg mb-4 ${isInStock ? 'bg-green-50' : 'bg-red-50'}`}>
                         <View className={`w-3 h-3 rounded-full mr-2 ${isInStock ? 'bg-green-500' : 'bg-red-500'}`} />
                         <Text className={isInStock ? 'text-green-700 font-medium' : 'text-red-700 font-medium'}>
@@ -885,7 +824,6 @@ const ProductDetailsPage = () => {
                         </Text>
                     </View>
 
-                    {/* SKU & Brand */}
                     <View className="mb-6">
                         <Text className="text-sm text-gray-500 mb-1">
                             {t('sku') || 'SKU'}: {product.sku}
@@ -902,7 +840,6 @@ const ProductDetailsPage = () => {
                         )}
                     </View>
 
-                    {/* Variant Selection */}
                     {Object.keys(availableOptions).length > 0 && (
                         <View className="mb-6">
                             {Object.entries(availableOptions).map(([optionType, optionValues]) => (
@@ -919,7 +856,7 @@ const ProductDetailsPage = () => {
                                                     className={`px-4 py-2 rounded-lg border ${isSelected
                                                         ? 'border-darkRed bg-darkRed'
                                                         : 'border-gray-300 bg-white'
-                                                        }`}
+                                                    }`}
                                                     onPress={() => handleOptionSelect(optionType, value)}
                                                 >
                                                     <Text className={isSelected ? 'text-white font-medium' : 'text-gray-700'}>
@@ -934,7 +871,6 @@ const ProductDetailsPage = () => {
                         </View>
                     )}
 
-                    {/* Quantity Selector */}
                     <View className="mb-6">
                         <Text className="font-medium text-gray-700 mb-2">
                             {t('quantity') || 'Quantity'}:
@@ -963,7 +899,6 @@ const ProductDetailsPage = () => {
                         </View>
                     </View>
 
-                    {/* Action Buttons */}
                     <View className="flex-row space-x-3 mb-8 gap-2">
                         <TouchableOpacity
                             className={`flex-1 py-4 rounded-xl items-center justify-center ${isInStock ? 'bg-darkRed' : 'bg-gray-300'}`}
@@ -989,29 +924,27 @@ const ProductDetailsPage = () => {
                         </TouchableOpacity>
                     </View>
 
-                    {/* Product Features */}
                     <View className="flex-row flex-wrap justify-between mb-8">
                         <View className="items-center w-1/3 mb-4">
-                            <Shield size={24} color={colors.darkRed} />
+                            <MaterialIcons name="verified-user" size={24} color={colors.darkRed} />
                             <Text className="text-sm font-medium mt-1 text-center">
                                 {t('authentic') || '100% Authentic'}
                             </Text>
                         </View>
                         <View className="items-center w-1/3 mb-4">
-                            <Truck size={24} color={colors.darkRed} />
+                            <Feather name="truck" size={24} color={colors.darkRed} />
                             <Text className="text-sm font-medium mt-1 text-center">
                                 {t('free_shipping') || 'Free Shipping'}
                             </Text>
                         </View>
                         <View className="items-center w-1/3 mb-4">
-                            <RotateCcw size={24} color={colors.darkRed} />
+                            <Feather name="refresh-ccw" size={24} color={colors.darkRed} />
                             <Text className="text-sm font-medium mt-1 text-center">
                                 {t('easy_returns') || 'Easy Returns'}
                             </Text>
                         </View>
                     </View>
 
-                    {/* Description Section */}
                     <View className="mb-6">
                         <TouchableOpacity
                             className="flex-row justify-between items-center mb-3"
@@ -1020,11 +953,7 @@ const ProductDetailsPage = () => {
                             <Text className="text-lg font-bold text-gray-800">
                                 {t('description') || 'Description'}
                             </Text>
-                            {showFullDescription ? (
-                                <ChevronUp size={20} color="#666" />
-                            ) : (
-                                <ChevronDown size={20} color="#666" />
-                            )}
+                            <AntDesign name={showFullDescription ? "up" : "down"} size={20} color="#666" />
                         </TouchableOpacity>
 
                         <Text
@@ -1043,7 +972,6 @@ const ProductDetailsPage = () => {
                         )}
                     </View>
 
-                    {/* Specifications/Attributes */}
                     {product.attributes && product.attributes.length > 0 && (
                         <View className="mb-6">
                             <TouchableOpacity
@@ -1053,11 +981,7 @@ const ProductDetailsPage = () => {
                                 <Text className="text-lg font-bold text-gray-800">
                                     {t('specifications') || 'Specifications'}
                                 </Text>
-                                {showSpecifications ? (
-                                    <ChevronUp size={20} color="#666" />
-                                ) : (
-                                    <ChevronDown size={20} color="#666" />
-                                )}
+                                <AntDesign name={showSpecifications ? "up" : "down"} size={20} color="#666" />
                             </TouchableOpacity>
 
                             {showSpecifications && (
@@ -1073,7 +997,6 @@ const ProductDetailsPage = () => {
                         </View>
                     )}
 
-                    {/* Shipping Information */}
                     <View className="mb-6">
                         <TouchableOpacity
                             className="flex-row justify-between items-center mb-3"
@@ -1082,17 +1005,13 @@ const ProductDetailsPage = () => {
                             <Text className="text-lg font-bold text-gray-800">
                                 {t('shipping_info') || 'Shipping Information'}
                             </Text>
-                            {showShippingInfo ? (
-                                <ChevronUp size={20} color="#666" />
-                            ) : (
-                                <ChevronDown size={20} color="#666" />
-                            )}
+                            <AntDesign name={showShippingInfo ? "up" : "down"} size={20} color="#666" />
                         </TouchableOpacity>
 
                         {showShippingInfo && (
                             <View className="bg-gray-50 rounded-xl p-4">
                                 <View className="flex-row items-center mb-3">
-                                    <Truck size={20} color={colors.darkRed} />
+                                    <Feather name="truck" size={20} color={colors.darkRed} />
                                     <Text className="font-medium ml-2">
                                         {t('estimated_delivery') || 'Estimated Delivery'}
                                     </Text>
@@ -1110,7 +1029,6 @@ const ProductDetailsPage = () => {
                         )}
                     </View>
 
-                    {/* Tags */}
                     {product.tags && product.tags.length > 0 && (
                         <View className="mb-8">
                             <Text className="text-lg font-bold text-gray-800 mb-3">
@@ -1129,25 +1047,22 @@ const ProductDetailsPage = () => {
                         </View>
                     )}
 
-                    {/* Safety Note */}
                     <View className="bg-blue-50 p-4 rounded-xl mb-8">
                         <View className="flex-row items-center mb-2">
-                            <Shield size={20} color={safeBlueColor} />
+                            <MaterialIcons name="verified-user" size={20} color={safeBlueColor} />
                             <Text className="font-semibold text-blue-800 ml-2">
                                 {t('safe_shopping') || 'Safe Shopping Guarantee'}
                             </Text>
                         </View>
                         <Text className="text-blue-700 text-sm">
-                            {t('safe_shopping_description') || 'Your payment information is encrypted and secure. We never share your details with third parties.'}
+                            {t('safe_shopping_description') || 'Your payment information is encrypted and secure.'}
                         </Text>
                     </View>
                 </View>
 
-                {/* Bottom Spacer */}
                 <View className="h-24" />
             </ScrollView>
 
-            {/* Sticky Bottom Bar */}
             <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
                 <View className="flex-row space-x-3 gap-2">
                     <TouchableOpacity
@@ -1158,10 +1073,10 @@ const ProductDetailsPage = () => {
                         {addingToWishlist ? (
                             <ActivityIndicator size={24} color={colors.darkRed} />
                         ) : (
-                            <Heart
+                            <MaterialIcons
+                                name={isInWishlistState ? "favorite" : "favorite-border"}
                                 size={24}
                                 color={isInWishlistState ? colors.darkRed : "#666"}
-                                fill={isInWishlistState ? colors.darkRed : "none"}
                             />
                         )}
                     </TouchableOpacity>

@@ -26,6 +26,8 @@ const resources = {
             loading_products: "Loading Products",
             trending_products: "Trending Products",
             most_viewed_this_week: "Most Viewed This Week",
+            vendor_dashboard: 'Vendor Dashboard',
+            business_insights: 'Business insights at a glance',
 
             // Common
             next: "Next",
@@ -1581,6 +1583,8 @@ const resources = {
             sales_for_current_month: "Ventes pour le mois en cours",
             sales_for_current_year: "Ventes pour l'année en cours",
             orders_received_today: "Commandes reçues aujourd'hui",
+            vendor_dashboard: 'Tableau de bord du vendeur',
+            business_insights: 'Aperçu des informations commerciales',
 
             this_month: "Ce mois-ci",
             this_year: "Cette année",
@@ -2212,6 +2216,8 @@ const resources = {
             estimated_delivery: "Entrega estimada",
             track_order: "Rastrear pedido",
             no_orders_status: "No hay pedidos {status}",
+            vendor_dashboard: 'Panel del Vendedor',
+            business_insights: 'Perspectivas comerciales a simple vista',
 
             // Security Screen
             biometrics: "Biometría",
@@ -3415,6 +3421,8 @@ const resources = {
             please_login_again: "Por favor, faça login novamente para continuar.",
             checking_status: "Verificando...",
             products_services_description: "Descrição de Produtos/Serviços",
+            vendor_dashboard: 'Painel do Vendedor',
+            business_insights: 'Insights comerciais de relance',
         }
     }
 };

@@ -1,7 +1,6 @@
 // app/(tabs)/welcome.tsx
 import images from '@/constants/images';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, ArrowRight } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
   Image,
@@ -11,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useLanguage } from '@/context/LanguageContext';
+import { Ionicons } from '@expo/vector-icons'; // <- Expo Vector Icons
 
 type UserType = 'business' | 'customer' | null;
 
@@ -54,7 +54,7 @@ export default function WelcomeScreen() {
               className="w-10 h-10 rounded-full shadow-lg"
               onPress={handleBack}
             >
-              <ArrowLeft size={28} color="#fff" />
+              <Ionicons name="arrow-back" size={28} color="#fff" />
             </TouchableOpacity>
           </View>
 
@@ -170,7 +170,8 @@ export default function WelcomeScreen() {
                 >
                   {t('sign_up')} {/* Existing translation key */}
                 </Text>
-                <ArrowRight
+                <Ionicons
+                  name="arrow-forward"
                   size={22}
                   color={selectedType ? '#fff' : '#9CA3AF'}
                 />

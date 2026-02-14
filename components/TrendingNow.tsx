@@ -8,13 +8,7 @@ import {
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
-import {
-  Heart,
-  ShoppingCart,
-  Star,
-  Image as ImageIcon,
-  Check,
-} from "lucide-react-native";
+import { FontAwesome, MaterialIcons, AntDesign } from "@expo/vector-icons";
 import { colors } from "@/constants/color";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
@@ -500,7 +494,7 @@ const TrendingProducts = () => {
               {/* Image Placeholder */}
               <View className="h-36 bg-gray-200 items-center justify-center">
                 <View className="absolute bottom-2 bg-black/60 rounded-full px-3 py-1 flex-row items-center">
-                  <ImageIcon size={12} color="white" />
+                  <MaterialIcons name="image" size={12} color="white" />
                   <Text className="text-white text-xs ml-1">
                     {t("image_coming_soon") || "Image coming soon"}
                   </Text>
@@ -525,12 +519,17 @@ const TrendingProducts = () => {
                 >
                   {isWishlistToggling ? (
                     <ActivityIndicator size="small" color={colors.darkRed} />
-                  ) : (
-                    <Heart 
+                  ) : isProductInWishlist ? (
+                    <MaterialIcons 
+                      name="favorite" 
                       size={16} 
                       color={colors.darkRed}
-                      fill={isProductInWishlist ? colors.darkRed : "transparent"}
-                      strokeWidth={2}
+                    />
+                  ) : (
+                    <MaterialIcons 
+                      name="favorite-border" 
+                      size={16} 
+                      color={colors.darkRed}
                     />
                   )}
                 </TouchableOpacity>
@@ -547,10 +546,10 @@ const TrendingProducts = () => {
                 </Text>
 
                 <View className="flex-row items-center mb-1">
-                  <Star
+                  <FontAwesome
+                    name="star"
                     size={12}
                     color="#FFD700"
-                    fill="#FFD700"
                   />
                   <Text className="text-xs ml-1">
                     {rating}
@@ -581,9 +580,9 @@ const TrendingProducts = () => {
                     {isProductAddingToCart ? (
                       <ActivityIndicator size="small" color="white" />
                     ) : isProductInCart ? (
-                      <Check size={16} color="white" />
+                      <AntDesign name="check" size={16} color="white" />
                     ) : (
-                      <ShoppingCart size={16} color="white" />
+                      <FontAwesome name="shopping-cart" size={16} color="white" />
                     )}
                   </TouchableOpacity>
                 </View>

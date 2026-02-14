@@ -10,14 +10,13 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import StoreCard from "@/components/home/StoreCard";
-import images from "@/constants/images";
-import { Search, X, SlidersHorizontal, ArrowLeft } from "lucide-react-native";
+import { Ionicons, Feather } from "@expo/vector-icons";
 import { colors } from "@/constants/color";
 import { useLanguage } from "@/context/LanguageContext";
 import api from '@/api/api';
 import { endpoints } from '@/api/endpoints';
 
-// Define the Vendor interface (same as in FeaturedStores)
+// Define the Vendor interface based on the actual API response
 interface Vendor {
     id: string;
     user: string;
@@ -75,27 +74,6 @@ const StorePage = () => {
     const [sortBy, setSortBy] = useState<SortOption>('rating');
     const [filterBy, setFilterBy] = useState<FilterOption>('all');
     const [showFilters, setShowFilters] = useState(false);
-
-    // Get business type icon based on business_type
-    const getBusinessIcon = useCallback((businessType: string, index: number) => {
-        const type = businessType.toLowerCase();
-        if (type.includes('tech') || type.includes('electronic') || type.includes('gadget') || type.includes('it')) {
-            return { bg: images.electronicsBg, front: images.electronicsIcon };
-        } else if (type.includes('fashion') || type.includes('apparel') || type.includes('clothing')) {
-            return { bg: images.fashionBg, front: images.fashionIcon };
-        } else if (type.includes('home') || type.includes('kitchen') || type.includes('essential') || type.includes('grocery')) {
-            return { bg: images.groceryBg, front: images.groceryIcon };
-        } else {
-            // Default fallback based on position in array
-            const imageMap = [
-                { bg: images.electronicsBg, front: images.electronicsIcon },
-                { bg: images.fashionBg, front: images.fashionIcon },
-                { bg: images.groceryBg, front: images.groceryIcon },
-                { bg: images.computerBg, front: images.computerIcon },
-            ];
-            return imageMap[index % imageMap.length];
-        }
-    }, []);
 
     // Format rating display
     const formatRating = useCallback((rating: string) => {
@@ -160,7 +138,7 @@ const StorePage = () => {
             }
             setError(null);
 
-            const response = await api.get<VendorsResponse>(endpoints.getVendorList);
+            const response = await api.get<VendorsResponse>(endpoints.listVendors);
 
             if (response.data && response.data.results) {
                 // Filter active vendors
@@ -222,7 +200,7 @@ const StorePage = () => {
                 {/* Header with Back Button */}
                 <View className="flex-row items-center px-4 py-4 border-b border-gray-200">
                     <TouchableOpacity onPress={() => router.back()}>
-                        <ArrowLeft size={24} color={colors.darkRed} />
+                        <Ionicons name="arrow-back" size={24} color={colors.darkRed} />
                     </TouchableOpacity>
                     <Text className="text-lg font-semibold ml-4">
                         {t("all_stores") || "All Stores"}
@@ -267,7 +245,7 @@ const StorePage = () => {
                                 onPress={() => router.back()}
                                 className="mr-3"
                             >
-                                <ArrowLeft size={24} color={colors.darkRed} />
+                                <Ionicons name="arrow-back" size={24} color={colors.darkRed} />
                             </TouchableOpacity>
                             <Text className="font-bold text-2xl text-gray-800">
                                 {t("all_stores") || "All Stores"}
@@ -276,7 +254,7 @@ const StorePage = () => {
 
                         {/* Search Bar */}
                         <View className="flex-row items-center bg-gray-100 rounded-xl px-4 py-1 mb-3">
-                            <Search size={20} color="#9CA3AF" />
+                            <Feather name="search" size={20} color="#9CA3AF" />
                             <TextInput
                                 className="flex-1 ml-2 text-base text-gray-800"
                                 placeholder={t("search_stores") || "Search stores..."}
@@ -286,7 +264,7 @@ const StorePage = () => {
                             />
                             {searchQuery.length > 0 && (
                                 <TouchableOpacity onPress={handleClearSearch}>
-                                    <X size={20} color="#9CA3AF" />
+                                    <Feather name="x" size={20} color="#9CA3AF" />
                                 </TouchableOpacity>
                             )}
                         </View>
@@ -301,7 +279,7 @@ const StorePage = () => {
                                 className="flex-row items-center bg-gray-100 px-3 py-2 rounded-lg"
                                 onPress={() => setShowFilters(!showFilters)}
                             >
-                                <SlidersHorizontal size={16} color={colors.darkRed} />
+                                <Feather name="sliders" size={16} color={colors.darkRed} />
                                 <Text className="text-darkRed text-sm ml-2 font-medium">
                                     {t("filters") || "Filters"}
                                 </Text>
@@ -384,39 +362,33 @@ const StorePage = () => {
                 <View className="px-4 pb-6 pt-4">
                     {filteredVendors.length > 0 ? (
                         <View className="flex-row flex-wrap justify-between">
-                            {filteredVendors.map((vendor, index) => {
-                                const businessImages = getBusinessIcon(vendor.business_type, index);
-                                const bg = vendor.banner || businessImages.bg;
-                                const front = vendor.logo || businessImages.front;
-
-                                return (
-                                    <StoreCard
-                                        key={vendor.id}
-                                        title={vendor.business_name}
-                                        bg={bg}
-                                        front={front}
-                                        rating={formatRating(vendor.rating_average)}
-                                        sales={vendor.total_sales}
-                                        isVerified={vendor.is_verified}
-                                        onVisitStore={() =>
-                                            router.push({
-                                                pathname: "/(customer)/store/[slug]",
-                                                params: {
-                                                    id: vendor.id,
-                                                    storeName: vendor.business_name,
-                                                    slug: vendor.business_slug, // Required by the route
-                                                    storeSlug: vendor.business_slug, // Additional parameter if needed elsewhere
-                                                },
-                                            })
-                                        }
-                                        onFollow={() => console.log("Follow", vendor.business_name)}
-                                    />
-                                );
-                            })}
+                            {filteredVendors.map((vendor) => (
+                                <StoreCard
+                                    key={vendor.id}
+                                    title={vendor.business_name}
+                                    bg={vendor.banner}
+                                    front={vendor.logo}
+                                    rating={formatRating(vendor.rating_average)}
+                                    sales={vendor.total_sales}
+                                    isVerified={vendor.is_verified}
+                                    onVisitStore={() =>
+                                        router.push({
+                                            pathname: "/(customer)/store/[slug]",
+                                            params: {
+                                                id: vendor.id,
+                                                storeName: vendor.business_name,
+                                                slug: vendor.business_slug,
+                                                storeSlug: vendor.business_slug,
+                                            },
+                                        })
+                                    }
+                                    onFollow={() => console.log("Follow", vendor.business_name)}
+                                />
+                            ))}
                         </View>
                     ) : (
                         <View className="items-center justify-center py-20">
-                            <Search size={48} color="#D1D5DB" />
+                            <Feather name="search" size={48} color="#D1D5DB" />
                             <Text className="text-gray-400 text-base mt-4">
                                 {searchQuery.trim()
                                     ? (t("no_stores_match_search") || "No stores match your search")

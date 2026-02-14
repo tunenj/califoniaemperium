@@ -1,10 +1,10 @@
 import images from '@/constants/images';
-import { ChevronDown, ChevronUp, Mail, PhoneCall } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Image, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from "@/constants/color";
 import { useLanguage } from '@/context/LanguageContext'; // Import the language hook
+import { Ionicons } from '@expo/vector-icons'; // <- Expo Vector Icons
 
 const BusinessRegisterScreen: React.FC = () => {
   const [showMoreOptions, setShowMoreOptions] = useState(false);
@@ -64,7 +64,7 @@ const BusinessRegisterScreen: React.FC = () => {
             className="flex-row items-center mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200"
             onPress={handlePhoneSignUp}
           >
-            <PhoneCall color={colors.darkRed} size={24} style={{ marginRight: 16 }} />
+            <Ionicons name="call" color={colors.darkRed} size={24} style={{ marginRight: 16 }} />
             <Text className="text-lg text-gray-900 flex-1 pl-8">
               {t('sign_up_with_phone')}
             </Text>
@@ -95,7 +95,7 @@ const BusinessRegisterScreen: React.FC = () => {
               className="flex-row items-center mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200"
               onPress={handleEmailSignUp}
             >
-              <Mail color={colors.darkRed} size={24} style={{ marginRight: 16 }} />
+              <Ionicons name="mail" color={colors.darkRed} size={24} style={{ marginRight: 16 }} />
               <Text className="text-lg text-gray-900 flex-1 pl-14">
                 {t('email_and_password')}
               </Text>
@@ -110,11 +110,11 @@ const BusinessRegisterScreen: React.FC = () => {
             <Text className="text-gray-400 text-sm font-medium mr-2">
               {showMoreOptions ? t('less_options') : t('more_options')}
             </Text>
-            {showMoreOptions ? (
-              <ChevronUp color="#9CA3AF" size={16} />
-            ) : (
-              <ChevronDown color="#9CA3AF" size={16} />
-            )}
+            <Ionicons
+              name={showMoreOptions ? "chevron-up" : "chevron-down"}
+              size={16}
+              color="#9CA3AF"
+            />
           </TouchableOpacity>
 
           {/* Login */}

@@ -12,7 +12,7 @@ import {
   SafeAreaView,
   Animated,
 } from 'react-native';
-import { Heart, ShoppingBag, Trash2, ChevronRight, Check, ArrowRight, LogIn } from 'lucide-react-native';
+import { AntDesign, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { LinearGradient } from "expo-linear-gradient";
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
@@ -316,7 +316,7 @@ const WishlistScreen = () => {
           className="flex-1 justify-center items-center px-8"
         >
           <View className="w-32 h-32 bg-gray-100 rounded-full justify-center items-center mb-6">
-            <LogIn size={64} color="#6B7280" />
+            <MaterialCommunityIcons name="login" size={64} color="#6B7280" />
           </View>
           <Text className="text-2xl font-bold text-gray-900 mb-3">
             Welcome to Wishlist
@@ -357,7 +357,7 @@ const WishlistScreen = () => {
         className="flex-1 justify-center items-center px-8"
       >
         <View className="w-32 h-32 bg-red-50 rounded-full justify-center items-center mb-6">
-          <Heart size={64} color="#DC2626" />
+          <AntDesign name="heart" size={64} color="#DC2626" />
         </View>
         <Text className="text-lg font-bold text-gray-900 mb-3">
           Your wishlist is empty
@@ -374,7 +374,7 @@ const WishlistScreen = () => {
             <Text className="text-white font-semibold text-base mr-2">
               Browse Products
             </Text>
-            <ArrowRight size={20} color="white" />
+            <AntDesign name="right" size={20} color="white" />
           </TouchableOpacity>
           
           {cartCount > 0 && (
@@ -424,7 +424,7 @@ const WishlistScreen = () => {
               }`}
             >
               {isSelected && (
-                <Check size={14} color="white" />
+                <AntDesign name="check" size={14} color="white" />
               )}
             </View>
           </TouchableOpacity>
@@ -449,7 +449,7 @@ const WishlistScreen = () => {
             </>
           ) : (
             <View className="flex-1 justify-center items-center">
-              <ShoppingBag size={32} color="#9CA3AF" />
+              <MaterialCommunityIcons name="shopping-outline" size={32} color="#9CA3AF" />
             </View>
           )}
         </View>
@@ -528,7 +528,7 @@ const WishlistScreen = () => {
               {isRemoving ? (
                 <ActivityIndicator size="small" color="#EF4444" />
               ) : (
-                <Trash2 size={18} color={isSelected ? "#DC2626" : "#9CA3AF"} />
+                <Feather name="trash-2" size={18} color={isSelected ? "#DC2626" : "#9CA3AF"} />
               )}
             </TouchableOpacity>
           </View>
@@ -639,7 +639,8 @@ const WishlistScreen = () => {
                 disabled={!hasSelectedItems || syncing}
                 onPress={removeSelectedItems}
               >
-                <Trash2 
+                <Feather 
+                  name="trash-2" 
                   size={20} 
                   color={hasSelectedItems && !syncing ? '#EF4444' : '#9CA3AF'} 
                 />
@@ -655,7 +656,7 @@ const WishlistScreen = () => {
             className="flex-row items-center bg-gray-100 px-4 py-3 rounded-lg flex-1 mr-2"
             onPress={() => router.push('/(customer)/explore')}
           >
-            <Heart size={18} color="#6B7280" style={{ marginRight: 8 }} />
+            <AntDesign name="heart" size={18} color="#6B7280" style={{ marginRight: 8 }} />
             <Text className="text-gray-700 font-semibold">
               Browse More
             </Text>
@@ -666,11 +667,11 @@ const WishlistScreen = () => {
               className="flex-row items-center bg-secondary px-4 py-3 rounded-lg flex-1 ml-2"
               onPress={() => router.push('/cart')}
             >
-              <ShoppingBag size={18} color="white" style={{ marginRight: 8 }} />
+              <MaterialCommunityIcons name="shopping-outline" size={18} color="white" style={{ marginRight: 8 }} />
               <Text className="text-white font-semibold">
                 Cart ({cartCount})
               </Text>
-              <ChevronRight size={18} color="white" style={{ marginLeft: 'auto' }} />
+              <AntDesign name="right" size={18} color="white" style={{ marginLeft: 'auto' }} />
             </TouchableOpacity>
           )}
         </View>

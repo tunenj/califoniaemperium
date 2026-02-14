@@ -1,12 +1,12 @@
 import images from '@/constants/images';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react-native';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Alert, Image, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { useLanguage } from '@/context/LanguageContext';
 import api from '@/api/api';
 import { endpoints } from '@/api/endpoints';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
 
 const RegisterForm: React.FC = () => {
   const router = useRouter();
@@ -101,20 +101,9 @@ const RegisterForm: React.FC = () => {
         role: isCustomer ? 'customer' : 'vendor',
       };
 
-      console.log('==========================================');
-      console.log('REGISTRATION REQUEST');
-      console.log('Email:', payload.email);
-      console.log('Role:', payload.role);
-      console.log('==========================================');
 
       const response = await api.post(endpoints.register, payload);
       const responseData = response.data;
-
-      console.log('==========================================');
-      console.log('REGISTRATION RESPONSE');
-      console.log('Success:', responseData?.success);
-      console.log('Full response:', JSON.stringify(responseData, null, 2));
-      console.log('==========================================');
 
       if (responseData && responseData.success) {
         // ✅ FIX: Check for tokens in different possible locations
@@ -122,10 +111,6 @@ const RegisterForm: React.FC = () => {
           responseData.data?.tokens ||
           responseData.tokens ||
           responseData.data;
-
-        console.log('==========================================');
-        console.log('TOKEN EXTRACTION');
-        console.log('Tokens object:', tokens);
         
         // ✅ FIX: Your API uses "access" and "refresh", not "access_token" and "refresh_token"
         const accessToken = tokens?.access || tokens?.access_token;
@@ -133,11 +118,10 @@ const RegisterForm: React.FC = () => {
         
         console.log('Access token:', accessToken ? `${accessToken.substring(0, 30)}...` : 'MISSING');
         console.log('Refresh token:', refreshToken ? `${refreshToken.substring(0, 30)}...` : 'MISSING');
-        console.log('==========================================');
 
         // ✅ CRITICAL: Validate tokens
         if (!accessToken) {
-          console.error('❌ CRITICAL: No access token in registration response!');
+          console.error('CRITICAL: No access token in registration response!');
           console.error('Token keys found:', Object.keys(tokens || {}));
           
           Alert.alert(
@@ -276,7 +260,11 @@ const RegisterForm: React.FC = () => {
   };
 
   const renderValidationIcon = (isValid: boolean) =>
-    isValid ? <CheckCircle size={16} color="#10B981" /> : <XCircle size={16} color="#EF4444" />;
+    isValid ? (
+      <MaterialIcons name="check-circle" size={16} color="#10B981" />
+    ) : (
+      <MaterialIcons name="cancel" size={16} color="#EF4444" />
+    );
 
   return (
     <View className="flex-1 bg-white">
@@ -288,8 +276,12 @@ const RegisterForm: React.FC = () => {
       </View>
 
       <View className="flex-1 bg-white -mt-8 rounded-t-3xl px-6 pt-8">
-        <TouchableOpacity className="absolute top-0 left-0 p-2 z-10" onPress={handleBack} disabled={isLoading}>
-          <ArrowLeft size={28} color="#C62828" />
+        <TouchableOpacity 
+          className="absolute top-0 left-0 p-2 z-10" 
+          onPress={handleBack} 
+          disabled={isLoading}
+        >
+          <Ionicons name="arrow-back" size={28} color="#C62828" />
         </TouchableOpacity>
 
         {/* Title & Role Switch */}
@@ -297,7 +289,10 @@ const RegisterForm: React.FC = () => {
           <Text className="text-2xl font-bold text-black mb-1">
             {`${t('register_as')} ${isCustomer ? t('customer') : t('business')}`}
           </Text>
-          <TouchableOpacity className="flex-row items-center mt-2" onPress={() => setIsCustomer(!isCustomer)}>
+          <TouchableOpacity 
+            className="flex-row items-center mt-2" 
+            onPress={() => setIsCustomer(!isCustomer)}
+          >
             <Image source={images.switchIcon} className="w-6 h-6 mr-2" resizeMode="contain" />
             <Text className="text-lg text-gray-400 font-medium underline">
               {`${t('switch_to')} ${isCustomer ? t('business') : t('customer')}`}
@@ -339,17 +334,36 @@ const RegisterForm: React.FC = () => {
             onPress={() => setShowPassword(!showPassword)}
             disabled={isLoading}
           >
-            {showPassword ? <EyeOff size={20} color="#666" /> : <Eye size={24} color="#666" />}
+            {showPassword ? (
+              <FontAwesome name="eye-slash" size={20} color="#666" />
+            ) : (
+              <FontAwesome name="eye" size={20} color="#666" />
+            )}
           </TouchableOpacity>
 
           {/* Password validations */}
           {password.length > 0 && (
             <View className="mt-4 space-y-2">
-              <View className="flex-row items-center">{renderValidationIcon(passwordValidations.minLength)}<Text className="ml-2 text-sm text-gray-500">{t('password_validation_min_length')}</Text></View>
-              <View className="flex-row items-center">{renderValidationIcon(passwordValidations.hasUpperCase)}<Text className="ml-2 text-sm text-gray-500">{t('password_validation_uppercase')}</Text></View>
-              <View className="flex-row items-center">{renderValidationIcon(passwordValidations.hasLowerCase)}<Text className="ml-2 text-sm text-gray-500">{t('password_validation_lowercase')}</Text></View>
-              <View className="flex-row items-center">{renderValidationIcon(passwordValidations.hasNumbers)}<Text className="ml-2 text-sm text-gray-500">{t('password_validation_numbers')}</Text></View>
-              <View className="flex-row items-center">{renderValidationIcon(passwordValidations.hasSpecialChar)}<Text className="ml-2 text-sm text-gray-500">{t('password_validation_special_char')}</Text></View>
+              <View className="flex-row items-center">
+                {renderValidationIcon(passwordValidations.minLength)}
+                <Text className="ml-2 text-sm text-gray-500">{t('password_validation_min_length')}</Text>
+              </View>
+              <View className="flex-row items-center">
+                {renderValidationIcon(passwordValidations.hasUpperCase)}
+                <Text className="ml-2 text-sm text-gray-500">{t('password_validation_uppercase')}</Text>
+              </View>
+              <View className="flex-row items-center">
+                {renderValidationIcon(passwordValidations.hasLowerCase)}
+                <Text className="ml-2 text-sm text-gray-500">{t('password_validation_lowercase')}</Text>
+              </View>
+              <View className="flex-row items-center">
+                {renderValidationIcon(passwordValidations.hasNumbers)}
+                <Text className="ml-2 text-sm text-gray-500">{t('password_validation_numbers')}</Text>
+              </View>
+              <View className="flex-row items-center">
+                {renderValidationIcon(passwordValidations.hasSpecialChar)}
+                <Text className="ml-2 text-sm text-gray-500">{t('password_validation_special_char')}</Text>
+              </View>
             </View>
           )}
         </View>

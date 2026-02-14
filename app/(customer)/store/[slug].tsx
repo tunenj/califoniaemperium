@@ -9,12 +9,11 @@ import {
     Image,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft, Star, CheckCircle } from "lucide-react-native";
+import { FontAwesome, MaterialIcons, AntDesign } from "@expo/vector-icons";
 import { colors } from "@/constants/color";
 import { useLanguage } from "@/context/LanguageContext";
 import api from '@/api/api';
 import { endpoints } from '@/api/endpoints';
-import images from "@/constants/images";
 
 // Define the Vendor interface
 interface Vendor {
@@ -69,20 +68,6 @@ const StoreDetailsPage = () => {
     const storeSlug = params.storeSlug as string;
     const storeName = params.storeName as string;
 
-    // Get business type icon
-    const getBusinessIcon = useCallback((businessType: string) => {
-        const type = businessType?.toLowerCase() || '';
-        if (type.includes('tech') || type.includes('electronic') || type.includes('gadget') || type.includes('it')) {
-            return { bg: images.electronicsBg, front: images.electronicsIcon };
-        } else if (type.includes('fashion') || type.includes('apparel') || type.includes('clothing')) {
-            return { bg: images.fashionBg, front: images.fashionIcon };
-        } else if (type.includes('home') || type.includes('kitchen') || type.includes('essential') || type.includes('grocery')) {
-            return { bg: images.groceryBg, front: images.groceryIcon };
-        } else {
-            return { bg: images.electronicsBg, front: images.electronicsIcon };
-        }
-    }, []);
-
     // Format rating
     const formatRating = (rating: string) => {
         const numRating = parseFloat(rating);
@@ -133,7 +118,7 @@ const StoreDetailsPage = () => {
             setError(t('store_not_found') || "Store not found");
             setLoading(false);
         }
-    }, [fetchVendorDetails, storeSlug, t]); // Added 't' as a dependency
+    }, [fetchVendorDetails, storeSlug, t]);
 
     const handleRetry = useCallback(() => {
         fetchVendorDetails();
@@ -149,13 +134,14 @@ const StoreDetailsPage = () => {
             </View>
         );
     }
+
     if (error || !vendor) {
         return (
             <View className="flex-1 bg-white">
                 {/* Header */}
                 <View className="flex-row items-center px-4 py-4 border-b border-gray-200">
                     <TouchableOpacity onPress={() => router.back()}>
-                        <ArrowLeft size={24} color={colors.darkRed} />
+                        <MaterialIcons name="arrow-back" size={24} color={colors.darkRed} />
                     </TouchableOpacity>
                     <Text className="text-lg font-semibold ml-4">
                         {storeName || "Store Details"}
@@ -165,7 +151,7 @@ const StoreDetailsPage = () => {
                 <View className="flex-1 items-center justify-center px-4">
                     <View className="items-center mb-6">
                         <View className="w-24 h-24 bg-gray-100 rounded-full items-center justify-center mb-4">
-                            <Text className="text-4xl">🏪</Text>
+                            <Text className="text-gray-400 text-xs">No Image</Text>
                         </View>
                         <Text className="text-lg font-semibold text-gray-800 mb-2">
                             {storeName || "Store not found"}
@@ -176,7 +162,7 @@ const StoreDetailsPage = () => {
                         {typeof error === 'string' ? error : 'Failed to load store details'}
                     </Text>
 
-                    <View className="flex-row space-x-4">
+                    <View className="flex-row space-x-4 gap-4">
                         <TouchableOpacity
                             className="flex-1 bg-darkRed px-6 py-3 rounded-lg"
                             onPress={handleRetry}
@@ -200,10 +186,6 @@ const StoreDetailsPage = () => {
         );
     }
 
-    const businessImages = getBusinessIcon(vendor.business_type);
-    const bannerImage = vendor.banner || businessImages.bg;
-    const logoImage = vendor.logo || businessImages.front;
-
     return (
         <ScrollView className="flex-1 bg-white">
             {/* Header with Back Button */}
@@ -212,18 +194,26 @@ const StoreDetailsPage = () => {
                     onPress={() => router.back()}
                     className="bg-white/80 p-2 rounded-full"
                 >
-                    <ArrowLeft size={24} color={colors.darkRed} />
+                    <MaterialIcons name="arrow-back" size={24} color={colors.darkRed} />
                 </TouchableOpacity>
             </View>
 
-            {/* Store Banner */}
-            <ImageBackground
-                source={typeof bannerImage === 'string' ? { uri: bannerImage } : bannerImage}
-                className="h-64 w-full"
-                resizeMode="cover"
-            >
-                <View className="flex-1 bg-black/20" />
-            </ImageBackground>
+            {/* Store Banner - Show only if banner exists */}
+            {vendor.banner ? (
+                <ImageBackground
+                    source={{ uri: vendor.banner }}
+                    className="h-64 w-full"
+                    resizeMode="cover"
+                >
+                    <View className="flex-1 bg-black/20" />
+                </ImageBackground>
+            ) : (
+                <View className="h-64 w-full bg-gray-200 items-center justify-center">
+                    <View className="w-24 h-24 bg-gray-300 rounded-full items-center justify-center">
+                        <Text className="text-gray-600 text-xs">No Banner</Text>
+                    </View>
+                </View>
+            )}
 
             {/* Store Info Card */}
             <View className="px-4 -mt-16">
@@ -231,18 +221,16 @@ const StoreDetailsPage = () => {
                     {/* Logo and Name */}
                     <View className="flex-row items-center mb-4">
                         <View className="w-20 h-20 bg-white rounded-xl shadow-md items-center justify-center mr-4">
-                            {typeof logoImage === 'string' ? (
+                            {vendor.logo ? (
                                 <Image
-                                    source={{ uri: logoImage }}
+                                    source={{ uri: vendor.logo }}
                                     className="w-16 h-16 rounded-lg"
                                     resizeMode="contain"
                                 />
                             ) : (
-                                <Image
-                                    source={logoImage}
-                                    className="w-16 h-16 rounded-lg"
-                                    resizeMode="contain"
-                                />
+                                <View className="w-16 h-16 bg-gray-100 rounded-lg items-center justify-center">
+                                    <Text className="text-gray-500 text-xs">No Logo</Text>
+                                </View>
                             )}
                         </View>
                         <View className="flex-1">
@@ -251,7 +239,7 @@ const StoreDetailsPage = () => {
                                     {vendor.business_name}
                                 </Text>
                                 {vendor.is_verified && (
-                                    <CheckCircle size={20} color="#10B981" />
+                                    <AntDesign name="check-circle" size={20} color="#10B981" />
                                 )}
                             </View>
                             <Text className="text-sm text-gray-500 mt-1">
@@ -264,7 +252,7 @@ const StoreDetailsPage = () => {
                     <View className="flex-row justify-between py-4 border-t border-gray-100">
                         <View className="items-center flex-1">
                             <View className="flex-row items-center">
-                                <Star size={16} color="#FFA500" fill="#FFA500" />
+                                <FontAwesome name="star" size={16} color="#FFA500" />
                                 <Text className="text-lg font-bold ml-1">
                                     {formatRating(vendor.rating_average)}
                                 </Text>

@@ -2,7 +2,7 @@
 import React from "react";
 import { View, Text, Image, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
-import { ShoppingCart, Heart, Check } from "lucide-react-native";
+import { FontAwesome, MaterialIcons, AntDesign } from "@expo/vector-icons";
 import { colors } from "@/constants/color";
 
 interface Product {
@@ -132,12 +132,17 @@ const ProductCard: React.FC<ProductCardProps> = ({
             >
               {isTogglingWishlist ? (
                 <ActivityIndicator size="small" color={colors.darkRed} />
-              ) : (
-                <Heart 
+              ) : isInWishlist ? (
+                <MaterialIcons 
+                  name="favorite" 
                   size={14} 
                   color={colors.darkRed}
-                  fill={isInWishlist ? colors.darkRed : "transparent"}
-                  strokeWidth={2}
+                />
+              ) : (
+                <MaterialIcons 
+                  name="favorite-border" 
+                  size={14} 
+                  color={colors.darkRed}
                 />
               )}
             </TouchableOpacity>
@@ -185,9 +190,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 {isAddingToCart ? (
                   <ActivityIndicator size="small" color="white" />
                 ) : isInCart ? (
-                  <Check size={16} color="white" />
+                  <AntDesign name="check" size={16} color="white" />
                 ) : (
-                  <ShoppingCart size={16} color="white" />
+                  <FontAwesome name="shopping-cart" size={16} color="white" />
                 )}
               </TouchableOpacity>
             )}
@@ -231,12 +236,17 @@ const ProductCard: React.FC<ProductCardProps> = ({
           >
             {isTogglingWishlist ? (
               <ActivityIndicator size="small" color={colors.darkRed} />
-            ) : (
-              <Heart 
+            ) : isInWishlist ? (
+              <MaterialIcons 
+                name="favorite" 
                 size={16} 
                 color={colors.darkRed}
-                fill={isInWishlist ? colors.darkRed : "transparent"}
-                strokeWidth={2}
+              />
+            ) : (
+              <MaterialIcons 
+                name="favorite-border" 
+                size={16} 
+                color={colors.darkRed}
               />
             )}
           </TouchableOpacity>
@@ -289,9 +299,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
               {isAddingToCart ? (
                 <ActivityIndicator size="small" color="white" />
               ) : isInCart ? (
-                <Check size={16} color="white" />
+                <AntDesign name="check" size={16} color="white" />
               ) : (
-                <ShoppingCart size={16} color="white" />
+                <FontAwesome name="shopping-cart" size={16} color="white" />
               )}
             </TouchableOpacity>
           )}

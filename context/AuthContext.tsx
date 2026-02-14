@@ -1,7 +1,7 @@
 // context/AuthContext.tsx
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '@/api/api';
+import api from "@/api/api"
 import { endpoints } from '@/api/endpoints';
 
 interface AuthContextType {
@@ -19,7 +19,9 @@ interface AuthContextType {
   logout: () => Promise<void>;
   fetchUserProfile: () => Promise<void>;
   refreshAccessToken: () => Promise<boolean>;
-  setAuthState: (tokens: { access: string; refresh?: string }, user: User) => Promise<void>; // New helper
+  setAuthState: (tokens: { access: string; refresh?: string }, user: User) => Promise<void>;
+  clearAuth: () => Promise<void>;
+  handleSessionExpired: () => void;
 }
 
 export interface User {
@@ -51,8 +53,76 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [userRole, setUserRole] = useState<'business' | 'customer' | null>(null);
 
+  // Clear all auth data
+  const clearAuth = useCallback(async () => {
+    try {
+      await AsyncStorage.multiRemove(['authToken', 'refreshToken', 'userData']);
+      delete api.defaults.headers.common['Authorization'];
+      setUser(null);
+      setIsAuthenticated(false);
+      setUserRole(null);
+      console.log('✅ Auth data cleared');
+    } catch (error) {
+      console.error('❌ Failed to clear auth:', error);
+    }
+  }, []); // No dependencies needed as it only uses setState and AsyncStorage
+
+  // Function to refresh access token
+  const refreshAccessToken = useCallback(async (): Promise<boolean> => {
+    try {
+      console.log('🔄 Attempting to refresh access token...');
+      const refreshToken = await AsyncStorage.getItem('refreshToken');
+      
+      if (!refreshToken) {
+        console.log('No refresh token available');
+        return false;
+      }
+      
+      console.log('Calling refresh token endpoint...');
+      const response = await api.post(endpoints.refreshToken, {
+        refresh: refreshToken
+      });
+      
+      console.log('✅ Token refresh response received');
+      
+      if (response.data.access) {
+        const newAccessToken = response.data.access;
+        const newRefreshToken = response.data.refresh || refreshToken; // Use new refresh token if provided
+        
+        // Store new tokens
+        await AsyncStorage.setItem('authToken', newAccessToken);
+        if (response.data.refresh) {
+          await AsyncStorage.setItem('refreshToken', newRefreshToken);
+        }
+        
+        // Update API headers
+        api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
+        
+        console.log('✅ Access token refreshed successfully');
+        return true;
+      }
+      
+      console.log('❌ No access token in refresh response');
+      return false;
+    } catch (error: any) {
+      console.error('❌ Failed to refresh token:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      
+      // If refresh token is invalid/expired, clear auth
+      if (error.response?.status === 401) {
+        console.log('⚠️ Refresh token expired, clearing auth...');
+        await clearAuth();
+      }
+      
+      return false;
+    }
+  }, [clearAuth]); // Added clearAuth as dependency
+
   // Helper function to set auth state
-  const setAuthState = async (tokens: { access: string; refresh?: string }, userData: User): Promise<void> => {
+  const setAuthState = useCallback(async (tokens: { access: string; refresh?: string }, userData: User): Promise<void> => {
     try {
       // Store tokens
       await AsyncStorage.setItem('authToken', tokens.access);
@@ -69,103 +139,93 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsAuthenticated(true);
       setUserRole(userData.role === 'vendor' ? 'business' : 'customer');
       
-      console.log('Auth state set successfully for user:', userData.email);
+      console.log('✅ Auth state set successfully for user:', userData.email);
     } catch (error) {
-      console.error('Failed to set auth state:', error);
+      console.error('❌ Failed to set auth state:', error);
       throw error;
     }
-  };
+  }, []); // No external dependencies
 
-  // Function to refresh access token
-  const refreshAccessToken = async (): Promise<boolean> => {
-    try {
-      const refreshToken = await AsyncStorage.getItem('refreshToken');
-      
-      if (!refreshToken) {
-        console.log('No refresh token available');
-        return false;
+  // Handle session expired
+  const handleSessionExpired = useCallback(() => {
+    console.log('🔐 Session expired, logging out...');
+    clearAuth();
+    // You can add navigation logic here or use event emitter
+  }, [clearAuth]);
+
+  // Helper function to extract error messages
+  const extractErrorMessage = useCallback((errorData: any): string => {
+    if (typeof errorData === 'string') return errorData;
+    if (errorData.message) return errorData.message;
+    if (errorData.detail) return errorData.detail;
+    if (errorData.error) return errorData.error;
+    if (Array.isArray(errorData)) return errorData.join(', ');
+    
+    if (typeof errorData === 'object') {
+      // Try to get first error from object
+      const firstKey = Object.keys(errorData)[0];
+      if (firstKey) {
+        const firstError = errorData[firstKey];
+        if (Array.isArray(firstError)) return firstError[0];
+        return String(firstError);
       }
-      
-      const response = await api.post(endpoints.refreshToken, {
-        refresh: refreshToken
-      });
-      
-      console.log('Token refresh response:', response.data);
-      
-      if (response.data.access) {
-        const newAccessToken = response.data.access;
-        
-        // Store new access token
-        await AsyncStorage.setItem('authToken', newAccessToken);
-        
-        // Update API headers
-        api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
-        
-        console.log('Access token refreshed successfully');
-        return true;
-      }
-      
-      return false;
-    } catch (error: any) {
-      console.error('Failed to refresh token:', error);
-      
-      // If refresh token is invalid/expired, logout user
-      if (error.response?.status === 401) {
-        console.log('Refresh token expired, logging out');
-        await logout();
-      }
-      
-      return false;
     }
-  };
-
-  // Check if user is authenticated on app start
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const token = await AsyncStorage.getItem('authToken');
-        const storedUser = await AsyncStorage.getItem('userData');
-        const refreshToken = await AsyncStorage.getItem('refreshToken');
-        
-        if (token && storedUser) {
-          // Set token in API headers
-          api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-          
-          // Parse user data
-          const userData = JSON.parse(storedUser);
-          setUser(userData);
-          setIsAuthenticated(true);
-          setUserRole(userData.role === 'vendor' ? 'business' : 'customer');
-          
-          // Optionally verify token with backend or refresh if needed
-          try {
-            // You might want to verify the token is still valid
-            // For now, we'll just check if we have tokens
-            if (!refreshToken) {
-              console.log('No refresh token found, auth may be incomplete');
-            }
-          } catch (error) {
-            console.log('Token check failed:', error);
-          }
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    checkAuth();
+    
+    return 'An unknown error occurred';
   }, []);
 
+  // Fetch user profile
+  const fetchUserProfile = useCallback(async () => {
+    try {
+      console.log('🔄 Fetching user profile...');
+      const response = await api.get('/accounts/me/');
+      if (response.data) {
+        await AsyncStorage.setItem('userData', JSON.stringify(response.data));
+        setUser(response.data);
+        console.log('✅ User profile updated');
+      }
+    } catch (error: any) {
+      console.error('❌ Failed to fetch user profile:', error);
+      if (error.response?.status === 401) {
+        handleSessionExpired();
+      }
+    }
+  }, [handleSessionExpired]);
+
+  // Logout function
+  const logout = useCallback(async () => {
+    try {
+      console.log('🚪 Logging out...');
+      
+      // Try to call logout API endpoint if we have a token
+      try {
+        const refreshToken = await AsyncStorage.getItem('refreshToken');
+        if (refreshToken) {
+          await api.post(endpoints.signOut, { refresh: refreshToken });
+        }
+      } catch (error) {
+        console.log('⚠️ Logout API call failed (may be expected if already logged out)');
+      }
+      
+      // Clear local auth state
+      await clearAuth();
+      
+      console.log('✅ User logged out successfully');
+    } catch (error) {
+      console.error('❌ Logout failed:', error);
+      await clearAuth(); // Still clear local state even if API fails
+    }
+  }, [clearAuth]);
+
   // Enhanced login function - handles both email/password and token-based login
-  const login = async (
+  const login = useCallback(async (
     credentials: string | { email: string; password: string },
     roleOrPassword?: string
   ): Promise<{success: boolean; message?: string}> => {
     try {
       setIsLoading(true);
       
-      console.log('Login attempt with:', {
+      console.log('🔐 Login attempt with:', {
         type: typeof credentials === 'string' ? 'token' : 'email/password',
         hasRoleParam: !!roleOrPassword
       });
@@ -199,18 +259,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Case 2: Email/password login
       else if (typeof credentials === 'object' && credentials.email && credentials.password) {
         // Email/password login
-        console.log('Attempting email/password login for:', credentials.email);
+        console.log('📧 Attempting email/password login for:', credentials.email);
         
         const response = await api.post(endpoints.emailLogin, {
           email: credentials.email.toLowerCase().trim(),
           password: credentials.password
         });
         
-        console.log('Login API response:', {
+        console.log('✅ Login API response:', {
           status: response.status,
-          data: response.data,
           success: response.data?.success,
-          hasTokens: !!(response.data?.access || response.data?.token || response.data?.data?.tokens)
+          hasTokens: !!(response.data?.access || response.data?.token)
         });
         
         // Extract tokens and user data from various response formats
@@ -255,7 +314,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         
         if (!accessToken || !userData) {
-          console.warn('Login response missing expected fields:', responseData);
+          console.warn('⚠️ Login response missing expected fields:', responseData);
           return { 
             success: false, 
             message: responseData.message || 'Invalid login response from server' 
@@ -276,38 +335,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       // Store user data and update state
       if (userData && accessToken) {
-        await AsyncStorage.setItem('userData', JSON.stringify(userData));
-        
-        // Set API header
-        api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-        
-        // Update state
-        setUser(userData);
-        setIsAuthenticated(true);
-        setUserRole(userData.role === 'vendor' ? 'business' : 'customer');
+        await setAuthState({ access: accessToken, refresh: refreshToken || undefined }, userData);
         
         // If user data is incomplete (token-based login), fetch complete profile
         if (!userData.email || userData.id.startsWith('temp-')) {
-          console.log('Fetching complete user profile...');
-          fetchUserProfile();
+          console.log('🔄 Fetching complete user profile...');
+          setTimeout(() => fetchUserProfile(), 1000); // Fetch after a delay
         }
         
-        console.log('Login successful, user role:', userData.role);
+        console.log('✅ Login successful, user role:', userData.role);
         return { success: true, message: successMessage };
       }
       
       return { success: false, message: 'Login failed - missing user data or token' };
       
     } catch (error: any) {
-      console.error('Login error details:', {
+      console.error('❌ Login error:', {
         message: error.message,
         status: error.response?.status,
-        data: error.response?.data,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method,
-          data: error.config?.data
-        }
+        data: error.response?.data
       });
       
       let errorMessage = 'Login failed';
@@ -315,57 +361,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Try to extract detailed error message
       if (error.response?.data) {
         const errorData = error.response.data;
-        
-        if (typeof errorData === 'string') {
-          errorMessage = errorData;
-        } else if (errorData.message) {
-          errorMessage = errorData.message;
-        } else if (errorData.detail) {
-          errorMessage = errorData.detail;
-        } else if (errorData.error) {
-          errorMessage = errorData.error;
-        } else if (Array.isArray(errorData)) {
-          errorMessage = errorData.join(', ');
-        } else if (typeof errorData === 'object') {
-          // Try to get first error from object
-          const firstKey = Object.keys(errorData)[0];
-          if (firstKey) {
-            const firstError = errorData[firstKey];
-            if (Array.isArray(firstError)) {
-              errorMessage = firstError[0];
-            } else {
-              errorMessage = firstError;
-            }
-          }
-        }
-        
-        // Add field-specific errors if available
-        if (errorData.errors) {
-          const fieldErrors = Object.entries(errorData.errors)
-            .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
-            .join('; ');
-          if (fieldErrors) {
-            errorMessage = fieldErrors;
-          }
-        }
+        errorMessage = extractErrorMessage(errorData);
       }
       
       return { success: false, message: errorMessage };
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [setAuthState, fetchUserProfile, extractErrorMessage]);
 
   // Phone login - request OTP
-  const loginWithPhone = async (phone: string): Promise<{success: boolean; message?: string}> => {
+  const loginWithPhone = useCallback(async (phone: string): Promise<{success: boolean; message?: string}> => {
     try {
       setIsLoading(true);
       
-      const response = await api.post(endpoints.phoneLogin, {
-        phone
-      });
+      const response = await api.post(endpoints.phoneLogin, { phone });
       
-      console.log('Phone login OTP sent:', response.data);
+      console.log('📱 Phone login OTP sent:', response.data);
       
       if (response.data.success || response.data.message) {
         return { 
@@ -376,19 +388,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       return { success: false, message: 'Failed to send OTP' };
     } catch (error: any) {
-      console.error('Phone login failed:', error);
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.detail || 
-                          error.message || 
-                          'Failed to send OTP';
-      return { success: false, message: errorMessage };
+      console.error('❌ Phone login failed:', error);
+      return { 
+        success: false, 
+        message: extractErrorMessage(error.response?.data) || 'Failed to send OTP' 
+      };
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [extractErrorMessage]);
 
   // Verify phone OTP
-  const verifyPhoneOtp = async (phone: string, otp: string): Promise<{success: boolean; message?: string}> => {
+  const verifyPhoneOtp = useCallback(async (phone: string, otp: string): Promise<{success: boolean; message?: string}> => {
     try {
       setIsLoading(true);
       
@@ -397,50 +408,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         otp
       });
       
-      console.log('Phone OTP verification:', response.data);
+      console.log('✅ Phone OTP verification:', response.data);
       
       if (response.data.access || response.data.token) {
         const token = response.data.access || response.data.token;
         const user = response.data.user;
+        const refreshToken = response.data.refresh || response.data.refresh_token;
         
-        await AsyncStorage.setItem('authToken', token);
-        if (response.data.refresh) {
-          await AsyncStorage.setItem('refreshToken', response.data.refresh);
-        } else if (response.data.refresh_token) {
-          await AsyncStorage.setItem('refreshToken', response.data.refresh_token);
-        }
-        await AsyncStorage.setItem('userData', JSON.stringify(user));
-        
-        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        
-        setUser(user);
-        setIsAuthenticated(true);
-        setUserRole(user.role === 'vendor' ? 'business' : 'customer');
+        await setAuthState({ 
+          access: token, 
+          refresh: refreshToken 
+        }, user);
         
         return { success: true, message: 'Login successful' };
       }
       
       return { success: false, message: 'Invalid OTP' };
     } catch (error: any) {
-      console.error('Phone OTP verification failed:', error);
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.detail || 
-                          error.message || 
-                          'Invalid OTP';
-      return { success: false, message: errorMessage };
+      console.error('❌ Phone OTP verification failed:', error);
+      return { 
+        success: false, 
+        message: extractErrorMessage(error.response?.data) || 'Invalid OTP' 
+      };
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [setAuthState, extractErrorMessage]);
 
   // Register new user
-  const register = async (userData: RegisterData): Promise<{success: boolean; message?: string}> => {
+  const register = useCallback(async (userData: RegisterData): Promise<{success: boolean; message?: string}> => {
     try {
       setIsLoading(true);
       
       const response = await api.post(endpoints.register, userData);
       
-      console.log('Registration response:', response.data);
+      console.log('✅ Registration response:', response.data);
       
       if (response.data.success || response.data.message) {
         return { 
@@ -451,19 +453,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       return { success: false, message: 'Registration failed' };
     } catch (error: any) {
-      console.error('Registration failed:', error);
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.detail || 
-                          error.message || 
-                          'Registration failed';
-      return { success: false, message: errorMessage };
+      console.error('❌ Registration failed:', error);
+      return { 
+        success: false, 
+        message: extractErrorMessage(error.response?.data) || 'Registration failed' 
+      };
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [extractErrorMessage]);
 
   // Verify email OTP
-  const verifyEmail = async (email: string, otp: string): Promise<{success: boolean; message?: string}> => {
+  const verifyEmail = useCallback(async (email: string, otp: string): Promise<{success: boolean; message?: string}> => {
     try {
       setIsLoading(true);
       
@@ -472,22 +473,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         otp
       });
       
-      console.log('Email verification:', response.data);
+      console.log('✅ Email verification:', response.data);
       
       if (response.data.success) {
         // Auto-login after verification if tokens are provided
         if (response.data.access) {
           const { access, refresh, user } = response.data;
-          
-          await AsyncStorage.setItem('authToken', access);
-          await AsyncStorage.setItem('refreshToken', refresh);
-          await AsyncStorage.setItem('userData', JSON.stringify(user));
-          
-          api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
-          
-          setUser(user);
-          setIsAuthenticated(true);
-          setUserRole(user.role === 'vendor' ? 'business' : 'customer');
+          await setAuthState({ access, refresh }, user);
         }
         
         return { success: true, message: response.data.message || 'Email verified successfully' };
@@ -495,27 +487,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       return { success: false, message: 'Verification failed' };
     } catch (error: any) {
-      console.error('Email verification failed:', error);
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.detail || 
-                          error.message || 
-                          'Verification failed';
-      return { success: false, message: errorMessage };
+      console.error('❌ Email verification failed:', error);
+      return { 
+        success: false, 
+        message: extractErrorMessage(error.response?.data) || 'Verification failed' 
+      };
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [setAuthState, extractErrorMessage]);
 
   // Resend email OTP
-  const resendEmailOtp = async (email: string): Promise<{success: boolean; message?: string}> => {
+  const resendEmailOtp = useCallback(async (email: string): Promise<{success: boolean; message?: string}> => {
     try {
       setIsLoading(true);
       
-      const response = await api.post(endpoints.resendEmailOtp, {
-        email
-      });
+      const response = await api.post(endpoints.resendEmailOtp, { email });
       
-      console.log('Resend OTP response:', response.data);
+      console.log('✅ Resend OTP response:', response.data);
       
       if (response.data.success) {
         return { success: true, message: response.data.message || 'OTP resent successfully' };
@@ -523,27 +512,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       return { success: false, message: 'Failed to resend OTP' };
     } catch (error: any) {
-      console.error('Resend OTP failed:', error);
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.detail || 
-                          error.message || 
-                          'Failed to resend OTP';
-      return { success: false, message: errorMessage };
+      console.error('❌ Resend OTP failed:', error);
+      return { 
+        success: false, 
+        message: extractErrorMessage(error.response?.data) || 'Failed to resend OTP' 
+      };
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [extractErrorMessage]);
 
   // Forgot password
-  const forgotPassword = async (email: string): Promise<{success: boolean; message?: string}> => {
+  const forgotPassword = useCallback(async (email: string): Promise<{success: boolean; message?: string}> => {
     try {
       setIsLoading(true);
       
-      const response = await api.post(endpoints.forgotPassword, {
-        email
-      });
+      const response = await api.post(endpoints.forgotPassword, { email });
       
-      console.log('Forgot password response:', response.data);
+      console.log('✅ Forgot password response:', response.data);
       
       if (response.data.success) {
         return { success: true, message: response.data.message || 'Password reset instructions sent' };
@@ -551,63 +537,92 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       return { success: false, message: 'Password reset failed' };
     } catch (error: any) {
-      console.error('Forgot password failed:', error);
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.detail || 
-                          error.message || 
-                          'Password reset failed';
-      return { success: false, message: errorMessage };
+      console.error('❌ Forgot password failed:', error);
+      return { 
+        success: false, 
+        message: extractErrorMessage(error.response?.data) || 'Password reset failed' 
+      };
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [extractErrorMessage]);
 
-  // Fetch user profile
-  const fetchUserProfile = async () => {
+  // Check if user is authenticated on app start
+  const checkAuthOnStart = useCallback(async () => {
     try {
-      // You might need to add this endpoint
-      const response = await api.get('/accounts/me/');
-      if (response.data) {
-        setUser(response.data);
-        await AsyncStorage.setItem('userData', JSON.stringify(response.data));
-      }
-    } catch (error) {
-      console.error('Failed to fetch user profile:', error);
-    }
-  };
-
-  // Logout function
-  const logout = async () => {
-    try {
-      // Call logout API endpoint
-      try {
-        const refreshToken = await AsyncStorage.getItem('refreshToken');
-        if (refreshToken) {
-          // Some backends want you to blacklist the refresh token on logout
-          await api.post(endpoints.signOut, { refresh: refreshToken });
-        } else {
-          await api.post(endpoints.signOut);
+      console.log('🔍 Checking auth state on app start...');
+      const token = await AsyncStorage.getItem('authToken');
+      const storedUser = await AsyncStorage.getItem('userData');
+      const refreshToken = await AsyncStorage.getItem('refreshToken');
+      
+      console.log('📊 Auth state:', {
+        hasToken: !!token,
+        hasRefreshToken: !!refreshToken,
+        hasUserData: !!storedUser
+      });
+      
+      if (token && storedUser) {
+        // Set token in API headers
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        
+        // Parse user data
+        const userData = JSON.parse(storedUser);
+        
+        // Verify token is still valid by making a test API call
+        try {
+          console.log('🔄 Validating token with test API call...');
+          await api.get('/accounts/me/', { timeout: 5000 });
+          
+          // Token is valid
+          setUser(userData);
+          setIsAuthenticated(true);
+          setUserRole(userData.role === 'vendor' ? 'business' : 'customer');
+          console.log('✅ Token is valid, user authenticated');
+          
+        } catch (error: any) {
+          console.log('⚠️ Token validation failed:', error.message);
+          
+          // Token might be expired, try to refresh
+          if (refreshToken) {
+            console.log('🔄 Token expired, attempting refresh...');
+            const refreshed = await refreshAccessToken();
+            
+            if (refreshed) {
+              // Get updated user data
+              const updatedUser = await AsyncStorage.getItem('userData');
+              if (updatedUser) {
+                const userData = JSON.parse(updatedUser);
+                setUser(userData);
+                setIsAuthenticated(true);
+                setUserRole(userData.role === 'vendor' ? 'business' : 'customer');
+                console.log('✅ Token refreshed successfully on app start');
+              }
+            } else {
+              // Refresh failed, clear auth
+              console.log('❌ Token refresh failed on app start');
+              await clearAuth();
+            }
+          } else {
+            // No refresh token, clear auth
+            console.log('❌ No refresh token available');
+            await clearAuth();
+          }
         }
-      } catch (error) {
-        console.error('Logout API call failed:', error);
+      } else {
+        // No token or user data, clear auth
+        await clearAuth();
       }
-      
-      // Clear local storage
-      await AsyncStorage.multiRemove(['authToken', 'refreshToken', 'userData']);
-      
-      // Clear API headers
-      delete api.defaults.headers.common['Authorization'];
-      
-      // Update state
-      setUser(null);
-      setIsAuthenticated(false);
-      setUserRole(null);
-      
-      console.log('User logged out successfully');
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error('❌ Auth check failed:', error);
+      await clearAuth();
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [refreshAccessToken, clearAuth]);
+
+  useEffect(() => {
+    checkAuthOnStart();
+  }, [checkAuthOnStart]);
 
   return (
     <AuthContext.Provider value={{ 
@@ -625,7 +640,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       logout,
       fetchUserProfile,
       refreshAccessToken,
-      setAuthState, // Export the helper
+      setAuthState,
+      clearAuth,
+      handleSessionExpired,
     }}>
       {children}
     </AuthContext.Provider>

@@ -1,7 +1,6 @@
 // app/(auth)/ResetPasswordForm.tsx
 import images from '@/constants/images';
 import { useRouter } from 'expo-router';
-import { ArrowLeft } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
     Image,
@@ -15,6 +14,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import api from '@/api/api';
 import { endpoints } from '@/api/endpoints';
 import { showToast } from '@/utils/toastHelper';
+import { Ionicons } from '@expo/vector-icons';
 
 const ResetPasswordForm: React.FC = () => {
     const router = useRouter();
@@ -180,7 +180,7 @@ const ResetPasswordForm: React.FC = () => {
                         onPress={handleBack}
                         disabled={isLoading}
                     >
-                        <ArrowLeft size={28} color="#C62828" />
+                        <Ionicons name="arrow-back" size={28} color="#C62828" />
                     </TouchableOpacity>
 
                     {/* Title & Description */}
