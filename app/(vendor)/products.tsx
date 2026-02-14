@@ -70,12 +70,10 @@ const ProductsScreen: React.FC = () => {
                 fetchUrl = `${endpoints.products}${separator}page=${opts.page}`;
             }
             
-            console.log('==========================================');
             console.log('FETCHING PRODUCTS');
             console.log('URL:', fetchUrl);
             console.log('Current products count:', products.length);
             console.log('Page:', opts.page || currentPage);
-            console.log('==========================================');
             
             const res = await api.get(fetchUrl, {
                 headers: {
@@ -84,12 +82,10 @@ const ProductsScreen: React.FC = () => {
             });
 
             // Log the entire response structure
-            console.log('==========================================');
             console.log('API RESPONSE RECEIVED');
             console.log('Status:', res.status);
             console.log('Response keys:', Object.keys(res.data || {}));
             console.log('Full response data:', JSON.stringify(res.data, null, 2));
-            console.log('==========================================');
 
             let list: any[] = [];
             let newNextUrl: string | null = null;

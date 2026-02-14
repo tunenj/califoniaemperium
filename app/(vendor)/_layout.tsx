@@ -8,7 +8,8 @@ import api from "@/api/api";
 import { endpoints } from "@/api/endpoints";
 import { useRouter } from "expo-router";
 
-// Custom drawer content with sign-out
+/* ================= CUSTOM DRAWER CONTENT ================= */
+
 const CustomDrawerContent = ({ navigation, state, descriptors }: any) => {
   const { t } = useLanguage();
   const router = useRouter();
@@ -37,7 +38,8 @@ const CustomDrawerContent = ({ navigation, state, descriptors }: any) => {
 
       Alert.alert(
         t("signed_out") || "Signed Out",
-        t("signed_out_message") || "You have been signed out successfully."
+        t("signed_out_message") ||
+        "You have been signed out successfully."
       );
     } catch (error: any) {
       console.error("Sign out error:", error);
@@ -51,12 +53,12 @@ const CustomDrawerContent = ({ navigation, state, descriptors }: any) => {
       ]);
 
       delete api.defaults.headers.common["Authorization"];
-
       router.replace("/signIn");
 
       Alert.alert(
         t("signed_out") || "Signed Out",
-        t("sign_out_message") || "You have been signed out successfully."
+        t("sign_out_message") ||
+        "You have been signed out successfully."
       );
     }
   };
@@ -66,46 +68,58 @@ const CustomDrawerContent = ({ navigation, state, descriptors }: any) => {
 
     Alert.alert(
       t("confirm_sign_out") || "Sign Out",
-      t("confirm_sign_out_message") || "Are you sure you want to sign out?",
+      t("confirm_sign_out_message") ||
+      "Are you sure you want to sign out?",
       [
         { text: t("cancel") || "Cancel", style: "cancel" },
-        { text: t("sign_out") || "Sign Out", onPress: handleSignOut, style: "destructive" },
+        {
+          text: t("sign_out") || "Sign Out",
+          onPress: handleSignOut,
+          style: "destructive",
+        },
       ]
     );
   };
 
   return (
     <View className="flex-1 mt-20">
-      {state.routes.map((route: any, index: number) => {
-        const { options } = descriptors[route.key];
-        const label = options.drawerLabel ?? options.title ?? route.name;
-        const isFocused = state.index === index;
+      {/* Drawer Items */}
+      {state.routes
+        // Hide profile screen
+        .filter((route: any) => route.name !== "profile")
+        .map((route: any, index: number) => {
+          const { options } = descriptors[route.key];
+          const label =
+            options.drawerLabel ?? options.title ?? route.name;
+          const isFocused = state.index === index;
 
-        return (
-          <TouchableOpacity
-            key={route.key}
-            onPress={() => navigation.navigate(route.name)}
-            className={`flex-row items-center px-4 py-4 ${
-              isFocused ? "bg-gray-100" : "bg-transparent"
-            }`}
-          >
-            {options.drawerIcon &&
-              options.drawerIcon({
-                color: isFocused ? "#000" : "#555",
-                size: 24,
-                focused: isFocused,
-              })}
-            <Text
-              className={`ml-4 text-base ${
-                isFocused ? "text-black font-medium" : "text-gray-600"
-              }`}
+          return (
+            <TouchableOpacity
+              key={route.key}
+              onPress={() => navigation.navigate(route.name)}
+              className={`flex-row items-center px-4 py-4 ${isFocused ? "bg-gray-100" : "bg-transparent"
+                }`}
             >
-              {label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
+              {options.drawerIcon &&
+                options.drawerIcon({
+                  color: isFocused ? "#000" : "#555",
+                  size: 24,
+                  focused: isFocused,
+                })}
 
+              <Text
+                className={`ml-4 text-base ${isFocused
+                  ? "text-black font-medium"
+                  : "text-gray-600"
+                  }`}
+              >
+                {label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+
+      {/* Sign Out */}
       <View className="mt-36 border-t border-gray-200">
         <TouchableOpacity
           onPress={confirmSignOut}
@@ -126,7 +140,8 @@ const CustomDrawerContent = ({ navigation, state, descriptors }: any) => {
   );
 };
 
-// Vendor Drawer Layout
+/* ================= VENDOR DRAWER ================= */
+
 export default function VendorLayout() {
   const { t } = useLanguage();
 
@@ -138,7 +153,9 @@ export default function VendorLayout() {
         drawerActiveTintColor: "#000",
         drawerInactiveTintColor: "#555",
       }}
-      drawerContent={(props) => <CustomDrawerContent {...props} />}
+      drawerContent={(props) => (
+        <CustomDrawerContent {...props} />
+      )}
     >
       <Drawer.Screen
         name="dashboard"
@@ -155,7 +172,11 @@ export default function VendorLayout() {
         options={{
           title: t("products"),
           drawerIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="cube-outline" size={size} color={color} />
+            <MaterialCommunityIcons
+              name="cube-outline"
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
@@ -165,7 +186,11 @@ export default function VendorLayout() {
         options={{
           title: t("orders"),
           drawerIcon: ({ color, size }) => (
-            <Ionicons name="bag-handle-outline" size={size} color={color} />
+            <Ionicons
+              name="bag-handle-outline"
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
@@ -185,12 +210,21 @@ export default function VendorLayout() {
       />
 
       <Drawer.Screen
-        name="profile"
+        name="VendorStore" // Changed from "vendor Store"
         options={{
-          title: t("store_profile"),
+          title: t("vendor Store"), // This can remain for translation
           drawerIcon: ({ color, size }) => (
             <Ionicons name="storefront-outline" size={size} color={color} />
           ),
+        }}
+      />
+
+      {/* Hidden from drawer but usable internally */}
+      <Drawer.Screen
+        name="profile"
+        options={{
+          title: t("store_profile"),
+          drawerItemStyle: { display: "none" },
         }}
       />
     </Drawer>

@@ -1,12 +1,12 @@
 import React from "react";
 import { View, Text, TouchableOpacity, ImageBackground, Image } from "react-native";
-import { Heart } from "lucide-react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 import { colors } from "@/constants/color";
 
 interface StoreCardProps {
   title: string;
-  bg: any;
-  front: any;
+  bg: string | null | undefined;
+  front: string | null | undefined;
   rating?: string;
   sales?: number;
   isVerified?: boolean;
@@ -34,44 +34,96 @@ const StoreCard: React.FC<StoreCardProps> = ({
 
   return (
     <TouchableOpacity
-      className="w-[48%] mb-8"
+      style={{ width: '48%' }}
+      className="mb-8"
       activeOpacity={0.8}
       onPress={onVisitStore}
     >
       <View className="bg-gray-50 rounded-xl overflow-hidden">
-        {/* Store Background Image */}
-        <ImageBackground
-          source={bg}
-          className="h-36 w-full items-center justify-center"
-          resizeMode="cover"
-        >
-          {/* Follow Button */}
-          <TouchableOpacity
-            className="absolute top-2 right-2 w-8 h-8 bg-white/80 rounded-full items-center justify-center"
-            onPress={(e) => {
-              e.stopPropagation();
-              onFollow();
-            }}
+        {/* Store Background Image - Show only if banner exists */}
+        {bg ? (
+          <ImageBackground
+            source={{ uri: bg }}
+            style={{ height: 144, width: '100%' }}
+            resizeMode="cover"
           >
-            <Heart size={18} color={colors.darkRed} />
-          </TouchableOpacity>
+            {/* Follow Button */}
+            <TouchableOpacity
+              style={{ position: 'absolute', top: 8, right: 8 }}
+              className="w-8 h-8 bg-white/80 rounded-full items-center justify-center"
+              onPress={(e) => {
+                e.stopPropagation();
+                onFollow();
+              }}
+            >
+              <MaterialIcons name="favorite-border" size={18} color={colors.darkRed} />
+            </TouchableOpacity>
 
-          {/* Store Logo */}
-          <View className="w-12 h-12 mt-4 mb-6">
-            <Image
-              source={front}
-              className="rounded-xl relative -bottom-12 -left-14 z-10"
-              resizeMode="contain"
-            />
+            {/* Store Logo - Show only if logo exists */}
+            {front && (
+              <View style={{ position: 'absolute', bottom: 8, left: 8 }}>
+                <View className="w-12 h-12 bg-white rounded-lg border-2 border-white overflow-hidden">
+                  <Image
+                    source={{ uri: front }}
+                    style={{ width: '100%', height: '100%' }}
+                    resizeMode="contain"
+                  />
+                </View>
+              </View>
+            )}
+
+            {/* Verified Badge */}
+            {isVerified && (
+              <View style={{ position: 'absolute', bottom: 8, right: 8 }}>
+                <View className="bg-green-500 px-2 py-1 rounded-full">
+                  <Text className="text-white text-xs">✓ Verified</Text>
+                </View>
+              </View>
+            )}
+          </ImageBackground>
+        ) : (
+          <View style={{ height: 144, width: '100%' }} className="bg-gray-200">
+            {/* Follow Button */}
+            <TouchableOpacity
+              style={{ position: 'absolute', top: 8, right: 8 }}
+              className="w-8 h-8 bg-white/80 rounded-full items-center justify-center"
+              onPress={(e) => {
+                e.stopPropagation();
+                onFollow();
+              }}
+            >
+              <MaterialIcons name="favorite-border" size={18} color={colors.darkRed} />
+            </TouchableOpacity>
+
+            {/* Store Logo - Show only if logo exists */}
+            {front ? (
+              <View style={{ position: 'absolute', bottom: 8, left: 8 }}>
+                <View className="w-12 h-12 bg-white rounded-lg border-2 border-white overflow-hidden">
+                  <Image
+                    source={{ uri: front }}
+                    style={{ width: '100%', height: '100%' }}
+                    resizeMode="contain"
+                  />
+                </View>
+              </View>
+            ) : (
+              <View style={{ position: 'absolute', bottom: 8, left: 8 }}>
+                <View className="w-12 h-12 bg-gray-300 rounded-lg items-center justify-center">
+                  <Text className="text-gray-600 text-xs">No Logo</Text>
+                </View>
+              </View>
+            )}
+
+            {/* Verified Badge */}
+            {isVerified && (
+              <View style={{ position: 'absolute', bottom: 8, right: 8 }}>
+                <View className="bg-green-500 px-2 py-1 rounded-full">
+                  <Text className="text-white text-xs">✓ Verified</Text>
+                </View>
+              </View>
+            )}
           </View>
-
-          {/* Verified Badge */}
-          {isVerified && (
-            <View className="absolute bottom-2 right-2 bg-green-500 px-2 py-1 rounded-full">
-              <Text className="text-white text-xs">✓ Verified</Text>
-            </View>
-          )}
-        </ImageBackground>
+        )}
 
         {/* Store Info */}
         <View className="p-3">

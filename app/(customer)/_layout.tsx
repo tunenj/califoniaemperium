@@ -14,7 +14,8 @@ export default function CustomerLayout() {
     'profile-setup',
     'product/[slug]',
     'explore-dropship',
-    'wishlist'
+    'wishlist',
+    'checkout/confirmation',
   ];
 
   return (

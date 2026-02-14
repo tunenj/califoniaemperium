@@ -16,7 +16,7 @@ import { useRouter } from "expo-router";
 import DashboardHeader from "@/components/explore/DashboardHeader";
 import api from "@/api/api";
 import { endpoints } from "@/api/endpoints";
-import { ShoppingCart, Package, Truck, Star, Check, Heart } from "lucide-react-native";
+import { MaterialCommunityIcons, Feather, AntDesign } from "@expo/vector-icons";
 import { useExploreSearch } from "@/context/ExploreSearchContext";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
@@ -393,7 +393,7 @@ const ExploreDropship = () => {
       >
         {/* Dropship Badge */}
         <View className="absolute top-2 left-2 z-10 bg-blue-500 px-2 py-1 rounded-full flex-row items-center">
-          <Package size={12} color="white" />
+          <MaterialCommunityIcons name="package-variant" size={12} color="white" />
           <Text className="text-white text-xs font-semibold ml-1">Stock</Text>
         </View>
 
@@ -416,18 +416,18 @@ const ExploreDropship = () => {
           {isWishlistToggling ? (
             <ActivityIndicator size="small" color="#DC2626" />
           ) : (
-            <Heart 
+            <AntDesign 
+              name="heart" 
               size={18} 
               color="#DC2626" 
-              fill={isProductInWishlist ? "#DC2626" : "transparent"}
-              strokeWidth={2}
+              style={{ color: "#DC2626" }}
             />
           )}
         </TouchableOpacity>
 
         {/* Shipping Info Badge */}
         <View className="absolute top-12 right-2 z-10 bg-green-500 px-2 py-1 rounded-full flex-row items-center">
-          <Truck size={12} color="white" />
+          <Feather name="truck" size={12} color="white" />
           <Text className="text-white text-xs font-semibold ml-1">
             {item.shipping_time_min}-{item.shipping_time_max}d
           </Text>
@@ -461,7 +461,7 @@ const ExploreDropship = () => {
         <View className="flex-row items-center justify-between mb-2">
           {item.product.rating_average && parseFloat(item.product.rating_average) > 0 ? (
             <View className="flex-row items-center">
-              <Star size={14} color="#F59E0B" fill="#F59E0B" />
+              <AntDesign name="star" size={14} color="#F59E0B" />
               <Text className="text-xs font-semibold text-yellow-700 ml-1">
                 {parseFloat(item.product.rating_average).toFixed(1)}
               </Text>
@@ -537,9 +537,9 @@ const ExploreDropship = () => {
             {isProductAdding ? (
               <ActivityIndicator size="small" color="white" />
             ) : isProductInCart ? (
-              <Check size={18} color="white" />
+              <AntDesign name="check" size={18} color="white" />
             ) : (
-              <ShoppingCart size={18} color="white" />
+              <MaterialCommunityIcons name="cart-outline" size={18} color="white" />
             )}
           </TouchableOpacity>
         </View>

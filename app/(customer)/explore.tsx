@@ -1,5 +1,5 @@
 // app/(customer)/explore.tsx
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, memo } from "react";
 import {
   SafeAreaView,
   View,
@@ -10,14 +10,15 @@ import {
   RefreshControl,
   Dimensions,
   Alert,
+  Image,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { MaterialIcons, FontAwesome, AntDesign } from "@expo/vector-icons";
 import DashboardHeader from "@/components/explore/DashboardHeader";
 import api from "@/api/api";
 import { endpoints } from "@/api/endpoints";
-import { ShoppingCart, Package, Check, Heart } from "lucide-react-native";
 import { useExploreSearch } from "@/context/ExploreSearchContext";
-import { useCart } from "@/context/CartContext"; 
+import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useAuth } from "@/context/AuthContext";
 
@@ -29,7 +30,7 @@ interface Product {
   short_description: string;
   product_type: string;
   category_name: string;
-  brand_name: string;
+  brand_name: string | null;
   price: string;
   compare_at_price: string | null;
   discount_percentage: number;
@@ -43,29 +44,224 @@ interface Product {
 }
 
 interface ProductsResponse {
-  results: Product[];
   count: number;
   next: string | null;
   previous: string | null;
-  current_page: number;
-  total_pages: number;
+  results: Product[];
 }
 
 const { width } = Dimensions.get("window");
 const ITEM_WIDTH = (width - 24) / 2;
 
+// ✅ OPTIMIZED: Memoized Product Image Component
+const ProductImage = memo(({ uri }: { uri: string | null }) => {
+  const [imageLoading, setImageLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
+
+  if (!uri || imageError) {
+    return (
+      <View className="w-full h-full items-center justify-center bg-gray-100">
+        <MaterialIcons name="image" size={40} color="#9CA3AF" />
+        <Text className="text-xs text-gray-400 mt-1">No image</Text>
+      </View>
+    );
+  }
+
+  return (
+    <>
+      {imageLoading && (
+        <View className="absolute inset-0 items-center justify-center bg-gray-100 z-10">
+          <ActivityIndicator size="small" color="#DC2626" />
+        </View>
+      )}
+      <Image
+        source={{ 
+          uri,
+          // ✅ Add cache control
+          cache: 'force-cache',
+        }}
+        className="w-full h-full"
+        resizeMode="contain"
+        onLoadStart={() => setImageLoading(true)}
+        onLoadEnd={() => setImageLoading(false)}
+        onError={() => {
+          setImageError(true);
+          setImageLoading(false);
+        }}
+      />
+    </>
+  );
+});
+
+ProductImage.displayName = 'ProductImage';
+
+// ✅ OPTIMIZED: Memoized Product Item Component
+const ProductItem = memo(({ 
+  item, 
+  onPress, 
+  onAddToCart, 
+  onWishlistToggle,
+  isInCart,
+  isInWishlist,
+  isAddingToCart,
+  isTogglingWishlist,
+  cartSyncing,
+  formatPrice,
+  getDiscountPercentage,
+}: {
+  item: Product;
+  onPress: (product: Product) => void;
+  onAddToCart: (product: Product) => void;
+  onWishlistToggle: (product: Product) => void;
+  isInCart: boolean;
+  isInWishlist: boolean;
+  isAddingToCart: boolean;
+  isTogglingWishlist: boolean;
+  cartSyncing: boolean;
+  formatPrice: (price: string) => string;
+  getDiscountPercentage: (price: string, comparePrice: string | null) => number;
+}) => {
+  const isProductOutOfStock = !item.is_in_stock;
+  const discountPercentage = getDiscountPercentage(item.price, item.compare_at_price);
+
+  return (
+    <TouchableOpacity
+      className="bg-white rounded-xl shadow-sm p-3 border border-gray-200 m-1 relative"
+      style={{ width: ITEM_WIDTH }}
+      onPress={() => onPress(item)}
+      activeOpacity={0.9}
+    >
+      {/* Discount Badge */}
+      {discountPercentage > 0 && (
+        <View className="absolute top-2 left-2 z-20 bg-red-500 px-2 py-1 rounded-full">
+          <Text className="text-white text-xs font-bold">-{discountPercentage}%</Text>
+        </View>
+      )}
+
+      {/* Wishlist Icon */}
+      <TouchableOpacity
+        className="absolute top-2 right-2 z-20 bg-white rounded-full p-2 shadow-md"
+        style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}
+        onPress={(e) => {
+          e.stopPropagation();
+          onWishlistToggle(item);
+        }}
+        disabled={isTogglingWishlist}
+      >
+        {isTogglingWishlist ? (
+          <ActivityIndicator size="small" color="#DC2626" />
+        ) : (
+          <AntDesign
+            name={isInWishlist ? "heart" : "heart"}
+            size={18}
+            color={isInWishlist ? "#DC2626" : "#6B7280"}
+          />
+        )}
+      </TouchableOpacity>
+
+      {/* Product Image - Now Optimized */}
+      <View className="w-full h-40 bg-gray-100 rounded-lg mb-3 overflow-hidden">
+        <ProductImage uri={item.main_image} />
+      </View>
+
+      {/* Product Name */}
+      <Text className="font-semibold text-gray-800 mb-1" numberOfLines={2}>
+        {item.name}
+      </Text>
+
+      {/* Category Name */}
+      <Text className="text-xs text-gray-500 mb-2" numberOfLines={1}>
+        {item.category_name}
+      </Text>
+
+      {/* Rating */}
+      <View className="flex-row items-center mb-2">
+        {item.rating_count > 0 ? (
+          <>
+            <View className="flex-row items-center bg-yellow-50 px-2 py-1 rounded">
+              <Text className="text-yellow-500 mr-1">★</Text>
+              <Text className="text-xs font-semibold text-yellow-700">
+                {parseFloat(item.rating_average).toFixed(1)}
+              </Text>
+            </View>
+            <Text className="text-xs text-gray-400 ml-1">
+              ({item.rating_count})
+            </Text>
+          </>
+        ) : (
+          <Text className="text-xs text-gray-400">No ratings yet</Text>
+        )}
+      </View>
+
+      {/* Stock Status */}
+      {isProductOutOfStock && (
+        <Text className="text-xs text-red-500 font-medium mb-2">Out of Stock</Text>
+      )}
+
+      {/* Pricing */}
+      <View className="flex-row items-center justify-between">
+        <View>
+          <Text className="text-darkRed font-bold text-lg">
+            {formatPrice(item.price)}
+          </Text>
+          {item.compare_at_price && parseFloat(item.compare_at_price) > parseFloat(item.price) && (
+            <Text className="text-xs text-gray-400 line-through">
+              {formatPrice(item.compare_at_price)}
+            </Text>
+          )}
+        </View>
+
+        {/* Add to Cart Button */}
+        <TouchableOpacity
+          className={`p-2 rounded-lg ${isInCart ? 'bg-green-600' : 'bg-darkRed'}`}
+          style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
+          onPress={(e) => {
+            e.stopPropagation();
+
+            if (isInCart) {
+              Alert.alert(
+                "Already in Cart",
+                `${item.name} is already in your cart`,
+                [{ text: "OK" }]
+              );
+            } else {
+              onAddToCart(item);
+            }
+          }}
+          disabled={isProductOutOfStock || isAddingToCart || cartSyncing}
+        >
+          {isAddingToCart ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : isInCart ? (
+            <AntDesign name="check" size={18} color="white" />
+          ) : (
+            <FontAwesome name="shopping-cart" size={18} color="white" />
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* In Cart Badge */}
+      {isInCart && !isAddingToCart && (
+        <View className="absolute top-2 left-2 bg-green-100 px-2 py-1 rounded-full border border-green-300">
+          <Text className="text-xs text-green-800 font-medium">In Cart</Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+});
+
+ProductItem.displayName = 'ProductItem';
+
 const Explore = () => {
   const router = useRouter();
   const { searchQuery } = useExploreSearch();
-  
-  // Use the cart context
-  const { 
-    addItem, 
-    isInCart, 
+
+  const {
+    addItem,
+    isInCart,
     syncing: cartSyncing
   } = useCart();
 
-  // Use the wishlist context
   const {
     addToWishlist,
     removeFromWishlist,
@@ -74,7 +270,6 @@ const Explore = () => {
     syncing: wishlistSyncing
   } = useWishlist();
 
-  // Use auth context
   const { isAuthenticated } = useAuth();
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -85,14 +280,9 @@ const Explore = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [totalProducts, setTotalProducts] = useState(0);
-  
-  // State to track which products are being added to cart
-  const [addingToCart, setAddingToCart] = useState<{[key: string]: boolean}>({});
-  
-  // State to track which products are being toggled in wishlist
-  const [togglingWishlist, setTogglingWishlist] = useState<{[key: string]: boolean}>({});
+  const [addingToCart, setAddingToCart] = useState<{ [key: string]: boolean }>({});
+  const [togglingWishlist, setTogglingWishlist] = useState<{ [key: string]: boolean }>({});
 
-  // Fetch products
   const fetchProducts = useCallback(
     async (page: number = 1, isRefresh: boolean = false) => {
       try {
@@ -109,15 +299,11 @@ const Explore = () => {
         const response = await api.get<ProductsResponse>(url);
 
         const newProducts = response.data.results || [];
-        const productsWithUniqueKeys = newProducts.map((product, index) => ({
-          ...product,
-          uniqueKey: `${product.id}-${product.sku || index}-${Date.now()}`,
-        }));
 
         if (page === 1 || isRefresh) {
-          setProducts(productsWithUniqueKeys);
+          setProducts(newProducts);
         } else {
-          setProducts((prev) => [...prev, ...productsWithUniqueKeys]);
+          setProducts((prev) => [...prev, ...newProducts]);
         }
 
         setHasMore(response.data.next !== null);
@@ -140,8 +326,7 @@ const Explore = () => {
     setCurrentPage(1);
     setProducts([]);
     fetchProducts(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery]);
+  }, [searchQuery, fetchProducts]);
 
   const loadMoreProducts = useCallback(() => {
     if (hasMore && !productsLoading && !loading) fetchProducts(currentPage + 1);
@@ -167,16 +352,18 @@ const Explore = () => {
   const formatPrice = useCallback((price: string) => {
     const numPrice = parseFloat(price);
     if (isNaN(numPrice)) return "₦0";
-    return `₦${numPrice.toLocaleString("en-NG", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+    return `₦${numPrice.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }, []);
 
-  const getUniqueKey = useCallback((item: Product, index: number) => 
-    `${item.id}-${item.sku || "no-sku"}-${index}-${Date.now()}`, 
-  []);
+  const getDiscountPercentage = useCallback((price: string, comparePrice: string | null) => {
+    if (!comparePrice) return 0;
+    const original = parseFloat(comparePrice);
+    const current = parseFloat(price);
+    if (original <= current) return 0;
+    return Math.round(((original - current) / original) * 100);
+  }, []);
 
-  // Handle add to cart
   const handleAddToCart = useCallback(async (product: Product) => {
-    // Check if product is in stock
     if (!product.is_in_stock) {
       Alert.alert(
         "Out of Stock",
@@ -186,42 +373,33 @@ const Explore = () => {
       return;
     }
 
-    // Set loading state for this specific product
     setAddingToCart(prev => ({ ...prev, [product.id]: true }));
 
     try {
-      // Prepare item data for the cart
       const itemData = {
         productId: product.id,
         storeName: product.brand_name || 'Unknown Store',
         productName: product.name,
         price: parseFloat(product.price),
-        originalPrice: product.compare_at_price 
+        originalPrice: product.compare_at_price
           ? parseFloat(product.compare_at_price)
           : parseFloat(product.price),
         image: product.main_image || null,
       };
 
-      console.log('🛒 Adding product to cart:', itemData);
-
-      // Add to cart via API
       const result = await addItem(itemData, 1);
-      
+
       if (result.success) {
         console.log("✅ Added to cart:", product.name);
       }
     } catch (error) {
       console.error("Error adding to cart:", error);
-      // Error is already handled in the CartContext
     } finally {
-      // Clear loading state for this product
       setAddingToCart(prev => ({ ...prev, [product.id]: false }));
     }
   }, [addItem]);
 
-  // Handle wishlist toggle
   const handleWishlistToggle = useCallback(async (product: Product) => {
-    // Check if user is authenticated
     if (!isAuthenticated) {
       Alert.alert(
         'Sign In Required',
@@ -240,192 +418,82 @@ const Explore = () => {
     const productId = product.id;
     const isCurrentlyInWishlist = isInWishlist(productId);
 
-    // Prevent multiple simultaneous operations on the same product
     if (togglingWishlist[productId]) {
       return;
     }
 
-    // Set loading state for this specific product
     setTogglingWishlist(prev => ({ ...prev, [productId]: true }));
 
     try {
       if (isCurrentlyInWishlist) {
-        // Get the wishlist ID for this product
         const wishlistId = getWishlistId(productId);
-        
+
         if (!wishlistId) {
           console.error('[Wishlist] No wishlist ID found for product:', productId);
           Alert.alert('Error', 'Failed to remove from wishlist');
           setTogglingWishlist(prev => ({ ...prev, [productId]: false }));
           return;
         }
-        
-        // Remove from wishlist using wishlist_id
-        // This calls DELETE /orders/wishlist/:wishlist_id/
+
         const success = await removeFromWishlist(wishlistId);
-        
+
         if (success) {
           console.log("✅ Removed from wishlist:", product.name);
         }
       } else {
-        // Add to wishlist
         const result = await addToWishlist(productId);
-        
+
         if (result.success) {
           console.log("✅ Added to wishlist:", product.name);
         }
       }
     } catch (error: any) {
       console.error("Error toggling wishlist:", error);
-      
-      // Error is already handled in WishlistContext, but show a user-friendly message
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.detail ||
-                          error.message ||
-                          "Failed to update wishlist";
-      
+
+      const errorMessage = error.response?.data?.message ||
+        error.response?.data?.detail ||
+        error.message ||
+        "Failed to update wishlist";
+
       Alert.alert(
         "Wishlist Error",
         errorMessage,
         [{ text: "OK" }]
       );
     } finally {
-      // Clear loading state for this product
       setTogglingWishlist(prev => ({ ...prev, [productId]: false }));
     }
   }, [isAuthenticated, router, isInWishlist, addToWishlist, removeFromWishlist, getWishlistId, togglingWishlist]);
 
-  // Check if a product is currently being added to cart
-  const isAddingToCart = useCallback((productId: string) => {
-    return addingToCart[productId] || false;
-  }, [addingToCart]);
-
-  // Check if wishlist operation is in progress for a product
-  const isTogglingWishlist = useCallback((productId: string) => {
-    return togglingWishlist[productId] || false;
-  }, [togglingWishlist]);
-
-  const renderProductItem = useCallback(({ item, index }: { item: Product; index: number }) => {
-    const isProductInCart = isInCart(item.id);
-    const isProductAddingToCart = isAddingToCart(item.id);
-    const isProductOutOfStock = !item.is_in_stock;
-    const isProductInWishlist = isInWishlist(item.id);
-    const isWishlistToggling = isTogglingWishlist(item.id);
-    
+  // ✅ OPTIMIZED: Render product item using memoized component
+  const renderProductItem = useCallback(({ item }: { item: Product }) => {
     return (
-      <TouchableOpacity
-        className="bg-white rounded-xl shadow-sm p-3 border border-gray-200 m-1 relative"
-        style={{ width: ITEM_WIDTH }}
-        onPress={() => handleProductPress(item)}
-        activeOpacity={0.9}
-      >
-        {/* Wishlist Icon */}
-        <TouchableOpacity
-          className="absolute top-2 right-2 z-20 bg-white rounded-full p-2 shadow-md"
-          onPress={(e) => {
-            e.stopPropagation();
-            handleWishlistToggle(item);
-          }}
-          disabled={isWishlistToggling}
-          style={{
-            opacity: isWishlistToggling ? 0.6 : 1,
-            minWidth: 32,
-            minHeight: 32,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          {isWishlistToggling ? (
-            <ActivityIndicator size="small" color="#DC2626" />
-          ) : (
-            <Heart
-              size={18}
-              color="#DC2626"
-              fill={isProductInWishlist ? "#DC2626" : "transparent"}
-              strokeWidth={2}
-            />
-          )}
-        </TouchableOpacity>
-
-        {/* Product Image/Placeholder */}
-        <View className="w-full h-40 bg-gray-100 rounded-lg mb-3 items-center justify-center">
-          <Text className="text-xs text-gray-500 text-center px-1">{item.category_name || "Product"}</Text>
-        </View>
-
-        {/* Product Name */}
-        <Text className="font-semibold text-gray-800 mb-1" numberOfLines={2}>{item.name || "Unnamed Product"}</Text>
-        
-        {/* Brand Name */}
-        <Text className="text-xs text-gray-500 mb-2" numberOfLines={1}>{item.brand_name || "No Brand"}</Text>
-
-        {/* Rating and Stock Status */}
-        <View className="flex-row items-center justify-between mb-2">
-          {item.rating_average && parseFloat(item.rating_average) > 0 ? (
-            <View className="flex-row items-center bg-yellow-50 px-2 py-1 rounded">
-              <Text className="text-yellow-500 mr-1">★</Text>
-              <Text className="text-xs font-semibold text-yellow-700">{parseFloat(item.rating_average).toFixed(1)}</Text>
-            </View>
-          ) : (
-            <Text className="text-xs text-gray-400">No ratings</Text>
-          )}
-          
-          {isProductOutOfStock && (
-            <Text className="text-xs text-red-500 font-medium">Out of stock</Text>
-          )}
-        </View>
-
-        {/* Pricing */}
-        <View className="flex-row items-center justify-between">
-          <View>
-            <Text className="text-darkRed font-bold text-lg">{formatPrice(item.price)}</Text>
-            {item.compare_at_price && parseFloat(item.compare_at_price) > parseFloat(item.price) && (
-              <Text className="text-xs text-gray-400 line-through">{formatPrice(item.compare_at_price)}</Text>
-            )}
-          </View>
-          
-          {/* Add to Cart Button */}
-          <TouchableOpacity
-            className={`p-2 rounded-lg ${isProductInCart ? 'bg-green-600' : 'bg-darkRed'}`}
-            onPress={(e) => {
-              e.stopPropagation();
-              
-              // If already in cart, show message instead of re-adding
-              if (isProductInCart) {
-                Alert.alert(
-                  "Already in Cart",
-                  `${item.name} is already in your cart`,
-                  [{ text: "OK" }]
-                );
-              } else {
-                handleAddToCart(item);
-              }
-            }}
-            disabled={isProductOutOfStock || isProductAddingToCart || cartSyncing}
-            style={{ 
-              opacity: isProductOutOfStock ? 0.5 : 1,
-              minWidth: 44,
-              minHeight: 44,
-            }}
-          >
-            {isProductAddingToCart ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : isProductInCart ? (
-              <Check size={18} color="white" />
-            ) : (
-              <ShoppingCart size={18} color="white" />
-            )}
-          </TouchableOpacity>
-        </View>
-        
-        {/* Optional: Show "In Cart" badge */}
-        {isProductInCart && !isProductAddingToCart && (
-          <View className="absolute top-2 left-2 bg-green-100 px-2 py-1 rounded-full border border-green-300">
-            <Text className="text-xs text-green-800 font-medium">In Cart</Text>
-          </View>
-        )}
-      </TouchableOpacity>
+      <ProductItem
+        item={item}
+        onPress={handleProductPress}
+        onAddToCart={handleAddToCart}
+        onWishlistToggle={handleWishlistToggle}
+        isInCart={isInCart(item.id)}
+        isInWishlist={isInWishlist(item.id)}
+        isAddingToCart={addingToCart[item.id] || false}
+        isTogglingWishlist={togglingWishlist[item.id] || false}
+        cartSyncing={cartSyncing}
+        formatPrice={formatPrice}
+        getDiscountPercentage={getDiscountPercentage}
+      />
     );
-  }, [handleProductPress, formatPrice, handleAddToCart, isInCart, cartSyncing, isInWishlist, handleWishlistToggle, isAddingToCart, isTogglingWishlist]);
+  }, [
+    handleProductPress, 
+    handleAddToCart, 
+    handleWishlistToggle, 
+    isInCart, 
+    isInWishlist,
+    addingToCart,
+    togglingWishlist,
+    cartSyncing,
+    formatPrice,
+    getDiscountPercentage
+  ]);
 
   const renderFooter = useCallback(() => {
     if (productsLoading) return (
@@ -436,8 +504,8 @@ const Explore = () => {
     );
 
     if (hasMore && products.length > 0) return (
-      <TouchableOpacity 
-        className="py-4 items-center" 
+      <TouchableOpacity
+        className="py-4 items-center"
         onPress={loadMoreProducts}
         disabled={productsLoading}
       >
@@ -461,18 +529,26 @@ const Explore = () => {
   }, [productsLoading, hasMore, products.length, totalProducts, loadMoreProducts]);
 
   const renderEmpty = useCallback(() => (
-    <View className="py-20 items-center px-4">
-      <Text className="text-gray-600 text-lg font-medium mb-2">
+    <View className="py-20 items-center px-4 flex-1 justify-center">
+      <MaterialIcons name="search-off" size={64} color="#9CA3AF" />
+      <Text className="text-gray-800 text-lg font-medium mt-4 mb-2">
         No products found
       </Text>
       <Text className="text-gray-500 text-center mb-6">
         {error || "Try adjusting your search or browse different categories"}
       </Text>
-      <TouchableOpacity className="bg-red-600 px-6 py-3 rounded-lg" onPress={handleRetry}>
+      <TouchableOpacity
+        className="bg-red-600 px-6 py-3 rounded-lg"
+        onPress={handleRetry}
+      >
         <Text className="text-white font-medium">Browse Products</Text>
       </TouchableOpacity>
     </View>
   ), [error, handleRetry]);
+
+  const getUniqueKey = useCallback((item: Product, index: number) => {
+    return `${item.id}-${item.sku || index}`;
+  }, []);
 
   if (loading && products.length === 0) {
     return (
@@ -490,7 +566,6 @@ const Explore = () => {
     <SafeAreaView className="flex-1 bg-gray-50">
       <DashboardHeader />
 
-      {/* Product Type Toggle */}
       <View className="bg-white px-4 py-3 border-b border-gray-200">
         <View className="flex-row items-center bg-gray-100 rounded-lg p-1">
           <TouchableOpacity
@@ -508,7 +583,7 @@ const Explore = () => {
             onPress={() => router.push("/(customer)/explore-dropship")}
             activeOpacity={0.7}
           >
-            <Package size={16} color="#DC2626" />
+            <MaterialIcons name="inventory" size={16} color="#DC2626" />
             <Text className="text-center text-sm font-medium ml-1 text-darkRed">
               Stock Products
             </Text>
@@ -516,7 +591,6 @@ const Explore = () => {
         </View>
       </View>
 
-      {/* Product Count */}
       <View className="px-4 py-3 bg-white border-b border-gray-200">
         <Text className="text-sm font-medium text-gray-900">
           {totalProducts} {totalProducts === 1 ? "product" : "products"} found
@@ -527,16 +601,23 @@ const Explore = () => {
       <FlatList
         data={products}
         renderItem={renderProductItem}
-        keyExtractor={(item, index) => getUniqueKey(item, index)}
+        keyExtractor={getUniqueKey}
         numColumns={2}
-        contentContainerStyle={{ padding: 8, paddingBottom: 20, flexGrow: products.length === 0 ? 1 : 0 }}
-        columnWrapperStyle={{ justifyContent: "space-between", marginBottom: 8 }}
+        contentContainerStyle={{ 
+          padding: 8, 
+          paddingBottom: 20, 
+          flexGrow: products.length === 0 ? 1 : 0 
+        }}
+        columnWrapperStyle={{ 
+          justifyContent: "space-between", 
+          marginBottom: 8 
+        }}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={onRefresh} 
-            colors={["#DC2626"]} 
-            tintColor="#DC2626" 
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#DC2626"]}
+            tintColor="#DC2626"
           />
         }
         ListFooterComponent={renderFooter}
@@ -544,11 +625,17 @@ const Explore = () => {
         onEndReached={loadMoreProducts}
         onEndReachedThreshold={0.5}
         showsVerticalScrollIndicator={false}
+        // ✅ PERFORMANCE OPTIMIZATIONS
         removeClippedSubviews={true}
-        initialNumToRender={10}
-        maxToRenderPerBatch={10}
+        initialNumToRender={6}
+        maxToRenderPerBatch={6}
         windowSize={5}
-        // Disable scroll when cart or wishlist is syncing
+        updateCellsBatchingPeriod={50}
+        getItemLayout={(data, index) => ({
+          length: 280, // Approximate item height
+          offset: 280 * index,
+          index,
+        })}
         scrollEnabled={!cartSyncing && !wishlistSyncing}
       />
     </SafeAreaView>

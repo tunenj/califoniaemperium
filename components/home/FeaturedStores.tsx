@@ -2,8 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import StoreCard from "./StoreCard";
-import images from "@/constants/images";
-import { ChevronRight } from "lucide-react-native";
+import { AntDesign } from "@expo/vector-icons";
 import { colors } from "@/constants/color";
 import { useLanguage } from "@/context/LanguageContext";
 import api from '@/api/api';
@@ -56,71 +55,6 @@ const FeaturedStores = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Static fallback card data with default images
-  const cardData = [
-    {
-      id: "tech-store-nigeria-africa",
-      title: t("tech_store_nigeria") || "Tech Store Nigeria",
-      bg: images.electronicsBg,
-      front: images.electronicsIcon,
-      rating: "4.9",
-      sales: 453,
-      verified: true,
-      business_slug: "tech-store-nigeria-africa" // Added business_slug for static data
-    },
-    {
-      id: "fashion-hub",
-      title: t("fashion_hub") || "Fashion Hub",
-      bg: images.fashionBg,
-      front: images.fashionIcon,
-      rating: "4.5",
-      sales: 464,
-      verified: true,
-      business_slug: "fashion-hub"
-    },
-    {
-      id: "home-essentials",
-      title: t("home_essentials") || "Home Essentials",
-      bg: images.groceryBg,
-      front: images.groceryIcon,
-      rating: "3.8",
-      sales: 171,
-      verified: true,
-      business_slug: "home-essentials"
-    },
-    {
-      id: "electronics-plus",
-      title: t("electronics_plus") || "Electronics Plus",
-      bg: images.computerBg,
-      front: images.computerIcon,
-      rating: "4.0",
-      sales: 78,
-      verified: true,
-      business_slug: "electronics-plus"
-    }
-  ];
-
-  // Get business type icon based on business_type
-  const getBusinessIcon = useCallback((businessType: string, index: number) => {
-    const type = businessType.toLowerCase();
-    if (type.includes('tech') || type.includes('electronic') || type.includes('gadget') || type.includes('it')) {
-      return { bg: images.electronicsBg, front: images.electronicsIcon };
-    } else if (type.includes('fashion') || type.includes('apparel') || type.includes('clothing')) {
-      return { bg: images.fashionBg, front: images.fashionIcon };
-    } else if (type.includes('home') || type.includes('kitchen') || type.includes('essential') || type.includes('grocery')) {
-      return { bg: images.groceryBg, front: images.groceryIcon };
-    } else {
-      // Default fallback based on position in array
-      const imageMap = [
-        { bg: images.electronicsBg, front: images.electronicsIcon },
-        { bg: images.fashionBg, front: images.fashionIcon },
-        { bg: images.groceryBg, front: images.groceryIcon },
-        { bg: images.computerBg, front: images.computerIcon },
-      ];
-      return imageMap[index % imageMap.length];
-    }
-  }, []);
-
   // Get top vendors from API
   const getTopVendors = useCallback((vendorsList: Vendor[]): Vendor[] => {
     // Filter active and verified vendors
@@ -166,7 +100,7 @@ const FeaturedStores = () => {
         const topVendors = getTopVendors(response.data.results);
         setVendors(topVendors);
       } else {
-        console.log("API returned no results, using static data");
+        setVendors([]);
       }
     } catch (error: any) {
       console.error("Error fetching vendors:", error);
@@ -183,9 +117,6 @@ const FeaturedStores = () => {
   const handleRetry = useCallback(() => {
     fetchVendors();
   }, [fetchVendors]);
-
-  // Determine which data to display
-  const displayData = vendors.length > 0 ? vendors : cardData;
 
   return (
     <View className="mt-2 px-4 bg-white rounded-2xl mx-2">
@@ -207,7 +138,7 @@ const FeaturedStores = () => {
           <Text className="text-darkRed text-sm">
             {t("view_more") || "View more"}
           </Text>
-          <ChevronRight size={16} color={colors.darkRed} />
+          <AntDesign name="right" size={16} color={colors.darkRed} />
         </TouchableOpacity>
       </View>
 
@@ -220,11 +151,10 @@ const FeaturedStores = () => {
           </Text>
         </View>
       ) : error ? (
-        // Show error but still display static data
         <View className="pb-4">
           <View className="bg-red-50 p-3 rounded-lg mb-3">
             <Text className="text-red-500 text-sm">
-              {error}. Showing sample stores.
+              {error}
             </Text>
             <TouchableOpacity 
               className="mt-2 bg-darkRed px-4 py-2 rounded-lg self-start"
@@ -235,87 +165,45 @@ const FeaturedStores = () => {
               </Text>
             </TouchableOpacity>
           </View>
-          <View className="flex-row flex-wrap justify-between pb-4">
-            {displayData.map((item, index) => {
-              const isVendor = 'business_name' in item;
-              const title = isVendor ? (item as Vendor).business_name : (item as any).title;
-              const id = isVendor ? (item as Vendor).id : (item as any).id;
-              const rating = isVendor ? formatRating((item as Vendor).rating_average) : (item as any).rating;
-              const sales = isVendor ? (item as Vendor).total_sales : (item as any).sales;
-              const verified = isVendor ? (item as Vendor).is_verified : (item as any).verified;
-              const businessSlug = isVendor ? (item as Vendor).business_slug : (item as any).business_slug || id;
-              const businessImages = isVendor 
-                ? getBusinessIcon((item as Vendor).business_type, index)
-                : { bg: (item as any).bg, front: (item as any).front };
-              const bg = isVendor ? (item as Vendor).banner || businessImages.bg : (item as any).bg;
-              const front = isVendor ? (item as Vendor).logo || businessImages.front : (item as any).front;
-              
-              return (
-                <StoreCard
-                  key={id}
-                  title={title}
-                  bg={bg}
-                  front={front}
-                  rating={rating}
-                  sales={sales}
-                  isVerified={verified}
-                  onVisitStore={() =>
-                    router.push({
-                      pathname: "/(customer)/store/[slug]",
-                      params: {
-                        id: id,
-                        storeName: title,
-                        slug: businessSlug, // Required by the route
-                        storeSlug: businessSlug, // Additional parameter if needed elsewhere
-                      },
-                    })
-                  }
-                  onFollow={() => console.log("Follow", title)}
-                />
-              );
-            })}
-          </View>
+          {vendors.length === 0 && (
+            <View className="items-center justify-center py-10">
+              <Text className="text-gray-500 text-base">
+                {t('no_featured_stores') || "No featured stores available"}
+              </Text>
+            </View>
+          )}
+        </View>
+      ) : vendors.length === 0 ? (
+        <View className="items-center justify-center py-10">
+          <Text className="text-gray-500 text-base">
+            {t('no_featured_stores') || "No featured stores available"}
+          </Text>
         </View>
       ) : (
         <View className="flex-row flex-wrap justify-between pb-4">
-          {displayData.map((item, index) => {
-            const isVendor = 'business_name' in item;
-            const title = isVendor ? (item as Vendor).business_name : (item as any).title;
-            const id = isVendor ? (item as Vendor).id : (item as any).id;
-            const rating = isVendor ? formatRating((item as Vendor).rating_average) : (item as any).rating;
-            const sales = isVendor ? (item as Vendor).total_sales : (item as any).sales;
-            const verified = isVendor ? (item as Vendor).is_verified : (item as any).verified;
-            const businessSlug = isVendor ? (item as Vendor).business_slug : (item as any).business_slug || id;
-            const businessImages = isVendor 
-              ? getBusinessIcon((item as Vendor).business_type, index)
-              : { bg: (item as any).bg, front: (item as any).front };
-            const bg = isVendor ? (item as Vendor).banner || businessImages.bg : (item as any).bg;
-            const front = isVendor ? (item as Vendor).logo || businessImages.front : (item as any).front;
-            
-            return (
-              <StoreCard
-                key={id}
-                title={title}
-                bg={bg}
-                front={front}
-                rating={rating}
-                sales={sales}
-                isVerified={verified}
-                onVisitStore={() =>
-                  router.push({
-                    pathname: "/(customer)/store/[slug]",
-                    params: {
-                      id: id,
-                      storeName: title,
-                      slug: businessSlug, // Required by the route
-                      storeSlug: businessSlug, // Additional parameter if needed elsewhere
-                    },
-                  })
-                }
-                onFollow={() => console.log("Follow", title)}
-              />
-            );
-          })}
+          {vendors.map((vendor) => (
+            <StoreCard
+              key={vendor.id}
+              title={vendor.business_name}
+              bg={vendor.banner}
+              front={vendor.logo}
+              rating={formatRating(vendor.rating_average)}
+              sales={vendor.total_sales}
+              isVerified={vendor.is_verified}
+              onVisitStore={() =>
+                router.push({
+                  pathname: "/(customer)/store/[slug]",
+                  params: {
+                    id: vendor.id,
+                    storeName: vendor.business_name,
+                    slug: vendor.business_slug,
+                    storeSlug: vendor.business_slug,
+                  },
+                })
+              }
+              onFollow={() => console.log("Follow", vendor.business_name)}
+            />
+          ))}
         </View>
       )}
     </View>

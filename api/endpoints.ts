@@ -20,6 +20,8 @@ export const endpoints = {
   categories: '/products/categories/',
   //Vendor account creation
   createVendorAccount: '/vendors/',
+  // vendor dashboard
+  getVendoInfo: '/vendors/me/dashboard/',
   getVendorList: '/vendors/',
   //To get individual ventor details
   getVendorDetails: (slug: string) => `/vendors/${slug}/`,
@@ -47,6 +49,7 @@ export const endpoints = {
   bestSellingProducts: '/products/best_sellers/',
   //vendor Dashboard
   vendorDashboard: '/vendors/me/dashboard/',
+  vendorCard: '/vendors/me/stats/',
   //to get dropship products
   dropshipProducts: '/products/dropship-products/',
   //add to cart
@@ -59,6 +62,15 @@ export const endpoints = {
   //wish list
   createWishList: '/orders/wishlist/',
   listWishList: '/orders/wishlist/',
-  toRemove: '/orders/wishlist/:wishlist_id/'
+  toRemove: '/orders/wishlist/:wishlist_id/',
+
+  //checkout
+  ShippingForm: '/orders/checkout/',
+  //list order
+  listOrder: '/orders/',
+  // get order details
+  orderDetails:  (id: string) => `/orders/${id}/`,
+  //cancel order
+  cancelOrder: (id: string) =>`/orders/${id}/cancel/`
 
 };
