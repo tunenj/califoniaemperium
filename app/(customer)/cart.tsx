@@ -134,7 +134,7 @@ export default function CartScreen() {
         Alert.alert(t('error') || 'Error', t('failed_to_update_quantity') || 'Failed to update quantity');
       }
     } catch (error) {
-      console.error('Error updating quantity:', error);
+      console.error(error)
       Alert.alert(t('error') || 'Error', t('failed_to_update_quantity') || 'Failed to update quantity');
     } finally {
       setUpdatingItems(prev => ({ ...prev, [itemId]: false }));
@@ -159,7 +159,7 @@ export default function CartScreen() {
                 Alert.alert(t('error') || 'Error', t('failed_to_remove_item') || 'Failed to remove item');
               }
             } catch (error) {
-              console.error('Error removing item:', error);
+              console.error(error)
               Alert.alert(t('error') || 'Error', t('failed_to_remove_item') || 'Failed to remove item');
             } finally {
               setRemovingItems(prev => ({ ...prev, [itemId]: false }));
@@ -214,7 +214,7 @@ export default function CartScreen() {
       await saveToWishlistWithId(itemId, cartItem, productIdStr);
 
     } catch (error) {
-      console.error('Error in handleSaveForLater:', error);
+      console.error(error);
       Alert.alert('Error', 'Failed to save item to wishlist.');
       setSavingItems(prev => ({ ...prev, [itemId]: false }));
     }

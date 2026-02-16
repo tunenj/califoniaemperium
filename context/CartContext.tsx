@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect, useCa
 import { Alert } from 'react-native';
 import api from '@/api/api';
 import { endpoints } from '@/api/endpoints';
+import { useAuth } from './AuthContext';
 
 // API Response Interfaces
 interface APIProduct {
@@ -87,6 +88,7 @@ type CartContextType = {
   restoreFromSaved: (id: string) => void;
   removeFromSaved: (id: string) => void;
   refreshCart: () => Promise<void>;
+  forceRefreshCart: () => Promise<void>;
   syncCartToServer: () => Promise<void>;
   isInCart: (productId: string) => boolean;
   getCartItemId: (productId: string) => string | null;
@@ -100,6 +102,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cartData, setCartData] = useState<APICart | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  
+  // Get auth state
+  const { isAuthenticated } = useAuth();
 
   // Convert API cart items to local format
   const apiToLocalCartItem = (apiItem: APICartItem): CartItem => {
@@ -119,9 +124,19 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Fetch cart from API
-  const fetchCart = useCallback(async () => {
+  const fetchCart = useCallback(async (retryCount = 0) => {
+    // Don't fetch if not authenticated
+    if (!isAuthenticated) {
+      console.log('User not authenticated, clearing cart');
+      setCartData(null);
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
+      console.log('Fetching cart for authenticated user...');
       const response = await api.get<APIResponse>(endpoints.toGetCart);
       
       if (response.data.success) {
@@ -130,25 +145,46 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         // Convert API items to local format
         const localItems = response.data.data.items.map(apiToLocalCartItem);
         setItems(localItems);
+        console.log(`Cart loaded: ${localItems.length} items`);
       }
     } catch (error: any) {
       // If cart doesn't exist (404), create an empty cart state
       if (error.response?.status === 404) {
+        console.log('Cart not found, creating empty cart');
         setCartData(null);
         setItems([]);
+      } 
+      // If unauthorized and we haven't retried too many times
+      else if (error.response?.status === 401 && retryCount < 3) {
+        console.log(`Unauthorized fetching cart, retrying (${retryCount + 1}/3)...`);
+        // Wait a bit and retry with exponential backoff
+        setTimeout(() => {
+          fetchCart(retryCount + 1);
+        }, 1000 * (retryCount + 1));
       } else {
         console.error('Error fetching cart:', error);
       }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAuthenticated]);
+
+  // Refresh cart when authentication state changes
+  useEffect(() => {
+    fetchCart();
+  }, [isAuthenticated, fetchCart]);
 
   // Add item to cart (API integration)
   const addItem = async (
     item: Omit<CartItem, 'quantity' | 'id'>, 
     quantity: number = 1
   ): Promise<{success: boolean; message?: string}> => {
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      Alert.alert('Error', 'Please login to add items to cart');
+      return { success: false, message: 'User not authenticated' };
+    }
+
     try {
       setSyncing(true);
       
@@ -193,6 +229,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   // Remove item from cart (API integration)
   const removeItem = async (cartItemId: string): Promise<boolean> => {
+    if (!isAuthenticated) {
+      Alert.alert('Error', 'Please login to remove items from cart');
+      return false;
+    }
+
     try {
       setSyncing(true);
       
@@ -211,9 +252,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         return true;
       }
       return false;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error removing item:', error);
-      Alert.alert('Error', 'Failed to remove item from cart');
+      
+      // Handle 401 by refreshing cart
+      if (error.response?.status === 401) {
+        console.log('Session expired, refreshing cart...');
+        await fetchCart();
+      } else {
+        Alert.alert('Error', 'Failed to remove item from cart');
+      }
       return false;
     } finally {
       setSyncing(false);
@@ -222,6 +270,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   // Update item quantity (API integration)
   const updateQuantity = async (cartItemId: string, quantity: number): Promise<boolean> => {
+    if (!isAuthenticated) {
+      Alert.alert('Error', 'Please login to update cart');
+      return false;
+    }
+
     if (quantity < 1) {
       // If quantity is 0, remove the item
       return await removeItem(cartItemId);
@@ -246,9 +299,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         return true;
       }
       return false;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating quantity:', error);
-      Alert.alert('Error', 'Failed to update quantity');
+      
+      // Handle 401 by refreshing cart
+      if (error.response?.status === 401) {
+        console.log('Session expired, refreshing cart...');
+        await fetchCart();
+      } else {
+        Alert.alert('Error', 'Failed to update quantity');
+      }
       return false;
     } finally {
       setSyncing(false);
@@ -257,6 +317,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   // Clear cart (API integration)
   const clearCart = async (): Promise<boolean> => {
+    if (!isAuthenticated) {
+      Alert.alert('Error', 'Please login to clear cart');
+      return false;
+    }
+
     try {
       setSyncing(true);
       
@@ -271,9 +336,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         return true;
       }
       return false;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error clearing cart:', error);
-      Alert.alert('Error', 'Failed to clear cart');
+      
+      // Handle 401 by refreshing cart
+      if (error.response?.status === 401) {
+        console.log('Session expired, refreshing cart...');
+        await fetchCart();
+      } else {
+        Alert.alert('Error', 'Failed to clear cart');
+      }
       return false;
     } finally {
       setSyncing(false);
@@ -350,15 +422,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     await fetchCart();
   };
 
+  // Force refresh cart (for pull-to-refresh)
+  const forceRefreshCart = useCallback(async () => {
+    console.log('Force refreshing cart...');
+    await fetchCart(0); // Reset retry count
+  }, [fetchCart]);
+
   // Sync local changes to server (for offline support)
   const syncCartToServer = async () => {
     console.log('Cart is already synced with server');
   };
-
-  // Initial fetch
-  useEffect(() => {
-    fetchCart();
-  }, [fetchCart]);
 
   return (
     <CartContext.Provider
@@ -378,6 +451,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         restoreFromSaved,
         removeFromSaved,
         refreshCart,
+        forceRefreshCart,
         syncCartToServer,
         isInCart,
         getCartItemId,

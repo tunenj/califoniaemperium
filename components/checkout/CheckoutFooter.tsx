@@ -1,3 +1,4 @@
+// CheckoutFooter.tsx - Stripe Removed
 import React, { useState } from 'react';
 import { 
   View, 
@@ -11,6 +12,7 @@ import api from '@/api/api';
 import { endpoints } from '@/api/endpoints';
 import { useRouter } from 'expo-router';
 
+
 // Type for the API request body
 interface ShippingFormData {
   shipping_first_name: string;
@@ -23,7 +25,7 @@ interface ShippingFormData {
   shipping_postal_code: string;
   shipping_country: string;
   billing_same_as_shipping: boolean;
-  payment_method: 'stripe' | 'paystack' | 'card' | 'cash';
+  payment_method: string;
   customer_notes: string;
   coupon_code?: string;
   order_items: {
@@ -64,7 +66,6 @@ interface ShippingFormResponse {
       created_at: string;
     };
     payment_reference: string;
-    payment_intent?: string;
   };
 }
 
@@ -76,14 +77,17 @@ const CheckoutFooter = () => {
     shippingInfo,
     selectedCountry,
     clearCart,
-    cartItems, // ✅ Now this comes from CartContext via CheckoutContext
+    cartItems,
     promoCode,
     setOrderId,
     setHasActiveOrder,
     setCurrentOrder,
+    selectedPayment,
   } = useCheckout();
   
   const [loading, setLoading] = useState(false);
+  const [orderCreated, setOrderCreated] = useState(false);
+  const [orderData, setOrderData] = useState<any>(null);
 
   // Parse full name into first and last names
   const parseFullName = (fullName: string) => {
@@ -139,8 +143,18 @@ const CheckoutFooter = () => {
     return true;
   };
 
-  // Handle checkout/order placement
-  const handlePlaceOrder = async () => {
+  // Map UI payment method to API valid choices
+  const getValidPaymentMethod = (uiMethod: string): string => {
+    const paymentMethodMap: Record<string, string> = {
+      'card': 'card',
+      'cash': 'cash_on_delivery',
+      'bank': 'bank_transfer',
+    };
+    return paymentMethodMap[uiMethod] || 'card';
+  };
+
+  // Step 1: Create Order
+  const handleCreateOrder = async () => {
     if (!validateForm()) {
       return;
     }
@@ -153,16 +167,14 @@ const CheckoutFooter = () => {
     setLoading(true);
 
     try {
-      // Parse full name
       const { firstName, lastName } = parseFullName(shippingInfo.fullName);
-
-      // ✅ Prepare order items from cart
       const orderItems = cartItems.map(item => ({
         product_id: item.productId,
         quantity: item.quantity,
       }));
 
-      // Prepare request data
+      const validPaymentMethod = getValidPaymentMethod(selectedPayment || 'card');
+
       const formData: ShippingFormData = {
         shipping_first_name: firstName,
         shipping_last_name: lastName,
@@ -174,45 +186,41 @@ const CheckoutFooter = () => {
         shipping_postal_code: shippingInfo.postalCode || '',
         shipping_country: selectedCountry.value || 'NG',
         billing_same_as_shipping: true,
-        payment_method: 'stripe',
+        payment_method: validPaymentMethod,
         customer_notes: shippingInfo.customerNotes || '',
         order_items: orderItems,
       };
 
-      // Add coupon code if provided
       if (promoCode.trim()) {
         formData.coupon_code = promoCode.trim();
       }
 
-      // Debug log
-      console.log('=== PLACING ORDER ===');
-      console.log('Cart Items:', cartItems);
-      console.log('Order Items:', orderItems);
-      console.log('Total:', total);
-
-      // Make API call to create order
+      console.log('=== CREATING ORDER ===');
       const response = await api.post<ShippingFormResponse>(
         endpoints.ShippingForm,
         formData
       );
 
       if (response.data.success) {
-        const orderData = response.data.data.order;
+        const order = response.data.data.order;
         
-        // Set order state in context
-        setOrderId?.(orderData.id);
-        setHasActiveOrder?.(true);
+        // Save order data
+        setOrderData(order);
+        setOrderCreated(true);
         
-        // Create order detail object with API-calculated totals
+        if (setOrderId) setOrderId(order.id);
+        if (setHasActiveOrder) setHasActiveOrder(true);
+        
+        // Store order detail
         const orderDetail: OrderDetail = {
-          id: orderData.id,
-          order_number: orderData.order_number,
-          status: orderData.status,
-          payment_status: orderData.payment_status,
-          subtotal: orderData.subtotal,
-          shipping_cost: orderData.shipping_cost,
-          discount: orderData.discount,
-          total: orderData.total,
+          id: order.id,
+          order_number: order.order_number,
+          status: order.status,
+          payment_status: 'pending',
+          subtotal: order.subtotal,
+          shipping_cost: order.shipping_cost,
+          discount: order.discount,
+          total: order.total,
           items: cartItems.map((item, index) => ({
             id: `temp-${item.id}-${index}`,
             product_name: item.productName,
@@ -222,110 +230,73 @@ const CheckoutFooter = () => {
             total_price: (item.price * item.quantity).toString(),
             vendor: item.storeName,
           })),
-          created_at: orderData.created_at || new Date().toISOString(),
+          created_at: order.created_at || new Date().toISOString(),
           paid_at: null,
           can_cancel: true,
           customer_notes: shippingInfo.customerNotes || '',
           items_count: cartItems.length,
         };
         
-        // Set current order for OrderSummarySection to display
-        setCurrentOrder?.(orderDetail);
+        if (setCurrentOrder) setCurrentOrder(orderDetail);
         
-        // Clear cart after successful order
-        await clearCart();
-        
-        // Navigate to order confirmation screen
-        router.push({
-          pathname: '/(customer)/checkout/confirmation',
-          params: {
-            orderId: orderData.id,
-            orderNumber: orderData.order_number,
-            paymentReference: response.data.data.payment_reference,
-            paymentIntent: response.data.data.payment_intent || '',
-            total: orderData.total,
-            subtotal: orderData.subtotal,
-            shipping: orderData.shipping_cost,
-            discount: orderData.discount,
-            paymentMethod: orderData.payment_method,
-            itemsCount: orderData.items_count || cartItems.length,
-          },
-        });
-      } else {
+        // Show success message and navigate to orders
         Alert.alert(
-          'Order Error',
-          response.data.message || 'Failed to create order. Please try again.'
+          '✅ Order Created!',
+          `Order #${order.order_number} has been created successfully.`,
+          [
+            {
+              text: 'View Orders',
+              onPress: async () => {
+                await clearCart();
+                router.push('/(customer)/orders');
+              },
+            },
+          ]
         );
       }
     } catch (error: any) {
-      console.error('Order Error:', error);
-      
-      let errorMessage = 'Failed to create order. Please try again.';
-      
-      if (error.response?.data?.error?.message) {
-        errorMessage = error.response.data.error.message;
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.response?.data?.detail) {
-        errorMessage = error.response.data.detail;
-      }
-      
-      Alert.alert('Order Error', errorMessage);
+      console.error('Order Creation Error:', error);
+      Alert.alert('Order Error', error.response?.data?.message || 'Failed to create order');
     } finally {
       setLoading(false);
     }
   };
 
+  // Original UI for order creation
   return (
     <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
-      {/* Simple Footer - Just Payment Note and Button */}
-      
-      {/* Stripe Payment Note */}
-      <View className="mb-3 bg-blue-50 p-3 rounded-lg border border-blue-100">
-        <Text className="text-blue-700 text-sm text-center">
-          💳 Payment will be processed securely via Stripe
-        </Text>
-      </View>
-
-      {/* Place Order Button */}
+      {/* Create Order Button */}
       <TouchableOpacity
-        onPress={handlePlaceOrder}
+        onPress={handleCreateOrder}
         disabled={loading || !!phoneError || cartItems.length === 0}
         className={`rounded-xl py-4 items-center ${
           loading || phoneError || cartItems.length === 0 
             ? 'bg-gray-400' 
-            : 'bg-red-600'
-        } ${loading ? 'opacity-80' : 'active:opacity-90'}`}
+            : 'bg-blue-600'
+        }`}
       >
         {loading ? (
           <View className="flex-row items-center">
             <ActivityIndicator color="#fff" size="small" />
-            <Text className="text-white font-bold text-lg ml-2">Processing...</Text>
+            <Text className="text-white font-bold text-lg ml-2">Creating Order...</Text>
           </View>
         ) : (
-          <View className="flex-col items-center">
-            <Text className="text-white font-bold text-lg">
-              {cartItems.length === 0 ? 'Cart is Empty' : 'Place Order'}
-            </Text>
-            {cartItems.length > 0 && (
-              <Text className="text-white text-sm mt-1">
-                Total: ₦{total.toLocaleString()}
-              </Text>
-            )}
-          </View>
+          <Text className="text-white font-bold text-lg">
+            {cartItems.length === 0 ? 'Cart is Empty' : 'Create Order'}
+          </Text>
         )}
       </TouchableOpacity>
+
+      {cartItems.length > 0 && !loading && (
+        <Text className="text-gray-600 text-sm text-center mt-2">
+          Total: ₦{total.toLocaleString()}
+        </Text>
+      )}
 
       {/* Error Messages */}
       {phoneError && (
         <Text className="text-red-500 text-sm text-center mt-2">
           {phoneError}
-        </Text>
-      )}
-
-      {cartItems.length === 0 && (
-        <Text className="text-orange-500 text-sm text-center mt-2">
-          Your cart is empty. Add items to proceed.
         </Text>
       )}
     </View>

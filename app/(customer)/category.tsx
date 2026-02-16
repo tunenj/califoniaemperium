@@ -329,6 +329,28 @@ const CategoryScreenContent = () => {
     setAddingToCart(prev => ({ ...prev, [product.id]: true }));
 
     try {
+      // Fetch full product details to get the detailed images
+      console.log('🔍 Fetching full product details for:', product.slug);
+      const productResponse = await api.get(`${endpoints.products}${product.slug}/`);
+      
+      let productImage = product.main_image || null;
+      
+      // If we got detailed product data with images array
+      if (productResponse.data && productResponse.data.images && productResponse.data.images.length > 0) {
+        console.log('📸 Product images from API:', productResponse.data.images);
+        
+        // Find the primary image or use the first one
+        const primaryImage = productResponse.data.images.find((img: any) => img.is_primary);
+        const imageToUse = primaryImage || productResponse.data.images[0];
+        
+        if (imageToUse && imageToUse.image) {
+          productImage = imageToUse.image;
+          console.log('✅ Using detailed image URL:', productImage);
+        }
+      } else {
+        console.log('⚠️ No detailed images found, using main_image:', productImage);
+      }
+
       // Prepare item data for the cart
       const itemData = {
         productId: product.id,
@@ -338,10 +360,10 @@ const CategoryScreenContent = () => {
         originalPrice: product.compare_at_price 
           ? parseFloat(product.compare_at_price)
           : parseFloat(product.price),
-        image: product.main_image || null,
+        image: productImage,
       };
 
-      console.log('🛒 Adding product to cart:', itemData);
+      console.log('🛒 Adding product to cart with image:', itemData);
 
       // Add to cart via API
       const result = await addItem(itemData, 1);

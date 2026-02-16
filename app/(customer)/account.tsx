@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   SafeAreaView,
   View,
@@ -23,9 +23,42 @@ export default function ProfileScreen() {
   const [darkMode, setDarkMode] = useState(false);
   const [allowScreenshot, setAllowScreenshot] = useState(true);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [userName, setUserName] = useState("");
 
   const router = useRouter();
   const { t } = useLanguage();
+
+  // Load user data on component mount
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  // Load user data from AsyncStorage
+  const loadUserData = async () => {
+    try {
+      const userData = await AsyncStorage.getItem('userData');
+      const email = await AsyncStorage.getItem('email');
+      
+      if (userData) {
+        const parsedUser = JSON.parse(userData);
+        // Try to get name from userData first
+        setUserName(parsedUser.name || parsedUser.email || email || 'User');
+      } else if (email) {
+        // If no userData, use email (extract name part if possible)
+        const nameFromEmail = email.split('@')[0].replace(/[._]/g, ' ');
+        const formattedName = nameFromEmail
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+        setUserName(formattedName);
+      } else {
+        setUserName('User');
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      setUserName('User');
+    }
+  };
 
   // Sign Out Function
   const handleSignOut = async () => {
@@ -35,11 +68,16 @@ export default function ProfileScreen() {
       // Get the refresh token
       const refreshToken = await AsyncStorage.getItem('refreshToken');
       
+      // Call sign-out endpoint if refresh token exists
       if (refreshToken) {
-        // Call sign-out endpoint
-        await api.post(endpoints.signOut, {
-          refresh: refreshToken
-        });
+        try {
+          await api.post(endpoints.signOut, {
+            refresh: refreshToken
+          });
+        } catch (apiError) {
+          console.error('Sign out API error:', apiError);
+          // Continue with local cleanup even if API fails
+        }
       }
       
       // Clear all stored data
@@ -55,17 +93,12 @@ export default function ProfileScreen() {
       delete api.defaults.headers.common['Authorization'];
       
       // Navigate to login screen
-      router.replace('/signIn');
-      
-      Alert.alert(
-        t('signed_out') || 'Signed Out',
-        t('signed_out_message') || 'You have been successfully signed out.'
-      );
+      router.replace('/(auth)/LoginForm/EmailSignIn');
       
     } catch (error: any) {
       console.error('Sign out error:', error);
       
-      // Even if API call fails, clear local data
+      // Even if everything fails, clear local data
       await AsyncStorage.multiRemove([
         'accessToken',
         'refreshToken',
@@ -76,11 +109,6 @@ export default function ProfileScreen() {
       delete api.defaults.headers.common['Authorization'];
       
       router.replace('/signIn');
-      
-      Alert.alert(
-        t('signed_out') || 'Signed Out',
-        t('signed_out_message') || 'You have been successfully signed out.'
-      );
     } finally {
       setIsSigningOut(false);
     }
@@ -126,23 +154,28 @@ export default function ProfileScreen() {
 
       {/* Profile Avatar */}
       <View className="items-center mt-2">
-        <Image
-          source={require("../../assets/icons/profile-avatar.png")}
-          className="w-20 h-20 border-2 rounded-full"
-        />
+        <View className="relative">
+          <Image
+            source={require("../../assets/icons/profile-avatar.png")}
+            className="w-20 h-20 border-2 border-white rounded-full"
+          />
+          <View className="absolute bottom-0 right-0 w-6 h-6 bg-green-500 rounded-full border-2 border-white" />
+        </View>
 
-        <Text className="text-lg font-semibold mt-2">Vivian Coker</Text>
+        <Text className="text-xl font-bold mt-3">{userName}</Text>
 
-        <TouchableOpacity className="mt-1">
-          <Text className="text-red-500">{t('switch_to_business')} ▼</Text>
+        <TouchableOpacity className="mt-1 flex-row items-center">
+          <Text className="text-red-500 text-sm">{t('switch_to_business')}</Text>
+          <Icon name="chevron-down" size={16} color="#B13239" className="ml-1" />
         </TouchableOpacity>
       </View>
 
       {/* Menu List */}
-      <View className="mt-6 px-5 gap-4">
+      <View className="mt-8 px-5 gap-4">
         <MenuItem
           icon="person-outline"
           title={t('personal_information')}
+          onPress={() => router.push("/Setup/profile-setup")}
         />
 
         <MenuItem
@@ -164,12 +197,12 @@ export default function ProfileScreen() {
         />
 
         {/* Dark Mode Toggle */}
-        <View className="flex-row justify-between items-center">
+        <View className="flex-row justify-between items-center py-2">
           <View className="flex-row items-center">
-            <View className="w-9 h-9 rounded-full bg-gray-200 items-center justify-center">
-              <Icon name="moon-outline" size={20} />
+            <View className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center">
+              <Icon name="moon-outline" size={22} color="#4B5563" />
             </View>
-            <Text className="ml-3 text-base">{t('dark_mode')}</Text>
+            <Text className="ml-3 text-base text-gray-700">{t('dark_mode')}</Text>
           </View>
 
           <Switch
@@ -182,12 +215,12 @@ export default function ProfileScreen() {
         </View>
 
         {/* Screenshot Toggle */}
-        <View className="flex-row justify-between items-center">
+        <View className="flex-row justify-between items-center py-2">
           <View className="flex-row items-center">
-            <View className="w-9 h-9 rounded-full bg-gray-200 items-center justify-center">
-              <Icon name="image-outline" size={20} />
+            <View className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center">
+              <Icon name="image-outline" size={22} color="#4B5563" />
             </View>
-            <Text className="ml-3 text-base">{t('allow_screenshot')}</Text>
+            <Text className="ml-3 text-base text-gray-700">{t('allow_screenshot')}</Text>
           </View>
 
           <Switch
@@ -201,23 +234,28 @@ export default function ProfileScreen() {
       </View>
 
       {/* Sign Out */}
-      <View className="items-center mt-10">
+      <View className="items-center mt-auto mb-8">
         <TouchableOpacity 
-          className="flex-row items-center"
+          className="flex-row items-center bg-red-50 px-6 py-3 rounded-full"
           onPress={confirmSignOut}
           disabled={isSigningOut}
         >
           {isSigningOut ? (
-            <ActivityIndicator size="small" color="red" />
+            <>
+              <ActivityIndicator size="small" color="#B13239" />
+              <Text className="text-red-600 text-base ml-2">
+                {t('signing_out') || 'Signing Out...'}
+              </Text>
+            </>
           ) : (
             <>
               <Icon
                 name="log-out-outline"
                 size={22}
-                color="red"
+                color="#B13239"
                 style={{ transform: [{ scaleX: -1 }] }}
               />
-              <Text className="text-red-600 text-base ml-2">
+              <Text className="text-red-600 text-base ml-2 font-medium">
                 {t('sign_out')}
               </Text>
             </>
@@ -239,19 +277,19 @@ type MenuItemProps = {
 const MenuItem = ({ icon, title, onPress }: MenuItemProps) => {
   return (
     <TouchableOpacity
-      className="flex-row justify-between items-center"
+      className="flex-row justify-between items-center py-2"
       onPress={onPress}
       activeOpacity={0.7}
     >
       <View className="flex-row items-center">
-        <View className="w-9 h-9 rounded-full bg-gray-200 items-center justify-center">
-          <Icon name={icon} size={20} />
+        <View className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center">
+          <Icon name={icon} size={22} color="#4B5563" />
         </View>
 
-        <Text className="ml-3 text-base">{title}</Text>
+        <Text className="ml-3 text-base text-gray-700">{title}</Text>
       </View>
 
-      <Icon name="chevron-forward" size={20} />
+      <Icon name="chevron-forward" size={20} color="#9CA3AF" />
     </TouchableOpacity>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
     View,
     Text,
@@ -10,6 +10,7 @@ import {
     ActivityIndicator,
     Modal,
     FlatList,
+    Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -135,53 +136,8 @@ export default function AddProductScreen() {
         status: "active",
     });
 
-    // Check authentication on component mount
-    useEffect(() => {
-        if (!isAuthenticated) {
-            showToast("Please login to add products", "error");
-            router.replace("/signIn");
-        }
-    }, [isAuthenticated, router]);
-
-    // Load categories on component mount
-    useEffect(() => {
-        if (isAuthenticated) {
-            loadCategories();
-        }
-    }, [isAuthenticated]);
-
-    // Filter categories based on search query
-    useEffect(() => {
-        if (searchQuery.trim() === "") {
-            setFilteredCategories(categories);
-        } else {
-            const query = searchQuery.toLowerCase();
-            const filtered = categories.filter((category: Category) =>
-                category.name.toLowerCase().includes(query) ||
-                category.full_path.toLowerCase().includes(query) ||
-                category.description.toLowerCase().includes(query)
-            );
-            setFilteredCategories(filtered);
-        }
-    }, [searchQuery, categories]);
-
-    // Load token from AsyncStorage
-    useEffect(() => {
-        const loadToken = async () => {
-            if (isAuthenticated) {
-                try {
-                    const storedToken = await AsyncStorage.getItem('authToken');
-                    setToken(storedToken);
-                } catch (error) {
-                    console.error('Failed to load token:', error);
-                }
-            }
-        };
-        loadToken();
-    }, [isAuthenticated]);
-
     // Load categories from API
-    const loadCategories = async () => {
+    const loadCategories = useCallback(async () => {
         if (!isAuthenticated || !token) {
             showToast("Refresh your categories", "error");
             return;
@@ -238,10 +194,55 @@ export default function AddProductScreen() {
         } finally {
             setIsLoadingCategories(false);
         }
-    };
+    }, [isAuthenticated, token, formData.category, logout, router]);
+
+    // Check authentication on component mount
+    useEffect(() => {
+        if (!isAuthenticated) {
+            showToast("Please login to add products", "error");
+            router.replace("/signIn");
+        }
+    }, [isAuthenticated, router]);
+
+    // Load token from AsyncStorage
+    useEffect(() => {
+        const loadToken = async () => {
+            if (isAuthenticated) {
+                try {
+                    const storedToken = await AsyncStorage.getItem('authToken');
+                    setToken(storedToken);
+                } catch (error) {
+                    console.error('Failed to load token:', error);
+                }
+            }
+        };
+        loadToken();
+    }, [isAuthenticated]);
+
+    // Load categories on component mount
+    useEffect(() => {
+        if (isAuthenticated && token) {
+            loadCategories();
+        }
+    }, [isAuthenticated, token, loadCategories]);
+
+    // Filter categories based on search query
+    useEffect(() => {
+        if (searchQuery.trim() === "") {
+            setFilteredCategories(categories);
+        } else {
+            const query = searchQuery.toLowerCase();
+            const filtered = categories.filter((category: Category) =>
+                category.name.toLowerCase().includes(query) ||
+                category.full_path.toLowerCase().includes(query) ||
+                category.description.toLowerCase().includes(query)
+            );
+            setFilteredCategories(filtered);
+        }
+    }, [searchQuery, categories]);
 
     // Handle category selection
-    const handleSelectCategory = (category: Category) => {
+    const handleSelectCategory = useCallback((category: Category) => {
         setSelectedCategory(category);
         setFormData(prev => ({
             ...prev,
@@ -251,34 +252,28 @@ export default function AddProductScreen() {
         setSearchQuery("");
 
         showToast(`Selected: ${category.full_path}`, "success");
-    };
+    }, []);
 
     // Clear selected category
-    const handleClearCategory = () => {
+    const handleClearCategory = useCallback(() => {
         setSelectedCategory(null);
         setFormData(prev => ({
             ...prev,
             category: ""
         }));
-    };
+    }, []);
 
     // Handle form field changes
-    const handleInputChange = (field: keyof ProductFormData, value: string | boolean) => {
+    const handleInputChange = useCallback((field: keyof ProductFormData, value: string | boolean) => {
         setFormData(prev => ({ ...prev, [field]: value }));
-    };
+    }, []);
 
     // Handle numeric input
-    const handleNumericInput = (field: keyof ProductFormData, value: string) => {
+    const handleNumericInput = useCallback((field: keyof ProductFormData, value: string) => {
         // Allow only numbers and decimal points
         const numericValue = value.replace(/[^0-9.]/g, '');
         setFormData(prev => ({ ...prev, [field]: numericValue }));
-    };
-
-    // Handle tags input
-    const handleTagsInput = (value: string) => {
-        const tagsArray = value.split(',').map(tag => tag.trim()).filter(tag => tag);
-        setFormData(prev => ({ ...prev, tags: tagsArray }));
-    };
+    }, []);
 
     // Image picker action
     const handlePickImage = async () => {
@@ -334,60 +329,7 @@ export default function AddProductScreen() {
         return true;
     };
 
-    // Prepare the payload for API
-    const preparePayload = () => {
-        const payload: any = {
-            product_type: formData.product_type,
-            name: formData.name.trim(),
-            sku: formData.sku.trim(),
-            description: formData.description.trim(),
-            short_description: formData.short_description.trim() || formData.description.substring(0, 150),
-            category: formData.category.trim(),
-            brand: formData.brand.trim(),
-            tags: formData.tags,
-            price: parseFloat(formData.price) || 0,
-            compare_at_price: formData.compare_at_price ? parseFloat(formData.compare_at_price) : null,
-            cost_price: formData.cost_price ? parseFloat(formData.cost_price) : null,
-            stock_quantity: parseInt(formData.stock_quantity) || 0,
-            low_stock_threshold: parseInt(formData.low_stock_threshold) || 10,
-            track_inventory: formData.track_inventory,
-            weight: formData.weight ? parseFloat(formData.weight) : null,
-            length: formData.length ? parseFloat(formData.length) : null,
-            width: formData.width ? parseFloat(formData.width) : null,
-            height: formData.height ? parseFloat(formData.height) : null,
-            condition: formData.condition,
-            is_featured: formData.is_featured,
-            requires_shipping: formData.requires_shipping,
-            is_digital: formData.is_digital,
-            status: formData.status,
-            vendor_id: user?.id || null,
-        };
-
-        if (formData.meta_title.trim()) {
-            payload.meta_title = formData.meta_title.trim();
-        }
-        if (formData.meta_description.trim()) {
-            payload.meta_description = formData.meta_description.trim();
-        }
-
-        if (variants.length > 0) {
-            payload.variants = variants.map(variant => ({
-                sku: variant.sku.trim(),
-                name: variant.name.trim(),
-                options: variant.options,
-                price_adjustment: parseFloat(variant.price_adjustment) || 0,
-                stock_quantity: parseInt(variant.stock_quantity) || 0,
-            }));
-        }
-
-        if (attributes.length > 0) {
-            payload.attributes = attributes;
-        }
-
-        return payload;
-    };
-
-    // Submit product action
+    // Submit product action - UPDATED WITH IMAGE UPLOAD
     const handleSubmit = async () => {
         if (!validateForm()) return;
         if (!isAuthenticated || !token) {
@@ -399,23 +341,119 @@ export default function AddProductScreen() {
         setIsSubmitting(true);
 
         try {
-            // Image upload not supported; proceed without uploading images
-            if (image) {
-                showToast(t('image_upload_not_supported') || "Image upload not supported; adding product without image", "info");
+            // Use FormData for image upload
+            const formDataToSend = new FormData();
+
+            // Add basic fields - Using different variable name to avoid conflict
+            formDataToSend.append('product_type', 'vendor');
+            formDataToSend.append('name', formData.name.trim());
+            formDataToSend.append('sku', formData.sku.trim());
+            formDataToSend.append('description', formData.description.trim());
+            formDataToSend.append('short_description', formData.short_description.trim() || formData.description.substring(0, 150));
+            formDataToSend.append('category', formData.category.trim());
+            formDataToSend.append('price', String(parseFloat(formData.price) || 0));
+            formDataToSend.append('stock_quantity', String(parseInt(formData.stock_quantity) || 0));
+            formDataToSend.append('low_stock_threshold', String(parseInt(formData.low_stock_threshold) || 10));
+            formDataToSend.append('condition', formData.condition);
+            formDataToSend.append('track_inventory', String(formData.track_inventory));
+            formDataToSend.append('is_featured', String(formData.is_featured));
+            formDataToSend.append('requires_shipping', String(formData.requires_shipping));
+            formDataToSend.append('is_digital', String(formData.is_digital));
+            formDataToSend.append('status', formData.status);
+
+            // Add optional fields
+            if (formData.brand.trim()) {
+                formDataToSend.append('brand', formData.brand.trim());
+            }
+            if (formData.compare_at_price) {
+                formDataToSend.append('compare_at_price', String(parseFloat(formData.compare_at_price)));
+            }
+            if (formData.cost_price) {
+                formDataToSend.append('cost_price', String(parseFloat(formData.cost_price)));
+            }
+            if (formData.weight) {
+                formDataToSend.append('weight', String(parseFloat(formData.weight)));
+            }
+            if (formData.length) {
+                formDataToSend.append('length', String(parseFloat(formData.length)));
+            }
+            if (formData.width) {
+                formDataToSend.append('width', String(parseFloat(formData.width)));
+            }
+            if (formData.height) {
+                formDataToSend.append('height', String(parseFloat(formData.height)));
+            }
+            if (formData.meta_title.trim()) {
+                formDataToSend.append('meta_title', formData.meta_title.trim());
+            }
+            if (formData.meta_description.trim()) {
+                formDataToSend.append('meta_description', formData.meta_description.trim());
+            }
+            if (user?.id) {
+                formDataToSend.append('vendor_id', user.id);
             }
 
-            // Prepare the payload
-            const payload = preparePayload();
+            // Add tags
+            if (formData.tags.length > 0) {
+                formData.tags.forEach((tag, index) => {
+                    formDataToSend.append(`tags[${index}]`, tag);
+                });
+            }
 
-            // Make API call with auth token
-            const response = await api.post(endpoints.addProduct, payload, {
+            // Add variants
+            if (variants.length > 0) {
+                formDataToSend.append('variants', JSON.stringify(variants.map(variant => ({
+                    sku: variant.sku.trim(),
+                    name: variant.name.trim(),
+                    options: variant.options,
+                    price_adjustment: parseFloat(variant.price_adjustment) || 0,
+                    stock_quantity: parseInt(variant.stock_quantity) || 0,
+                }))));
+            }
+
+            // Add attributes
+            if (attributes.length > 0) {
+                formDataToSend.append('attributes', JSON.stringify(attributes));
+            }
+
+            // Add image if selected - THIS IS THE KEY FIX
+            if (image) {
+                const uriParts = image.split('/');
+                const fileName = uriParts[uriParts.length - 1];
+                const match = /\.(\w+)$/.exec(fileName);
+                const fileType = match ? `image/${match[1]}` : 'image/jpeg';
+
+                const imageFile: any = {
+                    uri: Platform.OS === 'ios' ? image.replace('file://', '') : image,
+                    type: fileType,
+                    name: fileName,
+                };
+
+                console.log('📸 Uploading image:', imageFile);
+                
+                // Try multiple field names that backend might accept
+                formDataToSend.append('image', imageFile);
+                formDataToSend.append('main_image', imageFile);
+                formDataToSend.append('images', imageFile);
+                
+                showToast("Uploading product with image...", "info");
+            }
+
+            console.log('📤 Submitting product with FormData');
+            console.log('Product name:', formData.name);
+            console.log('Category:', formData.category);
+            console.log('Has image:', !!image);
+
+            // Make API call with auth token and FormData
+            const response = await api.post(endpoints.addProduct, formDataToSend, {
                 headers: {
                     Authorization: `Bearer ${token || ''}`,
+                    'Content-Type': 'multipart/form-data',
                 },
             });
 
-            // Log response for debugging (remove in production)
-            console.log('API Response:', JSON.stringify(response.data, null, 2));
+            // Log response for debugging
+            console.log('✅ API Response:', JSON.stringify(response.data, null, 2));
             console.log('Response Status:', response.status);
 
             // Check for successful HTTP status codes (200-299)
@@ -444,7 +482,7 @@ export default function AddProductScreen() {
                     ]
                 );
             } else {
-                // Unexpected status code (though this shouldn't happen if status is in 200-299 range)
+                // Unexpected status code
                 showToast(
                     response.data?.message || t('failed_to_add_product') || "Failed to add product",
                     "error"
@@ -452,7 +490,9 @@ export default function AddProductScreen() {
             }
 
         } catch (error: any) {
-            console.error('Submit Error:', error);
+            console.error('❌ Submit Error:', error);
+            console.error('Error response:', error.response?.data);
+            
             let errorMessage = t('failed_to_add_product') || "Failed to add product";
 
             if (error.response?.data?.message) {
@@ -481,7 +521,7 @@ export default function AddProductScreen() {
     };
 
     // Reset form
-    const resetForm = () => {
+    const resetForm = useCallback(() => {
         setFormData({
             product_type: "vendor",
             name: "",
@@ -513,10 +553,10 @@ export default function AddProductScreen() {
         setVariants([]);
         setAttributes([]);
         setSelectedCategory(null);
-    };
+    }, []);
 
     // Cancel action
-    const handleCancel = () => {
+    const handleCancel = useCallback(() => {
         const hasUnsavedChanges =
             formData.name.trim() !== "" ||
             formData.description.trim() !== "" ||
@@ -538,36 +578,16 @@ export default function AddProductScreen() {
         } else {
             router.back();
         }
-    };
+    }, [formData.name, formData.description, image, router, t]);
 
-    // Add variant
-    const addVariant = () => {
-        setVariants([...variants, {
-            sku: "",
-            name: "",
-            options: {},
-            price_adjustment: "0",
-            stock_quantity: "0",
-        }]);
-    };
-
-    // Add attribute
-    const addAttribute = () => {
-        setAttributes([...attributes, {
-            name: "",
-            value: "",
-            order: attributes.length,
-        }]);
-    };
-
-    const getTranslatedStatus = (status: ProductStatus) => {
+    const getTranslatedStatus = useCallback((status: ProductStatus) => {
         switch (status) {
             case 'active': return t('active') || "Active";
             case 'inactive': return t('inactive') || "Inactive";
             case 'draft': return t('draft') || "Draft";
             default: return status;
         }
-    };
+    }, [t]);
 
     // Render category modal
     const renderCategoryModal = () => {

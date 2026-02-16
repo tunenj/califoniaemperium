@@ -1,24 +1,56 @@
 import images from '@/constants/images';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Image, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Text, TouchableOpacity, View, Alert } from 'react-native';
 import { colors } from "@/constants/color";
-import { useLanguage } from '@/context/LanguageContext'; // Add import
-import { Ionicons } from '@expo/vector-icons'; // <- Expo Vector Icons
+import { useLanguage } from '@/context/LanguageContext';
+import { Ionicons } from '@expo/vector-icons';
+import { signInWithGoogle } from '@/utils/googleAuth';
+import { loginWithGoogle } from '@/service/authService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BusinessLoginScreen: React.FC = () => {
-    const [showMoreOptions, setShowMoreOptions] = useState(false);
     const [isCustomer, setIsCustomer] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     const router = useRouter();
-    const { t } = useLanguage(); // Add hook
-
-    const handlePhoneSignIn = () => {
-        router.push('/LoginForm/PhoneSignIn');
-    };
+    const { t } = useLanguage();
 
     const handleEmailSignIn = () => {
         router.push('/LoginForm/EmailSignIn');
+    };
+
+    const handleGoogleSignIn = async () => {
+        try {
+            setIsLoading(true);
+
+            // Step 1: Get Google access token
+            const googleResult = await signInWithGoogle();
+            
+            if (!googleResult.success) {
+                Alert.alert('Error', 'Failed to authenticate with Google');
+                return;
+            }
+
+            // Step 2: Send token to your backend
+            const loginResult = await loginWithGoogle(googleResult.accessToken!);
+
+            if (loginResult.success) {
+                // Step 3: Store user data and tokens
+                await AsyncStorage.setItem('userToken', loginResult.data.token);
+                await AsyncStorage.setItem('userData', JSON.stringify(loginResult.data.user));
+                
+                // Step 4: Navigate to main app
+                router.replace('/(app)/home'); // Navigate to your main screen
+            } else {
+                Alert.alert('Error', loginResult.error || 'Login failed');
+            }
+        } catch (error) {
+            console.error('Google sign-in error:', error);
+            Alert.alert('Error', 'Something went wrong. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     // Helper functions for dynamic text
@@ -65,58 +97,28 @@ const BusinessLoginScreen: React.FC = () => {
                         </TouchableOpacity>
                     </View>
 
-                    {/* Phone Sign-in */}
-                    <TouchableOpacity className="flex-row items-center mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200"
-                        onPress={handlePhoneSignIn}
+                    {/* Email Sign-in */}
+                    <TouchableOpacity 
+                        className="flex-row items-center mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200"
+                        onPress={handleEmailSignIn}
+                        disabled={isLoading}
                     >
-                        <Ionicons name="call" color={colors.darkRed} size={24} style={{ marginRight: 16 }} />
-                        <Text className="text-lg text-gray-900 flex-1 pl-8">
-                            {t('login_with_phone_number')}
+                        <Ionicons name="mail" color={colors.darkRed} size={24} style={{ marginRight: 16 }} />
+                        <Text className="text-lg text-gray-900 flex-1 pl-14">
+                            {t('email_and_password')}
                         </Text>
                     </TouchableOpacity>
 
-                    {/* Google Sign-up */}
-                    <TouchableOpacity className="flex-row items-center mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                    {/* Google Sign-in */}
+                    <TouchableOpacity 
+                        className={`flex-row items-center mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200 ${isLoading ? 'opacity-50' : ''}`}
+                        onPress={handleGoogleSignIn}
+                        disabled={isLoading}
+                    >
                         <Image source={images.googleIcon} className="w-6 h-6 mr-4" />
                         <Text className="text-lg text-gray-900 flex-1 pl-14">
-                            {t('login_with_google')}
+                            {isLoading ? 'Processing...' : t('login_with_google')}
                         </Text>
-                    </TouchableOpacity>
-
-                    {/* OR Divider */}
-                    {showMoreOptions && (
-                        <View className="flex-row items-center my-6">
-                            <View className="flex-1 h-px bg-gray-300" />
-                            <Text className="px-4 text-gray-500 text-sm font-medium">{t('or')}</Text>
-                            <View className="flex-1 h-px bg-gray-300" />
-                        </View>
-                    )}
-
-                    {/* Email Option */}
-                    {showMoreOptions && (
-                        <TouchableOpacity className="flex-row items-center mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200"
-                            onPress={handleEmailSignIn}
-                        >
-                            <Ionicons name="mail" color={colors.darkRed} size={24} style={{ marginRight: 16 }} />
-                            <Text className="text-lg text-gray-900 flex-1 pl-14">
-                                {t('email_and_password')}
-                            </Text>
-                        </TouchableOpacity>
-                    )}
-
-                    {/* More Options */}
-                    <TouchableOpacity
-                        className="flex-row items-center justify-center mb-8 py-4 border-b border-gray-200"
-                        onPress={() => setShowMoreOptions(!showMoreOptions)}
-                    >
-                        <Text className="text-gray-400 text-sm font-medium mr-2">
-                            {showMoreOptions ? t('less_options') : t('more_options')}
-                        </Text>
-                        <Ionicons
-                            name={showMoreOptions ? "chevron-up" : "chevron-down"}
-                            size={16}
-                            color="#9CA3AF"
-                        />
                     </TouchableOpacity>
 
                     {/* Sign up link */}
@@ -128,7 +130,6 @@ const BusinessLoginScreen: React.FC = () => {
                             </Text>
                         </TouchableOpacity>
                     </View>
-
                 </View>
             </View>
         </View>

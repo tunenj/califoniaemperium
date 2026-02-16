@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -8,6 +8,7 @@ import {
     Image,
     Dimensions,
     ActivityIndicator,
+    Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from "expo-router";
@@ -20,12 +21,103 @@ import { endpoints } from '@/api/endpoints';
 const { width } = Dimensions.get('window');
 const ITEM_WIDTH = (width - 40) / 2;
 
-type Product = {
+// Define types based on the API response
+type ProductImage = {
+    id: string;
+    image: string;
+    alt_text: string;
+    is_primary: boolean;
+    order: number;
+    created_at: string;
+};
+
+type Category = {
     id: string;
     name: string;
+    slug: string;
+    description: string;
+    image: string | null;
+    icon: string;
+    parent: string | null;
+    children: any[];
+    full_path: string;
+    order: number;
+    is_active: boolean;
+    product_count: number;
+    meta_title: string;
+    meta_description: string;
+    created_at: string;
+    updated_at: string;
+};
+
+type VendorInfo = {
+    vendor_name: string;
+    vendor_id: string;
+    is_approved: boolean;
+};
+
+type Product = {
+    id: string;
+    product_type: string;
+    name: string;
+    slug: string;
+    sku: string;
+    description: string;
+    short_description: string;
+    category: Category;
+    brand: any | null;
+    tags: any[];
+    main_image: string | null;
     price: string;
-    stock: number;
-    image?: any | null;
+    compare_at_price: string | null;
+    discount_percentage: number;
+    stock_quantity: number;
+    is_in_stock: boolean;
+    is_low_stock: boolean;
+    track_inventory: boolean;
+    weight: number | null;
+    length: number | null;
+    width: number | null;
+    height: number | null;
+    condition: string;
+    is_active: boolean;
+    is_featured: boolean;
+    requires_shipping: boolean;
+    is_digital: boolean;
+    images: ProductImage[];
+    variants: any[];
+    attributes: any[];
+    view_count: number;
+    purchase_count: number;
+    rating_average: string;
+    rating_count: number;
+    vendor_info: VendorInfo;
+    dropship_info: any | null;
+    meta_title: string;
+    meta_description: string;
+    created_at: string;
+    updated_at: string;
+    published_at: string | null;
+};
+
+type VendorProduct = {
+    product: Product;
+    vendor: string;
+    vendor_name: string;
+    vendor_sku: string;
+    commission_rate: string;
+    is_approved: boolean;
+    approved_at: string | null;
+    rejection_reason: string;
+    created_at: string;
+    updated_at: string;
+};
+
+type ApiResponse = {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: VendorProduct[];
 };
 
 const ProductsScreen: React.FC = () => {
@@ -33,6 +125,7 @@ const ProductsScreen: React.FC = () => {
     const { isAuthenticated, logout } = useAuth();
 
     const [products, setProducts] = useState<Product[]>([]);
+    const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
     const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
@@ -40,15 +133,52 @@ const ProductsScreen: React.FC = () => {
     const [totalCount, setTotalCount] = useState<number>(0);
     const [currentPage, setCurrentPage] = useState<number>(1);
 
-    const mapApiItemToProduct = (item: any): Product => ({
-        id: String(item.id || item._id || ''),
-        name: item.name || item.title || 'Untitled',
-        price: item.price !== undefined ? String(item.price) : (item.display_price || '0'),
-        stock: item.stock_quantity ?? item.stock ?? 0,
-        image: item.image || item.thumbnail || item.main_image || null,
-    });
+    // Filter states
+    const [searchQuery, setSearchQuery] = useState<string>('');
+    const [selectedCategory, setSelectedCategory] = useState<string>('all');
+    const [selectedStatus, setSelectedStatus] = useState<string>('all');
 
-    const fetchProducts = async (opts: { refresh?: boolean; url?: string; page?: number } = {}) => {
+    // Modal states
+    const [showCategoryModal, setShowCategoryModal] = useState(false);
+    const [showStatusModal, setShowStatusModal] = useState(false);
+
+    // Categories
+    const [categories, setCategories] = useState<Category[]>([]);
+
+    // FIXED: Navigation helper with correct path including the (vendor) group
+    const navigateToProductDetails = (slug: string) => {
+        console.log('🚀 Navigating to product:', slug);
+        router.push(`/(vendor)/${slug}` as any);
+    };
+
+    const mapApiItemToProduct = (vendorProduct: VendorProduct): Product => {
+        const product = vendorProduct.product;
+        return product;
+    };
+
+    // Fetch categories
+    const fetchCategories = useCallback(async () => {
+        try {
+            const token = await AsyncStorage.getItem('accessToken');
+            const response = await api.get(endpoints.categories, {
+                headers: {
+                    Authorization: `Bearer ${token || ''}`,
+                },
+            });
+
+            if (response.data?.success === true && response.data.data) {
+                setCategories(response.data.data);
+            } else if (Array.isArray(response.data)) {
+                setCategories(response.data);
+            } else if (response.data?.results) {
+                setCategories(response.data.results);
+            }
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+        }
+    }, []);
+
+    const fetchProducts = useCallback(async (opts: { refresh?: boolean; url?: string; page?: number } = {}) => {
         if (opts.refresh) {
             setIsRefreshing(true);
             setCurrentPage(1);
@@ -59,93 +189,37 @@ const ProductsScreen: React.FC = () => {
         }
 
         try {
-            const token = await AsyncStorage.getItem('authToken');
-            
-            // Determine fetch URL
-            let fetchUrl = opts.url || endpoints.products;
-            
+            const token = await AsyncStorage.getItem('accessToken');
+
+            // Determine fetch URL - use vendor products endpoint
+            let fetchUrl = opts.url || endpoints.getVendorProducts;
+
             // If page number is provided and we don't have a URL, construct it
             if (opts.page && !opts.url) {
-                const separator = endpoints.products.includes('?') ? '&' : '?';
-                fetchUrl = `${endpoints.products}${separator}page=${opts.page}`;
+                const separator = fetchUrl.includes('?') ? '&' : '?';
+                fetchUrl = `${fetchUrl}${separator}page=${opts.page}`;
             }
-            
-            console.log('FETCHING PRODUCTS');
+
+            console.log('📦 FETCHING VENDOR PRODUCTS');
             console.log('URL:', fetchUrl);
-            console.log('Current products count:', products.length);
-            console.log('Page:', opts.page || currentPage);
-            
-            const res = await api.get(fetchUrl, {
+
+            const res = await api.get<ApiResponse>(fetchUrl, {
                 headers: {
                     Authorization: `Bearer ${token || ''}`,
                 },
             });
 
-            // Log the entire response structure
-            console.log('API RESPONSE RECEIVED');
-            console.log('Status:', res.status);
-            console.log('Response keys:', Object.keys(res.data || {}));
-            console.log('Full response data:', JSON.stringify(res.data, null, 2));
+            console.log('✅ API RESPONSE RECEIVED');
+            console.log('Count:', res.data.count);
+            console.log('Results count:', res.data.results?.length || 0);
 
-            let list: any[] = [];
-            let newNextUrl: string | null = null;
-            let count: number = 0;
-
-            // Handle paginated response (count, next, previous, results)
-            if (res.data?.results && Array.isArray(res.data.results)) {
-                list = res.data.results;
-                newNextUrl = res.data.next || null;
-                count = res.data.count || 0;
-                console.log('✓ Detected PAGINATED response');
-                console.log('  - Items in this page:', list.length);
-                console.log('  - Total count:', count);
-                console.log('  - Next URL:', newNextUrl || 'NONE');
-                console.log('  - Previous URL:', res.data.previous || 'NONE');
-            } 
-            // Handle success response with data array
-            else if (res.data?.success === true && Array.isArray(res.data.data)) {
-                list = res.data.data;
-                count = res.data.total || res.data.count || list.length;
-                
-                // Check for pagination in various places
-                if (res.data.pagination) {
-                    newNextUrl = res.data.pagination.next || null;
-                    count = res.data.pagination.total || count;
-                } else if (res.data.next) {
-                    newNextUrl = res.data.next;
-                }
-                
-                console.log('✓ Detected SUCCESS response');
-                console.log('  - Items:', list.length);
-                console.log('  - Total:', count);
-                console.log('  - Next URL:', newNextUrl || 'NONE');
-            } 
-            // Handle direct array
-            else if (Array.isArray(res.data)) {
-                list = res.data;
-                count = list.length;
-                console.log('✓ Detected DIRECT ARRAY response');
-                console.log('  - Items:', list.length);
-            } 
-            // Handle nested data
-            else if (res.data?.data && Array.isArray(res.data.data)) {
-                list = res.data.data;
-                count = res.data.total || res.data.count || list.length;
-                if (res.data.next) {
-                    newNextUrl = res.data.next;
-                }
-                console.log('✓ Detected NESTED DATA response');
-                console.log('  - Items:', list.length);
-                console.log('  - Total:', count);
-                console.log('  - Next URL:', newNextUrl || 'NONE');
-            }
-
-            const mapped = list.map(mapApiItemToProduct);
+            const vendorProducts = res.data.results || [];
+            const mapped = vendorProducts.map(mapApiItemToProduct);
 
             if (opts.refresh) {
                 setProducts(mapped);
-                setNextUrl(newNextUrl);
-                setTotalCount(count);
+                setNextUrl(res.data.next);
+                setTotalCount(res.data.count);
                 console.log('>>> SET products (REFRESH):', mapped.length, 'items');
             } else if (opts.url || opts.page) {
                 // Append to existing products
@@ -154,23 +228,14 @@ const ProductsScreen: React.FC = () => {
                     console.log('>>> APPENDED products:', prev.length, '+', mapped.length, '=', combined.length);
                     return combined;
                 });
-                setNextUrl(newNextUrl);
+                setNextUrl(res.data.next);
                 setCurrentPage(prev => prev + 1);
-                console.log('>>> Next page will be:', currentPage + 1);
             } else {
                 setProducts(mapped);
-                setNextUrl(newNextUrl);
-                setTotalCount(count);
+                setNextUrl(res.data.next);
+                setTotalCount(res.data.count);
                 console.log('>>> SET products (INITIAL):', mapped.length, 'items');
             }
-
-            console.log('==========================================');
-            console.log('FINAL STATE');
-            console.log('Total products in state:', opts.url || opts.page ? products.length + mapped.length : mapped.length);
-            console.log('Has next page?', newNextUrl ? 'YES' : 'NO');
-            console.log('Next URL:', newNextUrl);
-            console.log('Total count:', count);
-            console.log('==========================================');
 
         } catch (error: any) {
             console.error('==========================================');
@@ -179,7 +244,7 @@ const ProductsScreen: React.FC = () => {
             console.error('Status:', error.response?.status);
             console.error('Message:', error.response?.data?.message || error.message);
             console.error('==========================================');
-            
+
             if (error.response?.status === 401) {
                 await logout();
                 router.replace('/signIn');
@@ -189,35 +254,60 @@ const ProductsScreen: React.FC = () => {
             setIsRefreshing(false);
             setIsLoadingMore(false);
         }
-    };
+    }, [logout]);
+
+    // Filter products based on search, category, and status
+    useEffect(() => {
+        let filtered = [...products];
+
+        // Search filter
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            filtered = filtered.filter(product =>
+                product.name.toLowerCase().includes(query) ||
+                product.sku.toLowerCase().includes(query) ||
+                product.id.toLowerCase().includes(query)
+            );
+        }
+
+        // Category filter
+        if (selectedCategory !== 'all') {
+            filtered = filtered.filter(product =>
+                product.category?.slug === selectedCategory ||
+                product.category?.id === selectedCategory ||
+                product.category?.name?.toLowerCase().includes(selectedCategory.toLowerCase())
+            );
+        }
+
+        // Status filter
+        if (selectedStatus !== 'all') {
+            filtered = filtered.filter(product => {
+                const productStatus = product.is_active ? 'active' : 'inactive';
+                return productStatus === selectedStatus.toLowerCase();
+            });
+        }
+
+        setFilteredProducts(filtered);
+    }, [products, searchQuery, selectedCategory, selectedStatus]);
 
     useEffect(() => {
         if (isAuthenticated) {
             fetchProducts();
+            fetchCategories();
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, fetchProducts, fetchCategories]);
 
-    const handleLoadMore = () => {
-        console.log('==========================================');
-        console.log('LOAD MORE TRIGGERED');
-        console.log('Has nextUrl?', !!nextUrl);
-        console.log('nextUrl:', nextUrl);
-        console.log('isLoadingMore?', isLoadingMore);
-        console.log('isLoading?', isLoading);
-        console.log('isRefreshing?', isRefreshing);
-        console.log('==========================================');
-
+    const handleLoadMore = useCallback(() => {
         if (nextUrl && !isLoadingMore && !isLoading && !isRefreshing) {
-            console.log('>>> Fetching next page...');
+            console.log('>>> Fetching next page from URL:', nextUrl);
             fetchProducts({ url: nextUrl });
         } else if (!nextUrl && totalCount > products.length) {
-            // Try pagination by page number
             console.log('>>> No nextUrl, trying page number:', currentPage + 1);
             fetchProducts({ page: currentPage + 1 });
         }
-    };
+    }, [nextUrl, isLoadingMore, isLoading, isRefreshing, totalCount, products.length, currentPage, fetchProducts]);
 
-    const handleManualLoadMore = () => {
+    const handleManualLoadMore = useCallback(() => {
         if (totalCount > products.length) {
             if (nextUrl) {
                 fetchProducts({ url: nextUrl });
@@ -225,51 +315,76 @@ const ProductsScreen: React.FC = () => {
                 fetchProducts({ page: currentPage + 1 });
             }
         }
+    }, [totalCount, products.length, nextUrl, currentPage, fetchProducts]);
+
+    const handleClearFilters = () => {
+        setSearchQuery('');
+        setSelectedCategory('all');
+        setSelectedStatus('all');
     };
 
-    const renderProduct = ({ item }: { item: Product }) => (
-        <TouchableOpacity
-            style={{ width: ITEM_WIDTH }}
-            className="bg-white rounded-xl p-3 mb-4 border border-gray-200"
-            activeOpacity={0.85}
-        >
-            {item.image ? (
-                <Image
-                    source={typeof item.image === 'string' ? { uri: item.image } : item.image}
-                    className="w-full h-32 rounded-lg mb-3"
-                    resizeMode="contain"
-                />
-            ) : (
-                <View className="w-full h-32 rounded-lg mb-3 bg-gray-100 items-center justify-center">
-                    <Text className="text-xs text-gray-400">No image</Text>
+    const renderProduct = ({ item }: { item: Product }) => {
+        const productStatus = item.is_active ? 'active' : 'inactive';
+        const primaryImage = item.images?.find(img => img.is_primary);
+        const displayImage = primaryImage?.image || item.main_image || item.images?.[0]?.image;
+
+        return (
+            <TouchableOpacity
+                onPress={() => navigateToProductDetails(item.slug)}
+                style={{ width: ITEM_WIDTH }}
+                className="bg-white rounded-xl p-3 mb-4 border border-gray-200"
+                activeOpacity={0.85}
+            >
+                {displayImage ? (
+                    <Image
+                        source={{ uri: displayImage }}
+                        className="w-full h-32 rounded-lg mb-3"
+                        resizeMode="contain"
+                    />
+                ) : (
+                    <View className="w-full h-32 rounded-lg mb-3 bg-gray-100 items-center justify-center">
+                        <Text className="text-xs text-gray-400">No image</Text>
+                    </View>
+                )}
+
+                <View className="flex-row justify-between items-center mb-1">
+                    <Text
+                        className="text-xs text-gray-600 flex-1 pr-2"
+                        numberOfLines={2}
+                    >
+                        {item.name}
+                    </Text>
+
+                    <View className={`px-2 py-0.5 rounded-full ${
+                        productStatus === 'active' ? 'bg-green-100' : 'bg-red-100'
+                    }`}>
+                        <Text className={`text-[10px] font-semibold ${
+                            productStatus === 'active' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                            {productStatus}
+                        </Text>
+                    </View>
                 </View>
-            )}
 
-            <View className="flex-row justify-between items-center mb-1">
-                <Text
-                    className="text-xs text-gray-600 flex-1 pr-2"
-                    numberOfLines={2}
-                >
-                    {item.name}
-                </Text>
-
-                <View className="bg-green-100 px-2 py-0.5 rounded-full">
-                    <Text className="text-[10px] text-green-600 font-semibold">
-                        {t('active')}
+                <View className="flex-row justify-between items-center mt-1">
+                    <Text className="text-sm font-semibold text-gray-900">
+                        ₦{parseFloat(item.price).toLocaleString()}
+                    </Text>
+                    <Text className="text-xs text-gray-500">
+                        {item.stock_quantity} {t('in_stock')}
                     </Text>
                 </View>
-            </View>
 
-            <View className="flex-row justify-between items-center mt-1">
-                <Text className="text-sm font-semibold text-gray-900">
-                    ₦{item.price}
-                </Text>
-                <Text className="text-xs text-gray-500">
-                    {item.stock} {t('in_stock')}
-                </Text>
-            </View>
-        </TouchableOpacity>
-    );
+                {item.discount_percentage > 0 && (
+                    <View className="absolute top-2 left-2 bg-red-500 px-2 py-1 rounded-full">
+                        <Text className="text-white text-[10px] font-bold">
+                            -{item.discount_percentage}%
+                        </Text>
+                    </View>
+                )}
+            </TouchableOpacity>
+        );
+    };
 
     const renderFooter = () => {
         if (isLoadingMore) {
@@ -283,7 +398,6 @@ const ProductsScreen: React.FC = () => {
             );
         }
 
-        // Show manual load button if there are more products
         if (totalCount > products.length && !isLoading) {
             return (
                 <View className="py-4 items-center">
@@ -306,6 +420,125 @@ const ProductsScreen: React.FC = () => {
         return null;
     };
 
+    const renderCategoryModal = () => (
+        <Modal
+            visible={showCategoryModal}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setShowCategoryModal(false)}
+        >
+            <TouchableOpacity 
+                className="flex-1 bg-black/50 justify-end"
+                activeOpacity={1}
+                onPress={() => setShowCategoryModal(false)}
+            >
+                <View className="bg-white rounded-t-3xl max-h-96">
+                    <View className="p-4 border-b border-gray-200">
+                        <Text className="text-lg font-bold text-gray-900">
+                            {t('select_category') || 'Select Category'}
+                        </Text>
+                    </View>
+
+                    <FlatList
+                        data={[
+                            { id: 'all', name: t('all_categories') || 'All Categories', slug: 'all' },
+                            ...categories
+                        ]}
+                        keyExtractor={(item) => item.id}
+                        renderItem={({ item }) => (
+                            <TouchableOpacity
+                                className={`px-4 py-3 border-b border-gray-100 ${
+                                    selectedCategory === item.slug ? 'bg-red-50' : ''
+                                }`}
+                                onPress={() => {
+                                    setSelectedCategory(item.slug);
+                                    setShowCategoryModal(false);
+                                }}
+                            >
+                                <Text className={`${
+                                    selectedCategory === item.slug ? 'text-red-600 font-semibold' : 'text-gray-700'
+                                }`}>
+                                    {item.name}
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+                    />
+
+                    <TouchableOpacity
+                        className="p-4 bg-gray-100"
+                        onPress={() => setShowCategoryModal(false)}
+                    >
+                        <Text className="text-center text-gray-700 font-semibold">
+                            {t('cancel') || 'Cancel'}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            </TouchableOpacity>
+        </Modal>
+    );
+
+    const renderStatusModal = () => {
+        const statuses = [
+            { id: 'all', name: t('all_status') || 'All Status' },
+            { id: 'active', name: t('active') || 'Active' },
+            { id: 'inactive', name: t('inactive') || 'Inactive' },
+        ];
+
+        return (
+            <Modal
+                visible={showStatusModal}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setShowStatusModal(false)}
+            >
+                <TouchableOpacity 
+                    className="flex-1 bg-black/50 justify-end"
+                    activeOpacity={1}
+                    onPress={() => setShowStatusModal(false)}
+                >
+                    <View className="bg-white rounded-t-3xl">
+                        <View className="p-4 border-b border-gray-200">
+                            <Text className="text-lg font-bold text-gray-900">
+                                {t('select_status') || 'Select Status'}
+                            </Text>
+                        </View>
+
+                        <FlatList
+                            data={statuses}
+                            keyExtractor={(item) => item.id}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity
+                                    className={`px-4 py-3 border-b border-gray-100 ${
+                                        selectedStatus === item.id ? 'bg-red-50' : ''
+                                    }`}
+                                    onPress={() => {
+                                        setSelectedStatus(item.id);
+                                        setShowStatusModal(false);
+                                    }}
+                                >
+                                    <Text className={`${
+                                        selectedStatus === item.id ? 'text-red-600 font-semibold' : 'text-gray-700'
+                                    }`}>
+                                        {item.name}
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
+                        />
+
+                        <TouchableOpacity
+                            className="p-4 bg-gray-100"
+                            onPress={() => setShowStatusModal(false)}
+                        >
+                            <Text className="text-center text-gray-700 font-semibold">
+                                {t('cancel') || 'Cancel'}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+        );
+    };
+
     return (
         <SafeAreaView className="flex-1 bg-gray-50">
             <View className="px-4 pt-4 pb-3">
@@ -315,7 +548,7 @@ const ProductsScreen: React.FC = () => {
                             {t('products')}
                         </Text>
                         <Text className="text-xs text-gray-500">
-                            {products.length} {totalCount > 0 && totalCount !== products.length ? `/ ${totalCount}` : ''} {t('products_in_your_store')}
+                            {filteredProducts.length} / {totalCount} {t('products_in_your_store')}
                         </Text>
                     </View>
                     <TouchableOpacity
@@ -328,28 +561,62 @@ const ProductsScreen: React.FC = () => {
                     </TouchableOpacity>
                 </View>
 
-                <View className="bg-white rounded-xl px-4 py-1 border border-gray-200 mb-3">
+                <View className="bg-white rounded-xl px-4 py-2 border border-gray-200 mb-3 flex-row items-center">
                     <TextInput
-                        placeholder={t('search_products')}
+                        placeholder={t('search_products') || 'Search products...'}
                         placeholderTextColor="#9CA3AF"
-                        className="text-sm text-gray-800"
+                        className="text-sm text-gray-800 flex-1"
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
                     />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                            <Text className="text-gray-400 ml-2">✕</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
 
-                <View className="flex-row gap-3">
-                    <TouchableOpacity className="flex-row items-center justify-between flex-1 bg-white px-4 py-3 rounded-xl border border-gray-200">
-                        <Text className="text-xs text-gray-700">{t('all_categories')}</Text>
+                <View className="flex-row gap-3 mb-2">
+                    <TouchableOpacity
+                        className="flex-row items-center justify-between flex-1 bg-white px-4 py-3 rounded-xl border border-gray-200"
+                        onPress={() => setShowCategoryModal(true)}
+                    >
+                        <Text className="text-xs text-gray-700" numberOfLines={1}>
+                            {selectedCategory === 'all'
+                                ? (t('all_categories') || 'All Categories')
+                                : categories.find(c => c.slug === selectedCategory)?.name || (t('all_categories') || 'All Categories')
+                            }
+                        </Text>
                         <Text className="text-xs text-gray-400">⌄</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity className="flex-row items-center justify-between flex-1 bg-white px-4 py-3 rounded-xl border border-gray-200">
-                        <Text className="text-xs text-gray-700">{t('all_status')}</Text>
+                    <TouchableOpacity
+                        className="flex-row items-center justify-between flex-1 bg-white px-4 py-3 rounded-xl border border-gray-200"
+                        onPress={() => setShowStatusModal(true)}
+                    >
+                        <Text className="text-xs text-gray-700">
+                            {selectedStatus === 'all'
+                                ? (t('all_status') || 'All Status')
+                                : selectedStatus
+                            }
+                        </Text>
                         <Text className="text-xs text-gray-400">⌄</Text>
                     </TouchableOpacity>
                 </View>
+
+                {(searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all') && (
+                    <TouchableOpacity
+                        className="flex-row items-center justify-center py-2"
+                        onPress={handleClearFilters}
+                    >
+                        <Text className="text-xs text-red-500 font-semibold">
+                            {t('clear_all_filters') || 'Clear All Filters'}
+                        </Text>
+                    </TouchableOpacity>
+                )}
             </View>
 
-            <View className="px-4 flex-1 bg-orange-50 pt-2 border border-orange-300 rounded-xl">
+            <View className="px-4 flex-1">
                 {isLoading ? (
                     <View className="flex-1 items-center justify-center py-8">
                         <ActivityIndicator size="large" color="#C62828" />
@@ -357,21 +624,37 @@ const ProductsScreen: React.FC = () => {
                             {t('loading_products') || 'Loading products...'}
                         </Text>
                     </View>
-                ) : products.length === 0 ? (
+                ) : filteredProducts.length === 0 ? (
                     <View className="flex-1 items-center justify-center py-8">
-                        <Text className="text-gray-600">{t('no_products_found') || 'No products found'}</Text>
+                        <Text className="text-gray-600">
+                            {searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all'
+                                ? (t('no_products_match_filters') || 'No products match your filters')
+                                : (t('no_products_found') || 'No products found')
+                            }
+                        </Text>
                         <TouchableOpacity
-                            onPress={() => fetchProducts({ refresh: true })}
+                            onPress={() => {
+                                if (searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all') {
+                                    handleClearFilters();
+                                } else {
+                                    fetchProducts({ refresh: true });
+                                }
+                            }}
                             className="mt-4 px-4 py-2 bg-gray-100 rounded-lg"
                         >
-                            <Text className="text-gray-700">{t('retry') || 'Retry'}</Text>
+                            <Text className="text-gray-700">
+                                {searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all'
+                                    ? (t('clear_filters') || 'Clear Filters')
+                                    : (t('retry') || 'Retry')
+                                }
+                            </Text>
                         </TouchableOpacity>
                     </View>
                 ) : (
                     <FlatList
-                        data={products}
+                        data={filteredProducts}
                         renderItem={renderProduct}
-                        keyExtractor={(item, index) => `${item.id}-${index}`}
+                        keyExtractor={(item) => item.id}
                         numColumns={2}
                         columnWrapperStyle={{ justifyContent: 'space-between' }}
                         showsVerticalScrollIndicator={false}
@@ -384,6 +667,9 @@ const ProductsScreen: React.FC = () => {
                     />
                 )}
             </View>
+
+            {renderCategoryModal()}
+            {renderStatusModal()}
         </SafeAreaView>
     );
 };

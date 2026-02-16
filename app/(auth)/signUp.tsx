@@ -1,27 +1,73 @@
 import images from '@/constants/images';
 import React, { useState } from 'react';
-import { Image, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Text, TouchableOpacity, View, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from "@/constants/color";
-import { useLanguage } from '@/context/LanguageContext'; // Import the language hook
-import { Ionicons } from '@expo/vector-icons'; // <- Expo Vector Icons
+import { useLanguage } from '@/context/LanguageContext';
+import { Ionicons } from '@expo/vector-icons';
+import TermsModal from '@/components/TermsModal'; 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BusinessRegisterScreen: React.FC = () => {
-  const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [isCustomer, setIsCustomer] = useState(false);
+  const [termsModalVisible, setTermsModalVisible] = useState(false);
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
   const router = useRouter();
-  const { t } = useLanguage(); // Get the translation function
+  const { t } = useLanguage();
 
   const handleSignIn = () => {
     router.push('/signIn');
   };
 
-  const handlePhoneSignUp = () => {
-    router.push('/RegisterForm/PhoneSignUp');
+  const handleEmailSignUp = () => {
+    // Show terms modal for business registration
+    if (!isCustomer) {
+      setPendingAction('email');
+      setTermsModalVisible(true);
+    } else {
+      // For customer, just navigate (or show customer terms)
+      router.push('/RegisterForm/EmailSignUp');
+    }
   };
 
-  const handleEmailSignUp = () => {
-    router.push('/RegisterForm/EmailSignUp');
+  const handleGoogleSignUp = () => {
+    if (!isCustomer) {
+      setPendingAction('google');
+      setTermsModalVisible(true);
+    } else {
+      // Handle Google sign up for customer
+      Alert.alert('Info', 'Google sign up for customers');
+    }
+  };
+
+  const handleTermsAccept = async () => {
+    try {
+      // Store that user has accepted terms
+      await AsyncStorage.setItem('vendor_terms_accepted', 'true');
+      await AsyncStorage.setItem('vendor_terms_version', '1.0');
+      await AsyncStorage.setItem('vendor_terms_accepted_date', new Date().toISOString());
+      
+      // Close modal
+      setTermsModalVisible(false);
+      
+      // Proceed with the pending action
+      if (pendingAction === 'email') {
+        router.push('/RegisterForm/EmailSignUp');
+      } else if (pendingAction === 'google') {
+        // Handle Google sign up
+        Alert.alert('Info', 'Google sign up for vendors');
+      }
+      
+      setPendingAction(null);
+    } catch (error) {
+      console.error('Error saving terms acceptance:', error);
+      Alert.alert('Error', 'Failed to save your acceptance. Please try again.');
+    }
+  };
+
+  const handleTermsClose = () => {
+    setTermsModalVisible(false);
+    setPendingAction(null);
   };
 
   return (
@@ -59,65 +105,40 @@ const BusinessRegisterScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Phone Sign-up */}
-          <TouchableOpacity 
+          {/* Terms Notice for Business */}
+          {!isCustomer && (
+            <View className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <Text className="text-xs text-blue-700 text-center">
+                By proceeding, you agree to our{' '}
+                <Text className="font-bold">Vendor Agreement & Policy Statement</Text>
+                {' '}which includes dropshipping policies, commission rates, and payout terms.
+              </Text>
+            </View>
+          )}
+
+          {/* Email Sign-up */}
+          <TouchableOpacity
             className="flex-row items-center mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200"
-            onPress={handlePhoneSignUp}
+            onPress={handleEmailSignUp}
           >
-            <Ionicons name="call" color={colors.darkRed} size={24} style={{ marginRight: 16 }} />
-            <Text className="text-lg text-gray-900 flex-1 pl-8">
-              {t('sign_up_with_phone')}
+            <Ionicons name="mail" color={colors.darkRed} size={24} style={{ marginRight: 16 }} />
+            <Text className="text-lg text-gray-900 flex-1 pl-14">
+              {t('email_and_password')}
             </Text>
           </TouchableOpacity>
 
           {/* Google Sign-up */}
-          <TouchableOpacity className="flex-row items-center mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+          <TouchableOpacity 
+            className="flex-row items-center mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200"
+            onPress={handleGoogleSignUp}
+          >
             <Image source={images.googleIcon} className="w-6 h-6 mr-4" />
             <Text className="text-lg text-gray-900 flex-1 pl-14">
               {t('sign_up_with_google')}
             </Text>
           </TouchableOpacity>
 
-          {/* OR Divider */}
-          {showMoreOptions && (
-            <View className="flex-row items-center my-6">
-              <View className="flex-1 h-px bg-gray-300" />
-              <Text className="px-4 text-gray-500 text-sm font-medium">
-                {t('or')}
-              </Text>
-              <View className="flex-1 h-px bg-gray-300" />
-            </View>
-          )}
-
-          {/* Email Option */}
-          {showMoreOptions && (
-            <TouchableOpacity 
-              className="flex-row items-center mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200"
-              onPress={handleEmailSignUp}
-            >
-              <Ionicons name="mail" color={colors.darkRed} size={24} style={{ marginRight: 16 }} />
-              <Text className="text-lg text-gray-900 flex-1 pl-14">
-                {t('email_and_password')}
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          {/* More Options */}
-          <TouchableOpacity
-            className="flex-row items-center justify-center mb-8 py-4 border-b border-gray-200"
-            onPress={() => setShowMoreOptions(!showMoreOptions)}
-          >
-            <Text className="text-gray-400 text-sm font-medium mr-2">
-              {showMoreOptions ? t('less_options') : t('more_options')}
-            </Text>
-            <Ionicons
-              name={showMoreOptions ? "chevron-up" : "chevron-down"}
-              size={16}
-              color="#9CA3AF"
-            />
-          </TouchableOpacity>
-
-          {/* Login */}
+          {/* Login Link */}
           <View className="flex-row justify-center">
             <TouchableOpacity onPress={handleSignIn}>
               <Text className="text-gray-600 text-lg">
@@ -126,8 +147,33 @@ const BusinessRegisterScreen: React.FC = () => {
               </Text>
             </TouchableOpacity>
           </View>
+
+          {/* Vendor Agreement Link */}
+          {!isCustomer && (
+            <View className="mt-6 items-center">
+              <TouchableOpacity onPress={() => {
+                setPendingAction('view');
+                setTermsModalVisible(true);
+              }}>
+                <Text className="text-sm text-gray-500 underline">
+                  Read the full Vendor Agreement
+                </Text>
+              </TouchableOpacity>
+              <Text className="text-xs text-gray-400 mt-2">
+                Version 1.0 | Effective Date: 02/15/26
+              </Text>
+            </View>
+          )}
         </View>
       </View>
+
+      {/* Terms Modal */}
+      <TermsModal
+        visible={termsModalVisible}
+        onClose={handleTermsClose}
+        onAccept={handleTermsAccept}
+        type={isCustomer ? 'customer' : 'vendor'}
+      />
     </View>
   );
 };

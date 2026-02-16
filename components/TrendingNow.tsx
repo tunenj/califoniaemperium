@@ -1,4 +1,4 @@
-// components/home/TrendingProducts.tsx - Grid (4 items) without images
+// components/home/TrendingProducts.tsx - Grid (4 items) with real images
 import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { FontAwesome, MaterialIcons, AntDesign } from "@expo/vector-icons";
@@ -83,6 +84,15 @@ interface VendorInfo {
   is_approved: boolean;
 }
 
+interface ProductImage {
+  id: string;
+  image: string;
+  alt_text: string;
+  is_primary: boolean;
+  order: number;
+  created_at: string;
+}
+
 interface Product {
   id: string;
   product_type: string;
@@ -110,7 +120,7 @@ interface Product {
   is_featured: boolean;
   requires_shipping: boolean;
   is_digital: boolean;
-  images: any[];
+  images: ProductImage[];
   variants: Variant[];
   attributes: Attribute[];
   view_count: number;
@@ -161,6 +171,7 @@ const TrendingProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [imageErrors, setImageErrors] = useState<{[key: string]: boolean}>({});
   
   // State to track which products are being added to cart
   const [addingToCart, setAddingToCart] = useState<{[key: string]: boolean}>({});
@@ -203,12 +214,38 @@ const TrendingProducts = () => {
     return count;
   }, []);
 
+  // Helper to get product image URL
+  const getProductImageUrl = useCallback((product: Product): string | null => {
+    // Priority 1: Check main_image field
+    if (product.main_image) {
+      return product.main_image;
+    }
+    
+    // Priority 2: Check images array
+    if (product.images && product.images.length > 0) {
+      // Find primary image
+      const primaryImage = product.images.find(img => img.is_primary);
+      if (primaryImage?.image) {
+        return primaryImage.image;
+      }
+      // Fallback to first image
+      return product.images[0]?.image || null;
+    }
+    
+    return null;
+  }, []);
+
+  const handleImageError = useCallback((productId: string) => {
+    setImageErrors(prev => ({ ...prev, [productId]: true }));
+  }, []);
+
   /* ---------- Fetch ---------- */
 
   const fetchTrendingProducts = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
+      setImageErrors({});
 
       const response = await api.get<TrendingProductsResponse>(
         endpoints.trendingProducts
@@ -289,6 +326,9 @@ const TrendingProducts = () => {
     setAddingToCart(prev => ({ ...prev, [product.id]: true }));
 
     try {
+      // Get product image
+      const productImage = getProductImageUrl(product);
+
       // Prepare item data for the cart
       const itemData = {
         productId: product.id,
@@ -298,7 +338,7 @@ const TrendingProducts = () => {
         originalPrice: product.compare_at_price 
           ? parseFloat(product.compare_at_price)
           : parseFloat(product.price),
-        image: product.main_image || (product.images && product.images.length > 0 ? product.images[0] : null),
+        image: productImage,
       };
 
       console.log('🛒 Adding product to cart:', itemData);
@@ -316,7 +356,7 @@ const TrendingProducts = () => {
       // Clear loading state for this product
       setAddingToCart(prev => ({ ...prev, [product.id]: false }));
     }
-  }, [addItem, isInCart]);
+  }, [addItem, isInCart, getProductImageUrl]);
 
   const handleWishlistToggle = useCallback(async (product: Product | null, event?: any) => {
     if (event) {
@@ -365,7 +405,6 @@ const TrendingProducts = () => {
         }
         
         // Remove from wishlist using wishlist_id
-        // This calls DELETE /orders/wishlist/:wishlist_id/
         const success = await removeFromWishlist(wishlistId);
         
         if (success) {
@@ -382,7 +421,6 @@ const TrendingProducts = () => {
     } catch (error: any) {
       console.error("Error toggling wishlist:", error);
       
-      // Error is already handled in WishlistContext, but show a user-friendly message
       const errorMessage = error.response?.data?.message || 
                           error.response?.data?.detail ||
                           error.message ||
@@ -484,6 +522,9 @@ const TrendingProducts = () => {
           const isProductOutOfStock = !product.is_in_stock;
           const isProductInWishlist = isInWishlist(product.id);
           const isWishlistToggling = isTogglingWishlist(product.id);
+          
+          const productImage = getProductImageUrl(product);
+          const hasImageError = imageErrors[product.id] || false;
 
           return (
             <TouchableOpacity
@@ -491,14 +532,23 @@ const TrendingProducts = () => {
               className="w-[48%] mb-4 bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 relative"
               onPress={() => handleProductPress(product)}
             >
-              {/* Image Placeholder */}
-              <View className="h-36 bg-gray-200 items-center justify-center">
-                <View className="absolute bottom-2 bg-black/60 rounded-full px-3 py-1 flex-row items-center">
-                  <MaterialIcons name="image" size={12} color="white" />
-                  <Text className="text-white text-xs ml-1">
-                    {t("image_coming_soon") || "Image coming soon"}
-                  </Text>
-                </View>
+              {/* Product Image */}
+              <View className="h-36 bg-gray-200 items-center justify-center overflow-hidden">
+                {productImage && !hasImageError ? (
+                  <Image
+                    source={{ uri: productImage }}
+                    className="w-full h-full"
+                    resizeMode="cover"
+                    onError={() => handleImageError(product.id)}
+                  />
+                ) : (
+                  <View className="items-center justify-center">
+                    <MaterialIcons name="image" size={32} color="#9CA3AF" />
+                    <Text className="text-gray-400 text-xs mt-1">
+                      {product.category?.name || "Product"}
+                    </Text>
+                  </View>
+                )}
 
                 {discount > 0 && (
                   <View className="absolute top-2 left-2 bg-darkRed rounded-full px-2 py-1 z-10">
@@ -533,6 +583,15 @@ const TrendingProducts = () => {
                     />
                   )}
                 </TouchableOpacity>
+
+                {/* Out of Stock Overlay */}
+                {isProductOutOfStock && (
+                  <View className="absolute inset-0 bg-black/30 justify-center items-center">
+                    <Text className="text-white text-xs font-bold bg-black/50 px-2 py-1 rounded">
+                      OUT OF STOCK
+                    </Text>
+                  </View>
+                )}
               </View>
 
               {/* Info */}
@@ -588,9 +647,9 @@ const TrendingProducts = () => {
                 </View>
               </View>
 
-              {/* Optional: Show "In Cart" badge */}
+              {/* "In Cart" badge */}
               {isProductInCart && !isProductAddingToCart && (
-                <View className="absolute bottom-3 left-2 bg-green-100 px-2 py-0.5 rounded-full border border-green-300">
+                <View className="absolute left-2 bg-green-100 px-2 py-0.5 rounded-full border border-green-300">
                   <Text className="text-xs text-green-800 font-medium">In Cart</Text>
                 </View>
               )}

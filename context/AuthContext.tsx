@@ -9,13 +9,13 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   userRole: 'business' | 'customer' | null;
-  login: (credentials: string | { email: string; password: string }, roleOrPassword?: string) => Promise<{success: boolean; message?: string}>;
-  loginWithPhone: (phone: string) => Promise<{success: boolean; message?: string}>;
-  verifyPhoneOtp: (phone: string, otp: string) => Promise<{success: boolean; message?: string}>;
-  register: (userData: RegisterData) => Promise<{success: boolean; message?: string}>;
-  verifyEmail: (email: string, otp: string) => Promise<{success: boolean; message?: string}>;
-  resendEmailOtp: (email: string) => Promise<{success: boolean; message?: string}>;
-  forgotPassword: (email: string) => Promise<{success: boolean; message?: string}>;
+  login: (credentials: string | { email: string; password: string }, roleOrPassword?: string) => Promise<{ success: boolean; message?: string }>;
+  loginWithPhone: (phone: string) => Promise<{ success: boolean; message?: string }>;
+  verifyPhoneOtp: (phone: string, otp: string) => Promise<{ success: boolean; message?: string }>;
+  register: (userData: RegisterData) => Promise<{ success: boolean; message?: string }>;
+  verifyEmail: (email: string, otp: string) => Promise<{ success: boolean; message?: string }>;
+  resendEmailOtp: (email: string) => Promise<{ success: boolean; message?: string }>;
+  forgotPassword: (email: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
   fetchUserProfile: () => Promise<void>;
   refreshAccessToken: () => Promise<boolean>;
@@ -72,36 +72,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log('🔄 Attempting to refresh access token...');
       const refreshToken = await AsyncStorage.getItem('refreshToken');
-      
+
       if (!refreshToken) {
         console.log('No refresh token available');
         return false;
       }
-      
+
       console.log('Calling refresh token endpoint...');
       const response = await api.post(endpoints.refreshToken, {
         refresh: refreshToken
       });
-      
+
       console.log('✅ Token refresh response received');
-      
+
       if (response.data.access) {
         const newAccessToken = response.data.access;
         const newRefreshToken = response.data.refresh || refreshToken; // Use new refresh token if provided
-        
+
         // Store new tokens
         await AsyncStorage.setItem('authToken', newAccessToken);
         if (response.data.refresh) {
           await AsyncStorage.setItem('refreshToken', newRefreshToken);
         }
-        
+
         // Update API headers
         api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
-        
+
         console.log('✅ Access token refreshed successfully');
         return true;
       }
-      
+
       console.log('❌ No access token in refresh response');
       return false;
     } catch (error: any) {
@@ -110,13 +110,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         status: error.response?.status,
         data: error.response?.data
       });
-      
+
       // If refresh token is invalid/expired, clear auth
       if (error.response?.status === 401) {
         console.log('⚠️ Refresh token expired, clearing auth...');
         await clearAuth();
       }
-      
+
       return false;
     }
   }, [clearAuth]); // Added clearAuth as dependency
@@ -130,15 +130,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await AsyncStorage.setItem('refreshToken', tokens.refresh);
       }
       await AsyncStorage.setItem('userData', JSON.stringify(userData));
-      
+
       // Set token in API headers
       api.defaults.headers.common['Authorization'] = `Bearer ${tokens.access}`;
-      
+
       // Update state
       setUser(userData);
       setIsAuthenticated(true);
       setUserRole(userData.role === 'vendor' ? 'business' : 'customer');
-      
+
       console.log('✅ Auth state set successfully for user:', userData.email);
     } catch (error) {
       console.error('❌ Failed to set auth state:', error);
@@ -160,7 +160,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (errorData.detail) return errorData.detail;
     if (errorData.error) return errorData.error;
     if (Array.isArray(errorData)) return errorData.join(', ');
-    
+
     if (typeof errorData === 'object') {
       // Try to get first error from object
       const firstKey = Object.keys(errorData)[0];
@@ -170,7 +170,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return String(firstError);
       }
     }
-    
+
     return 'An unknown error occurred';
   }, []);
 
@@ -193,23 +193,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [handleSessionExpired]);
 
   // Logout function
+  // Logout function
   const logout = useCallback(async () => {
     try {
       console.log('🚪 Logging out...');
-      
+
       // Try to call logout API endpoint if we have a token
       try {
         const refreshToken = await AsyncStorage.getItem('refreshToken');
         if (refreshToken) {
           await api.post(endpoints.signOut, { refresh: refreshToken });
         }
-      } catch (error) {
-        console.log('⚠️ Logout API call failed (may be expected if already logged out)');
+      } catch (apiError: any) {
+        // Log the error but don't fail the logout process
+        console.log('⚠️ Logout API call failed (may be expected if already logged out):',
+          apiError.message || 'Unknown error');
+
+        // Optionally log more details in development
+        if (__DEV__) {
+          console.log('Detailed logout API error:', {
+            status: apiError.response?.status,
+            data: apiError.response?.data
+          });
+        }
       }
-      
-      // Clear local auth state
+
+      // Always clear local auth state, even if API call fails
       await clearAuth();
-      
+
       console.log('✅ User logged out successfully');
     } catch (error) {
       console.error('❌ Logout failed:', error);
@@ -221,26 +232,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = useCallback(async (
     credentials: string | { email: string; password: string },
     roleOrPassword?: string
-  ): Promise<{success: boolean; message?: string}> => {
+  ): Promise<{ success: boolean; message?: string }> => {
     try {
       setIsLoading(true);
-      
-      console.log('🔐 Login attempt with:', {
+
+      console.log('Login attempt with:', {
         type: typeof credentials === 'string' ? 'token' : 'email/password',
         hasRoleParam: !!roleOrPassword
       });
-      
+
       let accessToken: string | null = null;
       let refreshToken: string | null = null;
       let userData: User | null = null;
       let successMessage = 'Login successful';
-      
+
       // Case 1: Token-based login (string token, string role)
       if (typeof credentials === 'string' && roleOrPassword) {
         // Token + role login
         accessToken = credentials;
         const userRole = roleOrPassword;
-        
+
         // Create temporary user object
         userData = {
           id: 'temp-' + Date.now().toString(),
@@ -249,32 +260,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           phone_verified: false,
           email_verified: false,
         };
-        
+
         // Store token
         await AsyncStorage.setItem('authToken', accessToken);
-        
+
         successMessage = 'Token login successful';
-        
-      } 
+
+      }
       // Case 2: Email/password login
       else if (typeof credentials === 'object' && credentials.email && credentials.password) {
         // Email/password login
         console.log('📧 Attempting email/password login for:', credentials.email);
-        
+
         const response = await api.post(endpoints.emailLogin, {
           email: credentials.email.toLowerCase().trim(),
           password: credentials.password
         });
-        
+
         console.log('✅ Login API response:', {
           status: response.status,
           success: response.data?.success,
           hasTokens: !!(response.data?.access || response.data?.token)
         });
-        
+
         // Extract tokens and user data from various response formats
         const responseData = response.data;
-        
+
         // Format 1: Direct access/refresh tokens
         if (responseData.access && responseData.user) {
           accessToken = responseData.access;
@@ -299,7 +310,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Format 4: Success with data
         else if (responseData.success && responseData.data) {
           const data = responseData.data;
-          
+
           // Try to extract from various nested structures
           if (data.access || data.token) {
             accessToken = data.access || data.token;
@@ -312,58 +323,58 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
           successMessage = responseData.message || 'Login successful';
         }
-        
+
         if (!accessToken || !userData) {
           console.warn('⚠️ Login response missing expected fields:', responseData);
-          return { 
-            success: false, 
-            message: responseData.message || 'Invalid login response from server' 
+          return {
+            success: false,
+            message: responseData.message || 'Invalid login response from server'
           };
         }
-        
+
         // Store tokens
         await AsyncStorage.setItem('authToken', accessToken);
         if (refreshToken) {
           await AsyncStorage.setItem('refreshToken', refreshToken);
         }
       } else {
-        return { 
-          success: false, 
-          message: 'Invalid login parameters. Provide either token+role or email+password.' 
+        return {
+          success: false,
+          message: 'Invalid login parameters. Provide either token+role or email+password.'
         };
       }
-      
+
       // Store user data and update state
       if (userData && accessToken) {
         await setAuthState({ access: accessToken, refresh: refreshToken || undefined }, userData);
-        
+
         // If user data is incomplete (token-based login), fetch complete profile
         if (!userData.email || userData.id.startsWith('temp-')) {
           console.log('🔄 Fetching complete user profile...');
           setTimeout(() => fetchUserProfile(), 1000); // Fetch after a delay
         }
-        
+
         console.log('✅ Login successful, user role:', userData.role);
         return { success: true, message: successMessage };
       }
-      
+
       return { success: false, message: 'Login failed - missing user data or token' };
-      
+
     } catch (error: any) {
       console.error('❌ Login error:', {
         message: error.message,
         status: error.response?.status,
         data: error.response?.data
       });
-      
+
       let errorMessage = 'Login failed';
-      
+
       // Try to extract detailed error message
       if (error.response?.data) {
         const errorData = error.response.data;
         errorMessage = extractErrorMessage(errorData);
       }
-      
+
       return { success: false, message: errorMessage };
     } finally {
       setIsLoading(false);
@@ -371,27 +382,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [setAuthState, fetchUserProfile, extractErrorMessage]);
 
   // Phone login - request OTP
-  const loginWithPhone = useCallback(async (phone: string): Promise<{success: boolean; message?: string}> => {
+  const loginWithPhone = useCallback(async (phone: string): Promise<{ success: boolean; message?: string }> => {
     try {
       setIsLoading(true);
-      
+
       const response = await api.post(endpoints.phoneLogin, { phone });
-      
+
       console.log('📱 Phone login OTP sent:', response.data);
-      
+
       if (response.data.success || response.data.message) {
-        return { 
-          success: true, 
-          message: response.data.message || 'OTP sent to your phone' 
+        return {
+          success: true,
+          message: response.data.message || 'OTP sent to your phone'
         };
       }
-      
+
       return { success: false, message: 'Failed to send OTP' };
     } catch (error: any) {
       console.error('❌ Phone login failed:', error);
-      return { 
-        success: false, 
-        message: extractErrorMessage(error.response?.data) || 'Failed to send OTP' 
+      return {
+        success: false,
+        message: extractErrorMessage(error.response?.data) || 'Failed to send OTP'
       };
     } finally {
       setIsLoading(false);
@@ -399,36 +410,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [extractErrorMessage]);
 
   // Verify phone OTP
-  const verifyPhoneOtp = useCallback(async (phone: string, otp: string): Promise<{success: boolean; message?: string}> => {
+  const verifyPhoneOtp = useCallback(async (phone: string, otp: string): Promise<{ success: boolean; message?: string }> => {
     try {
       setIsLoading(true);
-      
+
       const response = await api.post(endpoints.phoneOtpVerification, {
         phone,
         otp
       });
-      
+
       console.log('✅ Phone OTP verification:', response.data);
-      
+
       if (response.data.access || response.data.token) {
         const token = response.data.access || response.data.token;
         const user = response.data.user;
         const refreshToken = response.data.refresh || response.data.refresh_token;
-        
-        await setAuthState({ 
-          access: token, 
-          refresh: refreshToken 
+
+        await setAuthState({
+          access: token,
+          refresh: refreshToken
         }, user);
-        
+
         return { success: true, message: 'Login successful' };
       }
-      
+
       return { success: false, message: 'Invalid OTP' };
     } catch (error: any) {
       console.error('❌ Phone OTP verification failed:', error);
-      return { 
-        success: false, 
-        message: extractErrorMessage(error.response?.data) || 'Invalid OTP' 
+      return {
+        success: false,
+        message: extractErrorMessage(error.response?.data) || 'Invalid OTP'
       };
     } finally {
       setIsLoading(false);
@@ -436,27 +447,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [setAuthState, extractErrorMessage]);
 
   // Register new user
-  const register = useCallback(async (userData: RegisterData): Promise<{success: boolean; message?: string}> => {
+  const register = useCallback(async (userData: RegisterData): Promise<{ success: boolean; message?: string }> => {
     try {
       setIsLoading(true);
-      
+
       const response = await api.post(endpoints.register, userData);
-      
+
       console.log('✅ Registration response:', response.data);
-      
+
       if (response.data.success || response.data.message) {
-        return { 
-          success: true, 
-          message: response.data.message || 'Registration successful. Please verify your email.' 
+        return {
+          success: true,
+          message: response.data.message || 'Registration successful. Please verify your email.'
         };
       }
-      
+
       return { success: false, message: 'Registration failed' };
     } catch (error: any) {
       console.error('❌ Registration failed:', error);
-      return { 
-        success: false, 
-        message: extractErrorMessage(error.response?.data) || 'Registration failed' 
+      return {
+        success: false,
+        message: extractErrorMessage(error.response?.data) || 'Registration failed'
       };
     } finally {
       setIsLoading(false);
@@ -464,33 +475,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [extractErrorMessage]);
 
   // Verify email OTP
-  const verifyEmail = useCallback(async (email: string, otp: string): Promise<{success: boolean; message?: string}> => {
+  const verifyEmail = useCallback(async (email: string, otp: string): Promise<{ success: boolean; message?: string }> => {
     try {
       setIsLoading(true);
-      
+
       const response = await api.post(endpoints.emailOtpVerification, {
         email,
         otp
       });
-      
+
       console.log('✅ Email verification:', response.data);
-      
+
       if (response.data.success) {
         // Auto-login after verification if tokens are provided
         if (response.data.access) {
           const { access, refresh, user } = response.data;
           await setAuthState({ access, refresh }, user);
         }
-        
+
         return { success: true, message: response.data.message || 'Email verified successfully' };
       }
-      
+
       return { success: false, message: 'Verification failed' };
     } catch (error: any) {
       console.error('❌ Email verification failed:', error);
-      return { 
-        success: false, 
-        message: extractErrorMessage(error.response?.data) || 'Verification failed' 
+      return {
+        success: false,
+        message: extractErrorMessage(error.response?.data) || 'Verification failed'
       };
     } finally {
       setIsLoading(false);
@@ -498,24 +509,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [setAuthState, extractErrorMessage]);
 
   // Resend email OTP
-  const resendEmailOtp = useCallback(async (email: string): Promise<{success: boolean; message?: string}> => {
+  const resendEmailOtp = useCallback(async (email: string): Promise<{ success: boolean; message?: string }> => {
     try {
       setIsLoading(true);
-      
+
       const response = await api.post(endpoints.resendEmailOtp, { email });
-      
+
       console.log('✅ Resend OTP response:', response.data);
-      
+
       if (response.data.success) {
         return { success: true, message: response.data.message || 'OTP resent successfully' };
       }
-      
+
       return { success: false, message: 'Failed to resend OTP' };
     } catch (error: any) {
       console.error('❌ Resend OTP failed:', error);
-      return { 
-        success: false, 
-        message: extractErrorMessage(error.response?.data) || 'Failed to resend OTP' 
+      return {
+        success: false,
+        message: extractErrorMessage(error.response?.data) || 'Failed to resend OTP'
       };
     } finally {
       setIsLoading(false);
@@ -523,24 +534,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [extractErrorMessage]);
 
   // Forgot password
-  const forgotPassword = useCallback(async (email: string): Promise<{success: boolean; message?: string}> => {
+  const forgotPassword = useCallback(async (email: string): Promise<{ success: boolean; message?: string }> => {
     try {
       setIsLoading(true);
-      
+
       const response = await api.post(endpoints.forgotPassword, { email });
-      
+
       console.log('✅ Forgot password response:', response.data);
-      
+
       if (response.data.success) {
         return { success: true, message: response.data.message || 'Password reset instructions sent' };
       }
-      
+
       return { success: false, message: 'Password reset failed' };
     } catch (error: any) {
       console.error('❌ Forgot password failed:', error);
-      return { 
-        success: false, 
-        message: extractErrorMessage(error.response?.data) || 'Password reset failed' 
+      return {
+        success: false,
+        message: extractErrorMessage(error.response?.data) || 'Password reset failed'
       };
     } finally {
       setIsLoading(false);
@@ -551,42 +562,54 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const checkAuthOnStart = useCallback(async () => {
     try {
       console.log('🔍 Checking auth state on app start...');
+
+      // 🔴 DEV MODE: Clear all stored data for fresh start in development
+      if (__DEV__) {
+        console.log('🧹 DEV MODE: Clearing all stored auth data for fresh start...');
+        await AsyncStorage.multiRemove(['authToken', 'refreshToken', 'userData']);
+        delete api.defaults.headers.common['Authorization'];
+        setUser(null);
+        setIsAuthenticated(false);
+        setUserRole(null);
+        console.log('✅ Development mode clear complete');
+      }
+
       const token = await AsyncStorage.getItem('authToken');
       const storedUser = await AsyncStorage.getItem('userData');
       const refreshToken = await AsyncStorage.getItem('refreshToken');
-      
+
       console.log('📊 Auth state:', {
         hasToken: !!token,
         hasRefreshToken: !!refreshToken,
         hasUserData: !!storedUser
       });
-      
+
       if (token && storedUser) {
         // Set token in API headers
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        
+
         // Parse user data
         const userData = JSON.parse(storedUser);
-        
+
         // Verify token is still valid by making a test API call
         try {
           console.log('🔄 Validating token with test API call...');
           await api.get('/accounts/me/', { timeout: 5000 });
-          
+
           // Token is valid
           setUser(userData);
           setIsAuthenticated(true);
           setUserRole(userData.role === 'vendor' ? 'business' : 'customer');
           console.log('✅ Token is valid, user authenticated');
-          
+
         } catch (error: any) {
           console.log('⚠️ Token validation failed:', error.message);
-          
+
           // Token might be expired, try to refresh
           if (refreshToken) {
             console.log('🔄 Token expired, attempting refresh...');
             const refreshed = await refreshAccessToken();
-            
+
             if (refreshed) {
               // Get updated user data
               const updatedUser = await AsyncStorage.getItem('userData');
@@ -625,10 +648,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [checkAuthOnStart]);
 
   return (
-    <AuthContext.Provider value={{ 
+    <AuthContext.Provider value={{
       user,
-      isAuthenticated, 
-      isLoading, 
+      isAuthenticated,
+      isLoading,
       userRole,
       login,
       loginWithPhone,
