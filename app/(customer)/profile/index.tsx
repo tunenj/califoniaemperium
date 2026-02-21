@@ -17,6 +17,8 @@ import {
 import { useRouter, Stack, useFocusEffect } from 'expo-router';
 import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
+import { useBiometric } from '@/context/BiometricContext'; // ✅ ADD THIS IMPORT
+import { BiometricSettings } from '@/components/BiometricSettings'; // ✅ ADD THIS IMPORT
 import api from '@/api/api';
 import { endpoints } from '@/api/endpoints';
 
@@ -46,6 +48,12 @@ interface ApiResponse<T> {
 export default function ProfileScreen() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading, logout } = useAuth();
+  const { 
+    isBiometricAvailable, 
+    biometricEnabled,
+    toggleBiometricSetting,
+    loading: biometricLoading 
+  } = useBiometric(); // ✅ ADD BIOMETRIC HOOK
 
   const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -193,6 +201,26 @@ export default function ProfileScreen() {
   const formatRole = (role: string | undefined): string => {
     if (!role) return 'Customer';
     return role.charAt(0).toUpperCase() + role.slice(1);
+  };
+
+  // Handle biometric toggle with confirmation
+  const handleBiometricToggle = async () => {
+    if (biometricLoading) return;
+    
+    Alert.alert(
+      biometricEnabled ? 'Disable Biometric?' : 'Enable Biometric?',
+      biometricEnabled 
+        ? 'Are you sure you want to disable biometric login? You will need to use your password to login.'
+        : 'Enable biometric login to quickly sign in with your fingerprint or face.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: biometricEnabled ? 'Disable' : 'Enable',
+          style: biometricEnabled ? 'destructive' : 'default',
+          onPress: toggleBiometricSetting
+        }
+      ]
+    );
   };
 
   // ✅ Wait for auth context to finish before rendering
@@ -444,6 +472,74 @@ export default function ProfileScreen() {
               </View>
             </View>
           </View>
+
+          {/* ✅ Biometric Settings - Add this section */}
+          {isBiometricAvailable && (
+            <View className="bg-white rounded-xl p-5 mb-4 shadow-sm border border-gray-100">
+              <View className="flex-row items-center mb-4">
+                <Ionicons 
+                  name={Platform.OS === 'ios' ? 'ios-finger-print' : 'md-finger-print'} 
+                  size={24} 
+                  color="#3B82F6" 
+                />
+                <Text className="text-lg font-semibold text-gray-900 ml-3">
+                  Security & Login
+                </Text>
+              </View>
+
+              {/* Biometric toggle */}
+              <View className="flex-row items-center justify-between py-2">
+                <View className="flex-1">
+                  <Text className="text-base font-medium text-gray-900">
+                    {Platform.OS === 'ios' ? 'Face ID / Touch ID' : 'Fingerprint Login'}
+                  </Text>
+                  <Text className="text-xs text-gray-500 mt-0.5">
+                    Use biometrics to quickly sign in to your account
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={handleBiometricToggle}
+                  disabled={biometricLoading}
+                  className={`px-4 py-2 rounded-full ${
+                    biometricEnabled ? 'bg-green-100' : 'bg-gray-100'
+                  }`}
+                >
+                  {biometricLoading ? (
+                    <ActivityIndicator size="small" color="#3B82F6" />
+                  ) : (
+                    <Text className={`font-semibold ${
+                      biometricEnabled ? 'text-green-700' : 'text-gray-600'
+                    }`}>
+                      {biometricEnabled ? 'On' : 'Off'}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              {/* Test button - only shown when enabled */}
+              {biometricEnabled && (
+                <TouchableOpacity
+                  onPress={() => {
+                    Alert.alert(
+                      'Test Biometric',
+                      'This would trigger biometric authentication. In production, this would log you in.',
+                      [{ text: 'OK' }]
+                    );
+                  }}
+                  className="mt-4 bg-blue-50 py-3 rounded-lg flex-row items-center justify-center"
+                >
+                  <Ionicons 
+                    name={Platform.OS === 'ios' ? 'ios-finger-print' : 'md-finger-print'} 
+                    size={18} 
+                    color="#3B82F6" 
+                  />
+                  <Text className="ml-2 text-blue-600 font-medium">
+                    Test Biometric Login
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
 
           {/* Account Information */}
           <View className="bg-white rounded-xl p-5 mb-4 shadow-sm border border-gray-100">

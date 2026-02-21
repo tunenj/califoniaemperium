@@ -5,6 +5,7 @@ import { LanguageProvider } from "@/context/LanguageContext";
 import { ExploreSearchProvider } from "@/context/ExploreSearchContext";
 import { CategorySearchProvider } from "@/context/CategorySearchContext";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { BiometricProvider } from "@/context/BiometricContext"; // ✅ ADD THIS IMPORT
 import "@/lib/i18n";
 import "../global.css";
 import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
@@ -173,16 +174,18 @@ export default function RootLayout() {
                 <SetupProvider>
                   <ExploreSearchProvider>
                     <CategorySearchProvider>
-                      <Stack screenOptions={{ headerShown: false }}>
-                        <Stack.Screen name="(Onboarding)" />
-                        <Stack.Screen name="(customer)" />
-                        <Stack.Screen name="(vendor)" />
-                        <Stack.Screen name="(admin)" />
-                      </Stack>
-                      <Toast
-                        config={toastConfig}
-                        topOffset={50}
-                      />
+                      <BiometricProvider> {/* ✅ ADD BIOMETRIC PROVIDER HERE */}
+                        <Stack screenOptions={{ headerShown: false }}>
+                          <Stack.Screen name="(Onboarding)" />
+                          <Stack.Screen name="(customer)" />
+                          <Stack.Screen name="(vendor)" />
+                          <Stack.Screen name="(admin)" />
+                        </Stack>
+                        <Toast
+                          config={toastConfig}
+                          topOffset={50}
+                        />
+                      </BiometricProvider> {/* ✅ CLOSE BIOMETRIC PROVIDER */}
                     </CategorySearchProvider>
                   </ExploreSearchProvider>
                 </SetupProvider>

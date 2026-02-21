@@ -10,7 +10,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.tunenj.califoniaemperium"
+      "bundleIdentifier": "com.tunenj.califoniaemperium",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "This app uses Face ID / Touch ID to securely authenticate you for quick login."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +22,11 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.tunenj.califoniaemperium"
+      "package": "com.tunenj.califoniaemperium",
+      "permissions": [
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT"
+      ]
     },
     "web": {
       "output": "static",
@@ -45,6 +52,12 @@
         {
           "merchantIdentifier": "",
           "enableGooglePay": false
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow $(PRODUCT_NAME) to use Face ID for secure authentication."
         }
       ]
     ],
