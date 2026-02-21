@@ -99,12 +99,12 @@ interface ApiResponse {
 }
 
 /* ================= HELPER FUNCTIONS ================= */
-
 const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('en-NG', {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'NGN',
+    currency: 'EUR',
     minimumFractionDigits: 2,
+    maximumFractionDigits: 2
   }).format(price);
 };
 
@@ -159,9 +159,9 @@ const StatusBadge = memo(({ status }: { status: string }) => {
         size={14}
         color={
           statusConfig.text.includes('green') ? '#166534' :
-          statusConfig.text.includes('yellow') ? '#854d0e' :
-          statusConfig.text.includes('red') ? '#991b1b' :
-          '#374151'
+            statusConfig.text.includes('yellow') ? '#854d0e' :
+              statusConfig.text.includes('red') ? '#991b1b' :
+                '#374151'
         }
       />
       <Text className={`text-xs font-semibold ${statusConfig.text}`}>
@@ -184,11 +184,11 @@ const navigateToProductDetails = (slug: string) => {
 
 const ProductRow = memo(({ item }: { item: DropshipProduct }) => {
   const { t } = useLanguage();
-  
+
   // Get the primary image or use main_image
-  const productImage = item.product.main_image || 
-                      item.product.images?.find((img: ProductImage) => img.is_primary)?.image || 
-                      item.product.images?.[0]?.image;
+  const productImage = item.product.main_image ||
+    item.product.images?.find((img: ProductImage) => img.is_primary)?.image ||
+    item.product.images?.[0]?.image;
 
   return (
     <TouchableOpacity
@@ -198,9 +198,9 @@ const ProductRow = memo(({ item }: { item: DropshipProduct }) => {
       {/* Product */}
       <View className="w-64 px-3 flex-row items-center gap-3">
         {productImage ? (
-          <Image 
-            source={{ uri: productImage }} 
-            className="w-11 h-11 rounded-lg" 
+          <Image
+            source={{ uri: productImage }}
+            className="w-11 h-11 rounded-lg"
             resizeMode="cover"
           />
         ) : (
@@ -235,11 +235,10 @@ const ProductRow = memo(({ item }: { item: DropshipProduct }) => {
 
       {/* Stock */}
       <View className="w-28 px-3 justify-center">
-        <Text className={`text-sm font-semibold ${
-          item.product.stock_quantity < 10 ? 'text-red-600' : 
-          item.product.stock_quantity < 50 ? 'text-yellow-600' : 
-          'text-green-600'
-        }`}>
+        <Text className={`text-sm font-semibold ${item.product.stock_quantity < 10 ? 'text-red-600' :
+            item.product.stock_quantity < 50 ? 'text-yellow-600' :
+              'text-green-600'
+          }`}>
           {item.product.stock_quantity.toLocaleString()}
         </Text>
         {!item.product.is_in_stock && (
@@ -294,10 +293,10 @@ ProductRow.displayName = "ProductRow";
 
 /* ================= STATS CARDS ================= */
 
-const StatsCards = memo(({ 
+const StatsCards = memo(({
   products,
-  totalCount 
-}: { 
+  totalCount
+}: {
   products: DropshipProduct[];
   totalCount: number;
 }) => {
@@ -406,7 +405,7 @@ export default function ProductModeration() {
     previous: null as string | null,
     currentPage: 1,
   });
-  
+
   const { t } = useLanguage();
 
   // Fetch products with pagination
@@ -424,9 +423,9 @@ export default function ProductModeration() {
       if (pageUrl) {
         // For pagination, use the full URL with native fetch
         const token = await AsyncStorage.getItem('authToken');
-        
+
         console.log('Fetching next page:', pageUrl);
-        
+
         const fetchResponse = await fetch(pageUrl, {
           method: 'GET',
           headers: {
@@ -434,19 +433,19 @@ export default function ProductModeration() {
             'Content-Type': 'application/json',
           },
         });
-        
+
         if (!fetchResponse.ok) {
           throw new Error(`HTTP error! status: ${fetchResponse.status}`);
         }
-        
+
         const data: ApiResponse = await fetchResponse.json();
-        
+
         // Add unique keys
         const newProducts = data.results.map((product, index) => ({
           ...product,
           uniqueKey: `${product.product.id}-${product.external_id || index}-${Date.now()}-${index}`,
         }));
-        
+
         // Prevent duplicates when appending
         setProducts(prev => {
           const existingIds = new Set(prev.map(p => p.product.id));
@@ -456,7 +455,7 @@ export default function ProductModeration() {
           console.log(`Adding ${uniqueNewProducts.length} new products. Total: ${prev.length + uniqueNewProducts.length}`);
           return [...prev, ...uniqueNewProducts];
         });
-        
+
         setPagination({
           count: data.count || 0,
           next: data.next,
@@ -469,7 +468,7 @@ export default function ProductModeration() {
         console.log('Initial fetch:', url);
 
         response = await api.get<ApiResponse>(url);
-        
+
         // Add unique keys
         const newProducts = response.data.results.map((product, index) => ({
           ...product,
@@ -477,14 +476,14 @@ export default function ProductModeration() {
         }));
 
         setProducts(newProducts);
-        
+
         setPagination({
           count: response.data.count || 0,
           next: response.data.next,
           previous: response.data.previous,
           currentPage: 1,
         });
-        
+
         console.log(`Loaded ${newProducts.length} products. Total: ${response.data.count}`);
       }
 
@@ -492,7 +491,7 @@ export default function ProductModeration() {
       console.error('Error fetching dropship products:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Failed to load products';
       setError(errorMessage);
-      
+
       if (!pageUrl) {
         Toast.show({
           type: 'error',
@@ -545,7 +544,7 @@ export default function ProductModeration() {
   // Filter products based on search
   const filteredData = useMemo(() => {
     if (!search.trim()) return products;
-    
+
     const searchLower = search.toLowerCase();
     return products.filter(
       (p) =>
@@ -557,9 +556,9 @@ export default function ProductModeration() {
   }, [products, search]);
 
   // Get unique key for FlatList
-  const getUniqueKey = useCallback((item: DropshipProduct) => 
+  const getUniqueKey = useCallback((item: DropshipProduct) =>
     item.uniqueKey || `product-${item.product.id}`,
-  []);
+    []);
 
   // Render footer for loading more
   const renderFooter = useCallback(() => {
@@ -576,7 +575,7 @@ export default function ProductModeration() {
 
     if (pagination.next && products.length > 0) {
       return (
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={handleLoadMore}
           className="py-6 items-center bg-white border-t border-gray-200"
         >
@@ -672,7 +671,7 @@ export default function ProductModeration() {
             />
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             className="p-3.5 rounded-2xl bg-gradient-to-br from-red-50 to-red-100 active:from-red-100 active:to-red-200 ml-2 shadow-sm"
             onPress={() => router.push("/Products/addDropproject")}
           >
@@ -706,7 +705,7 @@ export default function ProductModeration() {
       {error && (
         <View className="mx-5 mt-3 p-4 bg-red-50 rounded-2xl border border-red-200">
           <Text className="text-red-600 text-center text-sm">{error}</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={handleRefresh}
             className="mt-2 items-center"
           >

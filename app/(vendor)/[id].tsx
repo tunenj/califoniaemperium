@@ -321,7 +321,10 @@ export default function VendorProductDetails() {
 
     const formatPrice = (price: string | number) => {
         const numPrice = typeof price === 'string' ? parseFloat(price) : price;
-        return numPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return `₦${numPrice.toLocaleString('en-NG', { 
+            minimumFractionDigits: 2, 
+            maximumFractionDigits: 2 
+        })}`;
     };
 
     if (loading) {
@@ -446,11 +449,11 @@ export default function VendorProductDetails() {
 
                     <View className="mt-4 flex-row items-baseline">
                         <Text className="text-3xl font-bold text-red-600">
-                            ₦{formatPrice(product.price)}
+                            {formatPrice(product.price)}
                         </Text>
                         {product.compare_at_price && (
                             <Text className="ml-2 text-lg text-gray-400 line-through">
-                                ₦{formatPrice(product.compare_at_price)}
+                                {formatPrice(product.compare_at_price)}
                             </Text>
                         )}
                     </View>

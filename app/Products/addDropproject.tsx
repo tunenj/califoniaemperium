@@ -30,7 +30,7 @@ export default function SyncDropshipProduct() {
             
             const token = await AsyncStorage.getItem('accessToken');
             
-            console.log('🔄 Triggering CJ Dropshipping sync...');
+            console.log('Triggering CJ Dropshipping sync...');
             
             const response = await api.post(
                 endpoints.dropShipping, // '/products/dropship-products/sync_with_cj/'

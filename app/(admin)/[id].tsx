@@ -336,7 +336,7 @@ export default function VendorProductDetails() {
 
     const formatPrice = (price: string | number) => {
         const numPrice = typeof price === 'string' ? parseFloat(price) : price;
-        return numPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return `€${numPrice.toFixed(2)}`;
     };
 
     if (loading) {
@@ -461,11 +461,11 @@ export default function VendorProductDetails() {
 
                     <View className="mt-4 flex-row items-baseline">
                         <Text className="text-3xl font-bold text-red-600">
-                            ₦{formatPrice(product.price)}
+                            {formatPrice(product.price)}
                         </Text>
                         {product.compare_at_price && (
                             <Text className="ml-2 text-lg text-gray-400 line-through">
-                                ₦{formatPrice(product.compare_at_price)}
+                                {formatPrice(product.compare_at_price)}
                             </Text>
                         )}
                     </View>
@@ -612,7 +612,7 @@ export default function VendorProductDetails() {
                         <ScrollView showsVerticalScrollIndicator={false}>
                             <View className="mb-4">
                                 <Text className="text-sm font-medium text-gray-700 mb-2">
-                                    {t('price') || 'Price'} (₦)
+                                    {t('price') || 'Price'} (€)
                                 </Text>
                                 <TextInput
                                     className="border border-gray-300 rounded-lg px-4 py-3 text-base"
@@ -628,7 +628,7 @@ export default function VendorProductDetails() {
 
                             <View className="mb-4">
                                 <Text className="text-sm font-medium text-gray-700 mb-2">
-                                    {t('compare_at_price') || 'Compare at Price'} (₦)
+                                    {t('compare_at_price') || 'Compare at Price'} (€)
                                 </Text>
                                 <TextInput
                                     className="border border-gray-300 rounded-lg px-4 py-3 text-base"

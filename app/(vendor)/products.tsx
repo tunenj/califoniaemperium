@@ -120,6 +120,12 @@ type ApiResponse = {
     results: VendorProduct[];
 };
 
+// Helper function to format price in euros
+const formatPrice = (price: string) => {
+    const numPrice = parseFloat(price);
+    return `€${numPrice.toFixed(2)}`;
+};
+
 const ProductsScreen: React.FC = () => {
     const { t } = useLanguage();
     const { isAuthenticated, logout } = useAuth();
@@ -367,8 +373,9 @@ const ProductsScreen: React.FC = () => {
                 </View>
 
                 <View className="flex-row justify-between items-center mt-1">
+                    {/* CHANGED: Currency from $ to € */}
                     <Text className="text-sm font-semibold text-gray-900">
-                        ₦{parseFloat(item.price).toLocaleString()}
+                        {formatPrice(item.price)}
                     </Text>
                     <Text className="text-xs text-gray-500">
                         {item.stock_quantity} {t('in_stock')}

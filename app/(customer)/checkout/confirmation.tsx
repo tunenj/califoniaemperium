@@ -58,11 +58,6 @@ const OrderConfirmation = () => {
   const [error, setError] = useState<string | null>(null);
 
   const orderId = params.orderId as string;
-  const orderNumber = params.orderNumber as string;
-  const paymentReference = params.paymentReference as string;
-  const total = params.total as string;
-  const paymentMethod = params.paymentMethod as string;
-
   useEffect(() => {
     fetchOrderDetails();
   }, [orderId]);
@@ -152,12 +147,12 @@ const OrderConfirmation = () => {
     });
   };
 
-  const handleTrackOrder = () => {
-    router.push({
-      pathname: '/(customer)/orders/tracking',
-      params: { orderId }
-    });
-  };
+  // const handleTrackOrder = () => {
+  //   router.push({
+  //     pathname: '/(customer)/orders/tracking',
+  //     params: { orderId }
+  //   });
+  // };
 
   if (loading) {
     return (
@@ -360,12 +355,12 @@ const OrderConfirmation = () => {
         </TouchableOpacity>
         
         <View className="flex-row space-x-3">
-          <TouchableOpacity
+          {/* <TouchableOpacity
             className="flex-1 border border-gray-300 rounded-xl py-4 items-center bg-white"
             onPress={handleTrackOrder}
           >
             <Text className="text-gray-800 font-semibold text-base">Track Order</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           
           <TouchableOpacity
             className="flex-1 bg-red-600 rounded-xl py-4 items-center"

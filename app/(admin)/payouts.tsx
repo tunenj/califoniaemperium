@@ -254,8 +254,8 @@ const PayoutManagement = () => {
         showsHorizontalScrollIndicator={false}
         className="mt-6 mb-4 pl-4"
       >
-        <View className="w-44 h-52 bg-white rounded-2xl p-3 border border-gray-200 overflow-hidden mr-3">
-          <View className="absolute bottom-[-24px] right-[-24px] w-32 h-44 rounded-full bg-purple-300" />
+        <View className="w-44 h-44 bg-white rounded-2xl p-3 border border-gray-200 overflow-hidden mr-3">
+          <View className="absolute bottom-[-24px] right-[-24px] w-32 h-36 rounded-full bg-purple-300" />
           <Text className="text-xs text-gray-500 mb-2">Total Vendors</Text>
           <Text className="text-xl font-bold text-gray-900">{summaryStats.totalVendors}</Text>
           <Text className="text-xs text-gray-500 mt-2">Registered vendors</Text>

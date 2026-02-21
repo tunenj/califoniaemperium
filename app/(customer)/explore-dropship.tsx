@@ -22,6 +22,18 @@ import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useAuth } from "@/context/AuthContext";
 
+// Define ProductImage interface
+interface ProductImage {
+  id: string;
+  image: string | null;
+  image_url: string | null;
+  url: string | null;
+  alt_text: string;
+  is_primary: boolean;
+  order: number;
+  created_at: string;
+}
+
 interface Category {
   id: string;
   name: string;
@@ -36,7 +48,7 @@ interface DropshipInfo {
   ships_from: string;
 }
 
-// Updated Product interface without product_type
+// Updated Product interface with proper typing for images
 interface Product {
   id: string;
   name: string;
@@ -55,7 +67,7 @@ interface Product {
   condition: string;
   is_active: boolean;
   is_featured: boolean;
-  images: any[];
+  images: ProductImage[];
   view_count: number;
   purchase_count: number;
   rating_average: string;
@@ -95,10 +107,21 @@ interface DropshipProductsResponse {
 const { width } = Dimensions.get("window");
 const ITEM_WIDTH = (width - 24) / 2;
 
+// Helper function to get product image URL safely
+const getProductImageUrl = (product: Product): string | null => {
+  if (!product.images || product.images.length === 0) {
+    return null;
+  }
+  
+  const firstImage = product.images[0];
+  // Try image_url first, then url, then return null
+  return firstImage.image_url || firstImage.url || null;
+};
+
 // Helper function to clean product data by removing product_type
 const cleanProductData = (productData: any): Product => {
   const { product_type, ...cleanedProduct } = productData;
-  return cleanedProduct;
+  return cleanedProduct as Product;
 };
 
 // Helper function to clean dropship product data
@@ -145,6 +168,15 @@ const ExploreDropship = () => {
   
   // State to track which products are being toggled in wishlist
   const [togglingWishlist, setTogglingWishlist] = useState<{[key: string]: boolean}>({});
+
+  // 🔴 FIXED: Format price in Euro
+  const formatPrice = useCallback((price: string | number) => {
+    const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+    if (isNaN(numPrice)) return "€0.00";
+    
+    // Format as Euro with 2 decimal places
+    return `€${numPrice.toFixed(2)}`;
+  }, []);
 
   // Fetch dropship products with data cleaning
   const fetchDropshipProducts = useCallback(
@@ -228,12 +260,6 @@ const ExploreDropship = () => {
     });
   }, [router]);
 
-  const formatPrice = useCallback((price: string | number) => {
-    const numPrice = typeof price === 'string' ? parseFloat(price) : price;
-    if (isNaN(numPrice)) return "₦0";
-    return `₦${numPrice.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  }, []);
-
   const getUniqueKey = useCallback((item: DropshipProduct, index: number) => 
     item.uniqueKey || `${item.product.id}-${item.external_id || "no-ext-id"}-${index}`,
   []);
@@ -290,7 +316,6 @@ const ExploreDropship = () => {
         }
         
         // Remove from wishlist using wishlist_id
-        // This calls DELETE /orders/wishlist/:wishlist_id/
         const success = await removeFromWishlist(wishlistId);
         
         if (success) {
@@ -345,6 +370,9 @@ const ExploreDropship = () => {
         ? product.calculated_price 
         : parseFloat(product.product.price);
       
+      // Get the product image URL safely
+      const productImage = getProductImageUrl(product.product);
+      
       // Prepare item data for the cart
       const itemData = {
         productId: product.product.id,
@@ -354,9 +382,7 @@ const ExploreDropship = () => {
         originalPrice: product.product.compare_at_price 
           ? parseFloat(product.product.compare_at_price)
           : priceToUse,
-        image: product.product.images && product.product.images.length > 0 
-          ? product.product.images[0] 
-          : null,
+        image: productImage ? { uri: productImage } : null,
       };
 
       console.log('🛒 Adding dropship product to cart:', itemData);
@@ -366,11 +392,9 @@ const ExploreDropship = () => {
       
       if (result.success) {
         console.log("✅ Added dropship product to cart:", product.product.name);
-        // You could add a brief success feedback here
       }
     } catch (error) {
       console.error("Error adding dropship product to cart:", error);
-      // Error is already handled in the CartContext
     } finally {
       // Clear loading state for this product
       setAddingToCart(prev => ({ ...prev, [product.product.id]: false }));
@@ -378,11 +402,20 @@ const ExploreDropship = () => {
   }, [addItem]);
 
   const renderProductItem = useCallback(({ item, index }: { item: DropshipProduct; index: number }) => {
+    // Validate product data
+    if (!item?.product) {
+      console.log('Invalid product item:', item);
+      return null;
+    }
+
     const isProductInCart = isInCart(item.product.id);
     const isProductAdding = isAddingToCart(item.product.id);
     const isProductOutOfStock = !item.product.is_in_stock;
     const isProductInWishlist = isInWishlist(item.product.id);
     const isWishlistToggling = isTogglingWishlist(item.product.id);
+    
+    // Get product image URL safely
+    const productImageUrl = getProductImageUrl(item.product);
     
     return (
       <TouchableOpacity
@@ -417,10 +450,9 @@ const ExploreDropship = () => {
             <ActivityIndicator size="small" color="#DC2626" />
           ) : (
             <AntDesign 
-              name="heart" 
+              name={isProductInWishlist ? "heart" : "heart"} 
               size={18} 
               color="#DC2626" 
-              style={{ color: "#DC2626" }}
             />
           )}
         </TouchableOpacity>
@@ -435,20 +467,20 @@ const ExploreDropship = () => {
 
         {/* Product Image/Placeholder */}
         <View className="w-full h-40 bg-gray-100 rounded-lg mb-3 items-center justify-center overflow-hidden">
-          {item.product.images && item.product.images.length > 0 ? (
+          {productImageUrl ? (
             <Image 
-              source={{ uri: item.product.images[0] }} 
+              source={{ uri: productImageUrl }} 
               className="w-full h-full"
               resizeMode="cover"
+              onError={() => console.log('Image failed to load:', productImageUrl)}
             />
           ) : (
-            <>
-              <View className="items-center justify-center">
-                <Text className="text-xs text-gray-500 text-center px-1">
-                  {item.product.category?.name || "Product"}
-                </Text>
-              </View>
-            </>
+            <View className="items-center justify-center p-2">
+              <MaterialCommunityIcons name="image-off" size={32} color="#9CA3AF" />
+              <Text className="text-xs text-gray-500 text-center mt-1">
+                {item.product.category?.name || "No image"}
+              </Text>
+            </View>
           )}
         </View>
 
@@ -482,7 +514,7 @@ const ExploreDropship = () => {
           )}
         </View>
 
-        {/* Pricing */}
+        {/* 🔴 FIXED: Pricing in Euro */}
         <View className="flex-row items-center justify-between">
           <View>
             <Text className="text-darkRed font-bold text-lg">
@@ -529,7 +561,7 @@ const ExploreDropship = () => {
             }}
             disabled={isProductOutOfStock || isProductAdding || cartSyncing}
             style={{ 
-              opacity: isProductOutOfStock ? 0.5 : 1,
+              opacity: (isProductOutOfStock || isProductAdding || cartSyncing) ? 0.5 : 1,
               minWidth: 44,
               minHeight: 44,
             }}
@@ -700,7 +732,6 @@ const ExploreDropship = () => {
         initialNumToRender={10}
         maxToRenderPerBatch={10}
         windowSize={5}
-        // Disable scroll when cart is syncing
         scrollEnabled={!cartSyncing}
       />
     </SafeAreaView>

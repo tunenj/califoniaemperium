@@ -6,7 +6,7 @@ import {
     FlatList,
     TextInput,
     ActivityIndicator,
-    RefreshControl, 
+    RefreshControl,
     Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -54,12 +54,18 @@ interface Order {
     created_at: string;
 }
 
+// Helper function to format price in euros
+const formatPrice = (price: string) => {
+    const numPrice = parseFloat(price);
+    return `€${numPrice.toFixed(2)}`;
+};
+
 /* ================= SCREEN ================= */
 
 export default function OrderManagementScreen() {
     const router = useRouter();
     const { t } = useLanguage();
-    
+
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -111,9 +117,9 @@ export default function OrderManagementScreen() {
         try {
             const token = await AsyncStorage.getItem('accessToken');
             const apiUrl = url || endpoints.listOrder;
-            
+
             console.log('🔍 Fetching orders from:', apiUrl);
-            
+
             const response = await api.get<ApiResponse>(apiUrl, {
                 headers: {
                     Authorization: `Bearer ${token || ''}`,
@@ -128,7 +134,7 @@ export default function OrderManagementScreen() {
                 date: formatDate(item.created_at),
                 email: item.customer_email, // Only using email
                 items_count: item.items_count,
-                total: `₦${parseFloat(item.total).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                total: formatPrice(item.total),
                 status: mapOrderStatus(item.status),
                 payment_status: mapPaymentStatus(item.payment_status),
                 created_at: item.created_at,
@@ -170,15 +176,15 @@ export default function OrderManagementScreen() {
     // Filter orders based on search and selected filter
     const filteredOrders = orders.filter(order => {
         // Search filter - only searching by order number and email now
-        const matchesSearch = 
+        const matchesSearch =
             order.order_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
             order.email.toLowerCase().includes(searchQuery.toLowerCase());
-        
+
         // Status filter
-        const matchesFilter = 
-            selectedFilter === "all" || 
+        const matchesFilter =
+            selectedFilter === "all" ||
             order.status === selectedFilter;
-        
+
         return matchesSearch && matchesFilter;
     });
 
@@ -284,14 +290,12 @@ export default function OrderManagementScreen() {
                         <Pressable
                             key={filter.key}
                             onPress={() => setSelectedFilter(filter.key)}
-                            className={`px-3 py-1 mr-2 rounded-full ${
-                                selectedFilter === filter.key ? 'bg-red-600' : 'bg-gray-100'
-                            }`}
+                            className={`px-3 py-1 mr-2 rounded-full ${selectedFilter === filter.key ? 'bg-red-600' : 'bg-gray-100'
+                                }`}
                         >
                             <Text
-                                className={`text-xs ${
-                                    selectedFilter === filter.key ? 'text-white' : 'text-gray-600'
-                                }`}
+                                className={`text-xs ${selectedFilter === filter.key ? 'text-white' : 'text-gray-600'
+                                    }`}
                             >
                                 {filter.label}
                             </Text>
@@ -341,8 +345,8 @@ export default function OrderManagementScreen() {
                             <View className="py-10 items-center">
                                 <Ionicons name="bag-outline" size={40} color="#9ca3af" />
                                 <Text className="mt-2 text-gray-500">
-                                    {searchQuery 
-                                        ? t('no_orders_found') 
+                                    {searchQuery
+                                        ? t('no_orders_found')
                                         : t('no_orders_yet')}
                                 </Text>
                             </View>
@@ -350,7 +354,7 @@ export default function OrderManagementScreen() {
                         renderItem={({ item }) => {
                             const status = statusBadge(item.status);
                             const payment = paymentBadge(item.payment_status);
-                            
+
                             return (
                                 <View className="flex-row px-5 py-4 border-b border-gray-100">
                                     {/* Order */}
@@ -413,8 +417,8 @@ export default function OrderManagementScreen() {
                                             color="#ef4444"
                                             onPress={() =>
                                                 router.push({
-                                                    pathname: "/order-details",
-                                                    params: { orderId: item.id },
+                                                    pathname: "/order-details/[id]",
+                                                    params: { id: item.id },
                                                 })
                                             }
                                         />

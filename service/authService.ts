@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://califonia-marketplace.onrender.com/api/v1'; // Your backend URL
+const API_BASE_URL = 'https://califoniaemporium.com/api/v1'; 
 
 export const loginWithGoogle = async (accessToken: string) => {
   try {

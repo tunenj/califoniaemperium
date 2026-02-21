@@ -47,7 +47,7 @@ const TopNav: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
           <TouchableOpacity
             className=""
-            onPress={() => router.push('/Setup/business-setup/step-1')}
+            onPress={() => router.push('/(vendor)/profile')}
           >
             <MaterialIcons name="person-outline" size={28} color="#00000" />
           </TouchableOpacity>

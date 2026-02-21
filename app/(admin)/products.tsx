@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -70,7 +70,7 @@ const formatDate = (dateString: string) => {
 
 const formatPrice = (price: string) => {
   const numPrice = parseFloat(price);
-  return `₦${numPrice.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `€${numPrice.toFixed(2)}`;
 };
 
 /* ================= NAVIGATION HELPER ================= */
@@ -86,31 +86,6 @@ const navigateToProductDetails = (slug: string) => {
 
 function ProductRow({ item }: { item: Product }) {
   const { t } = useLanguage();
-
-  // Map API status to UI status
-  const getProductStatus = (product: Product): VendorStatus => {
-    // You can customize this logic based on your business rules
-    if (product.is_featured) return "Approved";
-    if (product.is_in_stock) return "Pending";
-    return "Suspended";
-  };
-
-  const status = getProductStatus(item);
-  
-  const getStatusTranslation = (status: VendorStatus) => {
-    const translations: Record<VendorStatus, string> = {
-      'Approved': t('approved'),
-      'Pending': t('pending'),
-      'Suspended': t('suspended'),
-    };
-    return translations[status];
-  };
-
-  const statusStyle = status === "Approved"
-    ? "bg-green-100 text-green-700"
-    : status === "Pending"
-      ? "bg-yellow-100 text-yellow-700"
-      : "bg-red-100 text-red-700";
 
   return (
     <TouchableOpacity
@@ -153,15 +128,6 @@ function ProductRow({ item }: { item: Product }) {
         )}
       </View>
 
-      {/* Status */}
-      <View className="w-32 px-3">
-        <Text
-          className={`text-xs px-3 py-0.5 rounded-full text-center ${statusStyle}`}
-        >
-          {getStatusTranslation(status)}
-        </Text>
-      </View>
-
       {/* Created */}
       <Cell width="w-32" text={formatDate(item.created_at)} />
     </TouchableOpacity>
@@ -185,6 +151,9 @@ export default function ProductModeration() {
     currentPage: 1,
   });
   
+  // Use a ref to track loaded product IDs to prevent duplicates
+  const loadedProductIds = useRef<Set<string>>(new Set());
+  
   const { t } = useLanguage();
 
   // Fetch products from API
@@ -193,6 +162,8 @@ export default function ProductModeration() {
       if (page === 1) {
         setLoading(true);
         setError(null);
+        // Clear the set when refreshing
+        loadedProductIds.current.clear();
       } else {
         setLoadingMore(true);
       }
@@ -210,10 +181,19 @@ export default function ProductModeration() {
 
       const newProducts = response.data.results || [];
 
+      // Filter out duplicates based on ID
+      const uniqueNewProducts = newProducts.filter(product => {
+        if (loadedProductIds.current.has(product.id)) {
+          return false; // Skip duplicate
+        }
+        loadedProductIds.current.add(product.id);
+        return true;
+      });
+
       if (page === 1 || isRefresh) {
-        setProducts(newProducts);
+        setProducts(uniqueNewProducts);
       } else {
-        setProducts((prev) => [...prev, ...newProducts]);
+        setProducts((prev) => [...prev, ...uniqueNewProducts]);
       }
 
       setPagination({
@@ -244,6 +224,7 @@ export default function ProductModeration() {
   useEffect(() => {
     setCurrentPage(1);
     setProducts([]);
+    loadedProductIds.current.clear();
     fetchProducts(1);
   }, [search, fetchProducts]);
 
@@ -253,6 +234,7 @@ export default function ProductModeration() {
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
     setProducts([]);
+    loadedProductIds.current.clear();
     setPagination({
       count: 0,
       next: null,
@@ -344,8 +326,14 @@ export default function ProductModeration() {
 
   // Handle retry
   const handleRetry = useCallback(() => {
+    loadedProductIds.current.clear();
     fetchProducts(1);
   }, [fetchProducts]);
+
+  // Generate a unique key for each item combining id and index to ensure uniqueness
+  const keyExtractor = useCallback((item: Product, index: number) => {
+    return `${item.id}-${index}`;
+  }, []);
 
   if (loading && products.length === 0) {
     return (
@@ -429,7 +417,7 @@ export default function ProductModeration() {
         <View>
           <FlatList
             data={filteredData}
-            keyExtractor={(item) => item.id}
+            keyExtractor={keyExtractor}
             renderItem={({ item }) => <ProductRow item={item} />}
             stickyHeaderIndices={[0]}
             showsVerticalScrollIndicator={false}
@@ -468,7 +456,6 @@ export default function ProductModeration() {
                 <Header title={t('category')} width="w-40" />
                 <Header title={t('stock')} width="w-28" />
                 <Header title={t('price')} width="w-44" />
-                <Header title={t('status')} width="w-32" />
                 <Header title={t('created')} width="w-32" />
               </View>
             )}

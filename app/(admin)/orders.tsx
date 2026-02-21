@@ -52,8 +52,8 @@ const formatDate = (dateString: string): string => {
 
 const formatCurrency = (value: string): string => {
     const num = parseFloat(value);
-    if (isNaN(num)) return '₦0';
-    return `₦${num.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    if (isNaN(num)) return '€0.00';
+    return `€${num.toFixed(2)}`;
 };
 
 /* ================= SCREEN ================= */
@@ -374,9 +374,9 @@ export default function OrderManagementScreen() {
                                         <TouchableOpacity
                                             className="w-16 items-center"
                                             onPress={() =>
-                                                router.push({
-                                                    pathname: '/order-details',
-                                                    params: { orderId: item.id },
+                                              router.push({
+                                                    pathname: "/order-details/[id]",
+                                                    params: { id: item.id },
                                                 })
                                             }
                                         >

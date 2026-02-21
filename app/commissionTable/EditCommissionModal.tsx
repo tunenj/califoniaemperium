@@ -36,6 +36,14 @@ interface ApiResponse {
   };
 }
 
+// Helper function to format price in euros
+const formatPrice = (price: number) => {
+  return `€${price.toLocaleString('de-DE', { 
+    minimumFractionDigits: 2, 
+    maximumFractionDigits: 2 
+  })}`;
+};
+
 const EditCommissionModal: React.FC<Props> = ({
   visible,
   onClose,
@@ -211,7 +219,7 @@ const EditCommissionModal: React.FC<Props> = ({
                 {t('total_sales') || 'Total Sales'}:
               </Text>
               <Text className="font-semibold">
-                ₦{totalSales.toLocaleString()}
+                {formatPrice(totalSales)}
               </Text>
             </View>
 
@@ -220,7 +228,7 @@ const EditCommissionModal: React.FC<Props> = ({
                 {t('commission') || 'Commission'}:
               </Text>
               <Text className="font-semibold text-red-600">
-                ₦{commissionValue.toLocaleString()}
+                {formatPrice(commissionValue)}
               </Text>
             </View>
 
@@ -229,7 +237,7 @@ const EditCommissionModal: React.FC<Props> = ({
                 {t('vendor_earnings') || 'Vendor Earnings'}:
               </Text>
               <Text className="font-semibold text-green-600">
-                ₦{(totalSales - commissionValue).toLocaleString()}
+                {formatPrice(totalSales - commissionValue)}
               </Text>
             </View>
           </View>

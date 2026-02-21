@@ -1278,7 +1278,8 @@ export default function VendorManagementScreen() {
                 showsVerticalScrollIndicator={false}
                 ListHeaderComponent={() => (
                   <View className="flex-row bg-gradient-to-r from-gray-100 to-gray-50 border-b-2 border-gray-300 py-4 sticky top-0 shadow-sm">
-                    <Text className="w-64 px-3 text-xs font-black text-gray-700 uppercase tracking-wider">
+                    <Text className="w-64
+                     px-3 text-xs font-black text-gray-700 uppercase tracking-wider">
                       {t('vendor') || 'Vendor'}
                     </Text>
                     <Text className="w-56 px-3 text-xs font-black text-gray-700 uppercase tracking-wider">

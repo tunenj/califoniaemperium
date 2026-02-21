@@ -1,4 +1,4 @@
-// CheckoutFooter.tsx - Stripe Removed
+// CheckoutFooter.tsx
 import React, { useState } from 'react';
 import { 
   View, 
@@ -8,10 +8,10 @@ import {
   Alert,
 } from 'react-native';
 import { useCheckout, OrderDetail } from '@/context/CheckoutContext';
+import { useCart } from '@/context/CartContext';
 import api from '@/api/api';
 import { endpoints } from '@/api/endpoints';
 import { useRouter } from 'expo-router';
-
 
 // Type for the API request body
 interface ShippingFormData {
@@ -32,6 +32,10 @@ interface ShippingFormData {
     product_id: string;
     quantity: number;
   }[];
+  // ✅ Correct field names matching your API
+  shipping_method?: string;
+  shipping_option_cost?: number;
+  estimated_delivery?: string;
 }
 
 // Type for the API response
@@ -69,6 +73,11 @@ interface ShippingFormResponse {
   };
 }
 
+// Format price helper
+const formatPrice = (price: number): string => {
+  return `€${price.toFixed(2)}`;
+};
+
 const CheckoutFooter = () => {
   const router = useRouter();
   const { 
@@ -84,17 +93,18 @@ const CheckoutFooter = () => {
     setCurrentOrder,
     selectedPayment,
   } = useCheckout();
-  
+
+  // ✅ Pull selected shipping option directly from CartContext
+  const { selectedShipping, shippingCost } = useCart();
+
   const [loading, setLoading] = useState(false);
-  const [orderCreated, setOrderCreated] = useState(false);
-  const [orderData, setOrderData] = useState<any>(null);
 
   // Parse full name into first and last names
   const parseFullName = (fullName: string) => {
     const names = fullName.trim().split(' ');
     return {
       firstName: names[0] || '',
-      lastName: names.slice(1).join(' ') || names[0] || ''
+      lastName: names.slice(1).join(' ') || names[0] || '',
     };
   };
 
@@ -136,7 +146,7 @@ const CheckoutFooter = () => {
     }
 
     if (!cartItems || cartItems.length === 0) {
-      Alert.alert('Cart Empty', 'Your cart is empty. Please add items to your cart before checkout.');
+      Alert.alert('Cart Empty', 'Your cart is empty. Please add items before checkout.');
       return false;
     }
 
@@ -153,11 +163,9 @@ const CheckoutFooter = () => {
     return paymentMethodMap[uiMethod] || 'card';
   };
 
-  // Step 1: Create Order
+  // Create order
   const handleCreateOrder = async () => {
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     if (phoneError) {
       Alert.alert('Validation Error', phoneError);
@@ -189,13 +197,19 @@ const CheckoutFooter = () => {
         payment_method: validPaymentMethod,
         customer_notes: shippingInfo.customerNotes || '',
         order_items: orderItems,
+
+        // Correct field names matching your Postman/API spec
+        ...(selectedShipping && {
+          shipping_method: selectedShipping.logistics_name,
+          shipping_option_cost: shippingCost,
+          estimated_delivery: selectedShipping.estimated_delivery,
+        }),
       };
 
       if (promoCode.trim()) {
         formData.coupon_code = promoCode.trim();
       }
 
-      console.log('=== CREATING ORDER ===');
       const response = await api.post<ShippingFormResponse>(
         endpoints.ShippingForm,
         formData
@@ -203,24 +217,20 @@ const CheckoutFooter = () => {
 
       if (response.data.success) {
         const order = response.data.data.order;
-        
-        // Save order data
-        setOrderData(order);
-        setOrderCreated(true);
-        
+
         if (setOrderId) setOrderId(order.id);
         if (setHasActiveOrder) setHasActiveOrder(true);
-        
-        // Store order detail
+
+        // Store order detail using values returned by backend
         const orderDetail: OrderDetail = {
           id: order.id,
           order_number: order.order_number,
           status: order.status,
           payment_status: 'pending',
           subtotal: order.subtotal,
-          shipping_cost: order.shipping_cost,
+          shipping_cost: order.shipping_cost,  // ✅ From backend
           discount: order.discount,
-          total: order.total,
+          total: order.total,                  // ✅ From backend (includes shipping)
           items: cartItems.map((item, index) => ({
             id: `temp-${item.id}-${index}`,
             product_name: item.productName,
@@ -236,13 +246,12 @@ const CheckoutFooter = () => {
           customer_notes: shippingInfo.customerNotes || '',
           items_count: cartItems.length,
         };
-        
+
         if (setCurrentOrder) setCurrentOrder(orderDetail);
-        
-        // Show success message and navigate to orders
+
         Alert.alert(
           '✅ Order Created!',
-          `Order #${order.order_number} has been created successfully.`,
+          `Order #${order.order_number} has been created.\nTotal: €${parseFloat(order.total).toFixed(2)}`,
           [
             {
               text: 'View Orders',
@@ -262,38 +271,55 @@ const CheckoutFooter = () => {
     }
   };
 
-  // Original UI for order creation
   return (
-    <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
+    <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 pb-6 pt-3">
+
+      {/* ✅ Shipping summary line */}
+      {selectedShipping ? (
+        <View className="flex-row justify-between items-center mb-2">
+          <Text className="text-gray-500 text-xs">
+            🚚 {selectedShipping.logistics_name} · {selectedShipping.estimated_delivery}
+          </Text>
+          <Text className="text-gray-700 text-xs font-medium">
+            +{formatPrice(shippingCost)}
+          </Text>
+        </View>
+      ) : (
+        <Text className="text-orange-500 text-xs font-medium mb-2">
+          ⚠️ No shipping method selected — go back to cart to choose one
+        </Text>
+      )}
+
       {/* Create Order Button */}
       <TouchableOpacity
         onPress={handleCreateOrder}
         disabled={loading || !!phoneError || cartItems.length === 0}
-        className={`rounded-xl py-4 items-center ${
-          loading || phoneError || cartItems.length === 0 
-            ? 'bg-gray-400' 
-            : 'bg-blue-600'
+        className={`rounded-xl py-4 px-4 flex-row items-center justify-between ${
+          loading || phoneError || cartItems.length === 0
+            ? 'bg-gray-400'
+            : 'bg-secondary'
         }`}
       >
         {loading ? (
-          <View className="flex-row items-center">
+          <View className="flex-row items-center flex-1 justify-center">
             <ActivityIndicator color="#fff" size="small" />
             <Text className="text-white font-bold text-lg ml-2">Creating Order...</Text>
           </View>
         ) : (
-          <Text className="text-white font-bold text-lg">
-            {cartItems.length === 0 ? 'Cart is Empty' : 'Create Order'}
-          </Text>
+          <>
+            <Text className="text-white font-bold text-lg">
+              {cartItems.length === 0 ? 'Cart is Empty' : 'Create Order'}
+            </Text>
+            {cartItems.length > 0 && (
+              <Text className="text-white font-bold text-lg">
+                {formatPrice(total)}
+              </Text>
+            )}
+          </>
         )}
       </TouchableOpacity>
 
-      {cartItems.length > 0 && !loading && (
-        <Text className="text-gray-600 text-sm text-center mt-2">
-          Total: ₦{total.toLocaleString()}
-        </Text>
-      )}
-
-      {/* Error Messages */}
+      {/* Phone error */}
       {phoneError && (
         <Text className="text-red-500 text-sm text-center mt-2">
           {phoneError}

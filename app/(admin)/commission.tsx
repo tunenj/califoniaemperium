@@ -32,6 +32,14 @@ interface ApiResponse {
   data: VendorEarning[];
 }
 
+// Helper function to format price in euros
+const formatPrice = (price: number) => {
+  return `€${price.toLocaleString('de-DE', { 
+    minimumFractionDigits: 2, 
+    maximumFractionDigits: 2 
+  })}`;
+};
+
 /* ================= ROW ================= */
 
 const TableRow = memo(
@@ -68,7 +76,7 @@ const TableRow = memo(
         </View>
 
         <Text className="w-32 text-sm text-green-600">
-          ₦{vendor.total_earnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {formatPrice(vendor.total_earnings)}
         </Text>
 
         <Text className="w-28 text-sm text-gray-700">
@@ -76,11 +84,11 @@ const TableRow = memo(
         </Text>
 
         <Text className="w-36 text-sm text-green-600">
-          ₦{platformEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {formatPrice(platformEarnings)}
         </Text>
 
         <Text className="w-36 text-sm text-blue-600">
-          ₦{vendorEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {formatPrice(vendorEarnings)}
         </Text>
 
         <Text className="w-20 text-sm text-gray-700">
@@ -128,7 +136,7 @@ const CommissionStructure = memo(() => {
           </Text>
           <Text className="text-lg font-bold text-purple-600 mt-1">7-10%</Text>
           <Text className="text-xs text-gray-500 mt-2">
-            ₦100k+ {t('monthly_sales') || 'monthly sales'}
+            €100k+ {t('monthly_sales') || 'monthly sales'}
           </Text>
         </View>
 
@@ -215,11 +223,11 @@ const CommissionManagement = () => {
   const summaryStats = useMemo(() => {
     if (vendors.length === 0) {
       return {
-        totalPlatformEarnings: "₦0",
-        totalVendorEarnings: "₦0",
+        totalPlatformEarnings: "€0.00",
+        totalVendorEarnings: "€0.00",
         avgCommissionRate: "0%",
         activeVendors: "0",
-        totalEarnings: "₦0",
+        totalEarnings: "€0.00",
       };
     }
 
@@ -238,9 +246,9 @@ const CommissionManagement = () => {
     const avgCommission = vendors.reduce((sum, v) => sum + v.commission_rate, 0) / vendors.length;
 
     return {
-      totalPlatformEarnings: `₦${totalPlatformEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      totalVendorEarnings: `₦${totalVendorEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      totalEarnings: `₦${totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      totalPlatformEarnings: formatPrice(totalPlatformEarnings),
+      totalVendorEarnings: formatPrice(totalVendorEarnings),
+      totalEarnings: formatPrice(totalEarnings),
       avgCommissionRate: `${avgCommission.toFixed(1)}%`,
       activeVendors: vendors.length.toString(),
     };

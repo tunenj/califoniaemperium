@@ -74,6 +74,13 @@ const VendorDashboardPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Helper function to format price in euros
+    const formatPrice = useCallback((price: string) => {
+        const numPrice = parseFloat(price);
+        if (isNaN(numPrice)) return "€0.00";
+        return `€${numPrice.toFixed(2)}`;
+    }, []);
+
     // Fetch vendor dashboard data
     const fetchVendorDashboard = useCallback(async () => {
         try {
@@ -125,8 +132,6 @@ const VendorDashboardPage = () => {
         fetchVendorDashboard();
     }, [fetchVendorDashboard]);
 
-    // In your VendorDashboardPage.tsx - Update the handleEditProfile function
-
     const handleEditProfile = useCallback(() => {
         if (dashboardData) {
             router.push({
@@ -155,12 +160,6 @@ const VendorDashboardPage = () => {
             });
         }
     }, [dashboardData, router]);
-
-    const formatPrice = useCallback((price: string) => {
-        const numPrice = parseFloat(price);
-        if (isNaN(numPrice)) return "₦0.00";
-        return `₦${numPrice.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    }, []);
 
     if (loading) {
         return (

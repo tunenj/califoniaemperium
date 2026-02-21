@@ -25,8 +25,8 @@ const CustomDrawerContent = ({ navigation, state, descriptors }: any) => {
       // Call sign-out endpoint if refresh token exists
       if (refreshToken) {
         try {
-          await api.post(endpoints.signOut, { 
-            refresh: refreshToken 
+          await api.post(endpoints.signOut, {
+            refresh: refreshToken
           });
         } catch (apiError) {
           console.error("Sign out API error:", apiError);
@@ -53,7 +53,7 @@ const CustomDrawerContent = ({ navigation, state, descriptors }: any) => {
 
     } catch (error: any) {
       console.error("Sign out error:", error);
-      
+
       // Even if everything fails, clear local data
       await AsyncStorage.multiRemove([
         "accessToken",
@@ -79,9 +79,9 @@ const CustomDrawerContent = ({ navigation, state, descriptors }: any) => {
       t("confirm_sign_out") || "Sign Out",
       t("confirm_sign_out_message") || "Are you sure you want to sign out?",
       [
-        { 
-          text: t("cancel") || "Cancel", 
-          style: "cancel" 
+        {
+          text: t("cancel") || "Cancel",
+          style: "cancel"
         },
         {
           text: t("sign_out") || "Sign Out",
@@ -92,15 +92,14 @@ const CustomDrawerContent = ({ navigation, state, descriptors }: any) => {
     );
   };
 
+  // Define the routes that should be visible in the drawer
+  const visibleRoutes = ["dashboard", "products", "orders", "VendorStore", "analytics", "earnings", "support"];
+
   return (
     <View className="flex-1 mt-20">
-      {/* Drawer Items */}
+      {/* Drawer Items - Only show routes from visibleRoutes list */}
       {state.routes
-        // Hide profile screen and dynamic routes from drawer
-        .filter((route: any) => 
-          route.name !== "profile" && 
-          route.name !== "[id]" // Hide the dynamic route
-        )
+        .filter((route: any) => visibleRoutes.includes(route.name))
         .map((route: any, index: number) => {
           const { options } = descriptors[route.key];
           const label =
@@ -111,9 +110,8 @@ const CustomDrawerContent = ({ navigation, state, descriptors }: any) => {
             <TouchableOpacity
               key={route.key}
               onPress={() => navigation.navigate(route.name)}
-              className={`flex-row items-center px-4 py-4 ${
-                isFocused ? "bg-gray-100" : "bg-transparent"
-              }`}
+              className={`flex-row items-center px-4 py-4 ${isFocused ? "bg-gray-100" : "bg-transparent"
+                }`}
               disabled={isSigningOut}
             >
               {options.drawerIcon &&
@@ -124,11 +122,10 @@ const CustomDrawerContent = ({ navigation, state, descriptors }: any) => {
                 })}
 
               <Text
-                className={`ml-4 text-base ${
-                  isFocused
+                className={`ml-4 text-base ${isFocused
                     ? "text-black font-medium"
                     : "text-gray-600"
-                }`}
+                  }`}
               >
                 {label}
               </Text>
@@ -164,7 +161,7 @@ const CustomDrawerContent = ({ navigation, state, descriptors }: any) => {
             </>
           )}
         </TouchableOpacity>
-        
+
         <Text className="text-xs text-gray-400 text-center mt-2">
           Version 1.0.0
         </Text>
@@ -247,6 +244,7 @@ export default function VendorLayout() {
               color={color}
             />
           ),
+          drawerItemStyle: { display: "none" },
         }}
       />
 
@@ -298,13 +296,22 @@ export default function VendorLayout() {
           drawerItemStyle: { display: "none" },
         }}
       />
+      
+      {/* Hidden messages screen - won't appear in drawer */}
+      <Drawer.Screen
+        name="messages"
+        options={{
+          title: safeT("messages", "Messages"),
+          drawerItemStyle: { display: "none" }, // This ensures it's hidden
+        }}
+      />
 
       {/* Add [id] as a hidden screen */}
       <Drawer.Screen
         name="[id]"
         options={{
-          title: "Product Details", // This won't be shown anyway
-          drawerItemStyle: { display: "none" }, // This hides it from the drawer
+          title: "Product Details",
+          drawerItemStyle: { display: "none" },
         }}
       />
     </Drawer>

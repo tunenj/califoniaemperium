@@ -18,6 +18,8 @@ export const endpoints = {
   refreshToken: '/accounts/token/refresh/',
   // categories
   categories: '/products/categories/',
+  //to get category three
+  getCategory: '/products/categories/tree/',
   //Vendor account creation
   createVendorAccount: '/vendors/',
   // vendor dashboard
@@ -88,5 +90,19 @@ export const endpoints = {
   //commission table to get total vendor earning
   getVendorEarning: '/vendors/earnings/',
   //list of order
-  getOrder: 'orders/'
+  getOrder: '/orders/',
+  //payment
+  stripConfig: '/orders/payments/config/',
+  createPaymentIntent: '/orders/payments/create-payment-intent/',
+  confirmPayment: '/orders/payments/confirm-payment/',
+  //support
+  support: '/support-requests/',
+  //search item with image
+  searchItem: '/search/by-image/',
+  //admin stats
+  adminStat: '/vendors/admin-analytics/stats/',
+  //google signup
+  googleSignUp: '/accounts/login/google/',
+  // shipping calculation
+  calculateShip: 'orders/shipping/calculate/',
 };
