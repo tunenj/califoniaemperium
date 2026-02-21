@@ -1,4 +1,3 @@
-import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,7 +5,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Platform,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useBiometric } from '@/context/BiometricContext';
@@ -28,7 +26,7 @@ export const BiometricSettings = () => {
       <View className="p-4 bg-gray-50 rounded-xl">
         <View className="flex-row items-center">
           <Ionicons 
-            name={Platform.OS === 'ios' ? 'ios-finger-print' : 'md-finger-print'} 
+            name="finger-print"
             size={24} 
             color="#9CA3AF" 
           />
@@ -40,11 +38,10 @@ export const BiometricSettings = () => {
     );
   }
 
+  // FIXED: Use correct Ionicons names
   const biometricIcon = biometricTypes.includes('Facial Recognition')
-    ? 'ios-scan'
-    : Platform.OS === 'ios'
-    ? 'ios-finger-print'
-    : 'md-finger-print';
+    ? 'scan-outline'
+    : 'finger-print';
 
   const biometricName = biometricTypes[0] || 
     (Platform.OS === 'ios' ? 'Face ID / Touch ID' : 'Fingerprint');

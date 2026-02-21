@@ -1,6 +1,6 @@
 import images from '@/constants/images';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Image, Text, TouchableOpacity, View, Alert } from 'react-native';
 import { colors } from "@/constants/color";
 import { useLanguage } from '@/context/LanguageContext';
@@ -8,13 +8,34 @@ import { Ionicons } from '@expo/vector-icons';
 import { signInWithGoogle } from '@/utils/googleAuth';
 import { loginWithGoogle } from '@/service/authService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useBiometric } from '@/context/BiometricContext';
+import { BiometricLoginButton } from '@/components/BiometricLoginButton';
 
 const BusinessLoginScreen: React.FC = () => {
     const [isCustomer, setIsCustomer] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [showBiometric, setShowBiometric] = useState(false);
 
     const router = useRouter();
     const { t } = useLanguage();
+
+    // ✅ Add biometric hook - removed unused variables
+    const { 
+        checkBiometricAvailability,
+        isBiometricEnabled,
+    } = useBiometric();
+
+    // ✅ Check biometric status on mount
+    useEffect(() => {
+        const checkBiometricStatus = async () => {
+            const available = await checkBiometricAvailability();
+            if (available) {
+                const enabled = await isBiometricEnabled();
+                setShowBiometric(enabled);
+            }
+        };
+        checkBiometricStatus();
+    }, [checkBiometricAvailability, isBiometricEnabled]);
 
     const handleEmailSignIn = () => {
         router.push('/LoginForm/EmailSignIn');
@@ -41,7 +62,7 @@ const BusinessLoginScreen: React.FC = () => {
                 await AsyncStorage.setItem('userData', JSON.stringify(loginResult.data.user));
                 
                 // Step 4: Navigate to main app
-                router.replace('/(app)/home'); // Navigate to your main screen
+                router.replace('/(customer)/main');
             } else {
                 Alert.alert('Error', loginResult.error || 'Login failed');
             }
@@ -51,6 +72,13 @@ const BusinessLoginScreen: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
+    };
+
+    // Handle successful biometric login
+    const handleBiometricSuccess = () => {
+        // This will be called after successful biometric authentication
+        console.log('Biometric login successful');
+        // You can add any post-login logic here
     };
 
     // Helper functions for dynamic text
@@ -96,6 +124,21 @@ const BusinessLoginScreen: React.FC = () => {
                             </Text>
                         </TouchableOpacity>
                     </View>
+
+                    {/* ✅ Biometric Login - Show if available and enabled */}
+                    {showBiometric && (
+                        <View className="mb-6">
+                            <BiometricLoginButton 
+                                variant="full" 
+                                onSuccess={handleBiometricSuccess}
+                            />
+                            <View className="flex-row items-center my-4">
+                                <View className="flex-1 h-px bg-gray-300" />
+                                <Text className="mx-4 text-gray-500">OR</Text>
+                                <View className="flex-1 h-px bg-gray-300" />
+                            </View>
+                        </View>
+                    )}
 
                     {/* Email Sign-in */}
                     <TouchableOpacity 

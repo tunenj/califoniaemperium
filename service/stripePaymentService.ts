@@ -44,15 +44,21 @@ class StripePaymentService {
     }
   }
 
-  // Create payment intent
-  async createPaymentIntent(orderId: string): Promise<PaymentIntentResponse> {
+  // Create payment intent with currency parameter
+  async createPaymentIntent(orderId: string, currency: string = 'eur'): Promise<PaymentIntentResponse> {
     try {
+      console.log(`Creating payment intent for order ${orderId} with currency ${currency}`);
+      
       const response = await api.post<PaymentIntentResponse>(
         endpoints.createPaymentIntent,
-        { order_id: orderId }
+        { 
+          order_id: orderId,
+          currency: currency // Make sure this is being sent
+        }
       );
 
       if (response.data?.client_secret) {
+        console.log('Payment intent created:', response.data);
         return response.data;
       }
       

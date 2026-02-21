@@ -1,16 +1,16 @@
 // app/(customer)/category/index.tsx
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { 
-  View, 
-  Text, 
-  ActivityIndicator, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  ActivityIndicator,
+  TouchableOpacity,
   FlatList,
   RefreshControl,
   Alert,
   Dimensions
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { MaterialIcons, FontAwesome } from "@expo/vector-icons";
 import ProductCard from "@/components/category/ProductCard";
 import SidebarMenu from "@/components/category/SidebarMenu";
@@ -74,13 +74,14 @@ const ITEM_WIDTH = (width - SIDEBAR_WIDTH - CONTENT_PADDING * 2 - GAP) / 2;
 // Create the main component content
 const CategoryScreenContent = () => {
   const router = useRouter();
+  const params = useLocalSearchParams<{ category?: string; categoryName?: string }>();
   const { t } = useLanguage();
-  const { searchQuery, clearSearch } = useCategorySearch();
-  
+  const { searchQuery, clearSearch, setSearchQuery } = useCategorySearch();
+
   // Cart and Wishlist contexts
-  const { 
-    addItem, 
-    isInCart, 
+  const {
+    addItem,
+    isInCart,
     syncing: cartSyncing
   } = useCart();
 
@@ -92,10 +93,11 @@ const CategoryScreenContent = () => {
   } = useWishlist();
 
   const { isAuthenticated } = useAuth();
-  
+
   // Ref to track if initial fetch has happened
   const initialFetchDone = React.useRef(false);
-  
+  const categoryFromParamsRef = React.useRef<string | null>(null);
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -111,10 +113,10 @@ const CategoryScreenContent = () => {
   const [totalProducts, setTotalProducts] = useState(0);
 
   // State to track which products are being added to cart
-  const [addingToCart, setAddingToCart] = useState<{[key: string]: boolean}>({});
-  
+  const [addingToCart, setAddingToCart] = useState<{ [key: string]: boolean }>({});
+
   // State to track which products are being toggled in wishlist
-  const [togglingWishlist, setTogglingWishlist] = useState<{[key: string]: boolean}>({});
+  const [togglingWishlist, setTogglingWishlist] = useState<{ [key: string]: boolean }>({});
 
   // Fetch categories
   const fetchCategories = useCallback(async () => {
@@ -123,12 +125,32 @@ const CategoryScreenContent = () => {
       if (response.data.success) {
         // The API returns the full category data with all fields
         setCategories(response.data.data);
+
+        // Check if there's a category in URL params after categories are loaded
+        if (params.category && response.data.data.length > 0) {
+          console.log('🔍 Looking for category with slug:', params.category);
+
+          // Try to find the category by slug (case insensitive)
+          const categoryFromParams = response.data.data.find(
+            (cat: Category) => cat.slug.toLowerCase() === params.category?.toLowerCase()
+          );
+
+          if (categoryFromParams) {
+            console.log('✅ Found category from params:', categoryFromParams.name);
+            setSelectedCategory(categoryFromParams);
+            categoryFromParamsRef.current = params.category;
+          } else {
+            console.log('❌ Category not found with slug:', params.category);
+            // Clear the invalid category from URL
+            router.setParams({ category: undefined, categoryName: undefined });
+          }
+        }
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
       setError(t('failed_to_load_categories') || 'Failed to load categories');
     }
-  }, [t]);
+  }, [params.category, t, router]);
 
   // Get sort query parameter
   const getSortQuery = useCallback((sortOption: string) => {
@@ -159,27 +181,71 @@ const CategoryScreenContent = () => {
       }
 
       let url = `${endpoints.products}?page=${page}`;
-      
-      // Add category filter if selected
+
+      // If category is selected, search by category name
       if (selectedCategory) {
-        url += `&category=${selectedCategory.slug}`;
+        console.log('📁 Searching by category name:', selectedCategory.name);
+        url += `&search=${encodeURIComponent(selectedCategory.name)}`;
       }
-      
-      // Add search query if exists
-      if (searchQuery && searchQuery.trim()) {
+
+      // Add search query if exists (for text search)
+      if (searchQuery && searchQuery.trim() && !selectedCategory) {
         url += `&search=${encodeURIComponent(searchQuery.trim())}`;
+        console.log('🔍 Searching for:', searchQuery);
       }
-      
+
       // Add sorting
       url += getSortQuery(sortBy);
 
+      console.log('🌐 Fetching products from:', url);
       const response = await api.get(url);
 
       if (response.data) {
         const newProducts = response.data.results || [];
-        
-        console.log('📦 Fetched products - Page:', page, 'Count:', newProducts.length, 'Has more:', response.data.next !== null);
-        
+
+        console.log('📦 Fetched products - Page:', page, 'Count:', newProducts.length);
+
+        if (newProducts.length === 0 && selectedCategory) {
+          console.log('⚠️ No products found for category name:', selectedCategory.name);
+
+          // Try with just the first word of the category name
+          const firstWord = selectedCategory.name.split(' ')[0];
+          if (firstWord !== selectedCategory.name) {
+            console.log('🔄 Retrying with first word:', firstWord);
+            const retryUrl = `${endpoints.products}?page=${page}&search=${encodeURIComponent(firstWord)}${getSortQuery(sortBy)}`;
+            const retryResponse = await api.get(retryUrl);
+
+            if (retryResponse.data && retryResponse.data.results) {
+              const retryProducts = retryResponse.data.results;
+              console.log('✅ Found', retryProducts.length, 'products with first word search');
+
+              if (page === 1 || isRefresh) {
+                setProducts(retryProducts);
+                setFilteredProducts(retryProducts);
+              } else {
+                setProducts(prev => {
+                  const existingIds = new Set(prev.map((p: Product) => p.id));
+                  const uniqueNewProducts = retryProducts.filter((p: Product) => !existingIds.has(p.id));
+                  return [...prev, ...uniqueNewProducts];
+                });
+                setFilteredProducts(prev => {
+                  const existingIds = new Set(prev.map((p: Product) => p.id));
+                  const uniqueNewProducts = retryProducts.filter((p: Product) => !existingIds.has(p.id));
+                  return [...prev, ...uniqueNewProducts];
+                });
+              }
+
+              setHasMore(retryResponse.data.next !== null);
+              setCurrentPage(page);
+              setTotalProducts(retryResponse.data.count || 0);
+              setLoading(false);
+              setProductsLoading(false);
+              setRefreshing(false);
+              return;
+            }
+          }
+        }
+
         if (page === 1 || isRefresh) {
           setProducts(newProducts);
           setFilteredProducts(newProducts);
@@ -203,10 +269,11 @@ const CategoryScreenContent = () => {
         setHasMore(response.data.next !== null);
         setCurrentPage(page);
         setTotalProducts(response.data.count || 0);
-        console.log('📊 Total products in DB:', response.data.count, 'Has more pages:', response.data.next !== null);
+        console.log('📊 Total products in DB:', response.data.count);
       }
     } catch (error: any) {
       console.error('Error fetching products:', error);
+      console.error('Error details:', error.response?.data || error.message);
       setError(error.message || t('failed_to_load_products') || 'Failed to load products');
       setProducts([]);
       setFilteredProducts([]);
@@ -220,36 +287,60 @@ const CategoryScreenContent = () => {
   // Initial load - only once
   useEffect(() => {
     if (!initialFetchDone.current) {
-      console.log('🚀 Initial mount - fetching categories and products');
+      console.log('🚀 Initial mount - fetching categories');
       initialFetchDone.current = true;
       fetchCategories();
-      fetchProducts(1);
+      // Don't fetch products yet - wait for categories to load and possibly set selectedCategory
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fetchCategories]); // Added fetchCategories to dependencies
 
-  // Re-fetch when search query changes (but not on initial mount)
+  // Fetch products when selectedCategory changes
   useEffect(() => {
-    // Only fetch if searchQuery has been set by user interaction
-    if (initialFetchDone.current && searchQuery !== undefined && searchQuery !== '') {
+    if (initialFetchDone.current) {
+      console.log('🎯 Selected category changed:', selectedCategory?.name || 'All Products');
+      setCurrentPage(1);
+      fetchProducts(1, true);
+    }
+  }, [selectedCategory, fetchProducts]); // Added fetchProducts to dependencies
+
+  // Re-fetch when search query changes
+  useEffect(() => {
+    if (initialFetchDone.current) {
       console.log('🔍 Search query changed to:', searchQuery);
       setCurrentPage(1);
       fetchProducts(1, true);
     }
-  }, [searchQuery]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [searchQuery, fetchProducts]); // Added fetchProducts to dependencies
+
+  // Re-fetch when sort changes
+  useEffect(() => {
+    if (initialFetchDone.current) {
+      console.log('📊 Sort changed to:', sortBy);
+      setCurrentPage(1);
+      fetchProducts(1, true);
+    }
+  }, [sortBy, fetchProducts]); // Added fetchProducts to dependencies
 
   // Handle category selection
   const handleCategorySelect = useCallback((category: Category | null) => {
+    console.log('🎯 Category selected:', category?.name || 'All Products', 'Slug:', category?.slug || 'none');
     setSelectedCategory(category);
     setCurrentPage(1);
-    
+
     // Clear search when selecting a category
     if (category) {
       clearSearch();
+
+      // Update URL params to reflect the selected category
+      router.setParams({
+        category: category.slug,
+        categoryName: category.name
+      });
+    } else {
+      // Clear URL params when showing all products
+      router.setParams({ category: undefined, categoryName: undefined });
     }
-    
-    // Fetch products for the selected category
-    fetchProducts(1, true);
-  }, [clearSearch, fetchProducts]);
+  }, [clearSearch, router]);
 
   // Clear search
   const handleClearSearch = useCallback(() => {
@@ -261,11 +352,11 @@ const CategoryScreenContent = () => {
   const handleClearCategory = useCallback(() => {
     setSelectedCategory(null);
     setCurrentPage(1);
-    fetchProducts(1, true);
-  }, [fetchProducts]);
+    router.setParams({ category: undefined, categoryName: undefined });
+  }, [router]);
 
   // Load more products
-  const loadMoreProducts = () => {
+  const loadMoreProducts = useCallback(() => {
     console.log('🔽 onEndReached triggered - hasMore:', hasMore, 'productsLoading:', productsLoading, 'loading:', loading);
     if (hasMore && !productsLoading && !loading) {
       console.log('✅ Loading more products - next page:', currentPage + 1);
@@ -273,7 +364,7 @@ const CategoryScreenContent = () => {
     } else {
       console.log('❌ Not loading more:', { hasMore, productsLoading, loading });
     }
-  };
+  }, [hasMore, productsLoading, loading, currentPage, fetchProducts]);
 
   // Pull to refresh
   const onRefresh = useCallback(() => {
@@ -287,10 +378,10 @@ const CategoryScreenContent = () => {
       Alert.alert(t('error') || 'Error', t('product_not_found') || 'Product not found');
       return;
     }
-    
+
     router.push({
       pathname: "/(customer)/product/[slug]",
-      params: { 
+      params: {
         slug: product.slug,
         productName: product.name || 'Product'
       },
@@ -332,17 +423,17 @@ const CategoryScreenContent = () => {
       // Fetch full product details to get the detailed images
       console.log('🔍 Fetching full product details for:', product.slug);
       const productResponse = await api.get(`${endpoints.products}${product.slug}/`);
-      
+
       let productImage = product.main_image || null;
-      
+
       // If we got detailed product data with images array
       if (productResponse.data && productResponse.data.images && productResponse.data.images.length > 0) {
         console.log('📸 Product images from API:', productResponse.data.images);
-        
+
         // Find the primary image or use the first one
         const primaryImage = productResponse.data.images.find((img: any) => img.is_primary);
         const imageToUse = primaryImage || productResponse.data.images[0];
-        
+
         if (imageToUse && imageToUse.image) {
           productImage = imageToUse.image;
           console.log('✅ Using detailed image URL:', productImage);
@@ -357,7 +448,7 @@ const CategoryScreenContent = () => {
         storeName: product.brand_name || 'Unknown Store',
         productName: product.name,
         price: parseFloat(product.price),
-        originalPrice: product.compare_at_price 
+        originalPrice: product.compare_at_price
           ? parseFloat(product.compare_at_price)
           : parseFloat(product.price),
         image: productImage,
@@ -367,7 +458,7 @@ const CategoryScreenContent = () => {
 
       // Add to cart via API
       const result = await addItem(itemData, 1);
-      
+
       if (result.success) {
         console.log("✅ Added to cart:", product.name);
       }
@@ -419,37 +510,37 @@ const CategoryScreenContent = () => {
       if (isCurrentlyInWishlist) {
         // Get the wishlist ID for this product
         const wishlistId = getWishlistId(productId);
-        
+
         if (!wishlistId) {
           console.error('[Wishlist] No wishlist ID found for product:', productId);
           Alert.alert('Error', 'Failed to remove from wishlist');
           setTogglingWishlist(prev => ({ ...prev, [productId]: false }));
           return;
         }
-        
+
         // Remove from wishlist using wishlist_id
         const success = await removeFromWishlist(wishlistId);
-        
+
         if (success) {
           console.log("✅ Removed from wishlist:", product.name);
         }
       } else {
         // Add to wishlist
         const result = await addToWishlist(productId);
-        
+
         if (result.success) {
           console.log("✅ Added to wishlist:", product.name);
         }
       }
     } catch (error: any) {
       console.error("Error toggling wishlist:", error);
-      
+
       // Error is already handled in WishlistContext, but show a user-friendly message
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.detail ||
-                          error.message ||
-                          "Failed to update wishlist";
-      
+      const errorMessage = error.response?.data?.message ||
+        error.response?.data?.detail ||
+        error.message ||
+        "Failed to update wishlist";
+
       Alert.alert(
         "Wishlist Error",
         errorMessage,
@@ -476,8 +567,7 @@ const CategoryScreenContent = () => {
     setSortBy(sortOption);
     setShowSortOptions(false);
     setCurrentPage(1);
-    fetchProducts(1, true);
-  }, [fetchProducts]);
+  }, []);
 
   // Get sort display text
   const getSortDisplayText = useCallback(() => {
@@ -502,12 +592,28 @@ const CategoryScreenContent = () => {
     return categories.filter(cat => cat.parent === null);
   }, [categories]);
 
+  // Debug function (only in development)
+  const debugCurrentState = useCallback(() => {
+    if (__DEV__) {
+      console.log('Current state:', {
+        selectedCategory: selectedCategory?.name,
+        selectedCategorySlug: selectedCategory?.slug,
+        selectedCategoryId: selectedCategory?.id,
+        searchQuery,
+        sortBy,
+        productsCount: products.length,
+        categoriesCount: categories.length,
+        categories: categories.map(c => ({ name: c.name, slug: c.slug }))
+      });
+    }
+  }, [selectedCategory, searchQuery, sortBy, products.length, categories]);
+
   // Render product item
   const renderProductItem = useCallback(({ item, index }: { item: Product; index: number }) => (
-    <View style={{ 
-      width: ITEM_WIDTH, 
+    <View style={{
+      width: ITEM_WIDTH,
       marginRight: index % 2 === 0 ? GAP : 0,
-      marginBottom: GAP 
+      marginBottom: GAP
     }}>
       <ProductCard
         product={item}
@@ -550,21 +656,22 @@ const CategoryScreenContent = () => {
   // Render empty state
   const renderEmpty = useCallback(() => {
     if (loading) return null;
-    
+
     let titleText = t('no_products_found') || 'No products found';
     let descriptionText = t('no_products_available') || 'No products available at the moment';
-    
+
     if (searchQuery && searchQuery.trim()) {
       titleText = `No results for "${searchQuery}"`;
       descriptionText = t('try_adjusting_search') || 'Try adjusting your search or browse different categories';
     } else if (selectedCategory) {
+      titleText = t('no_products_found') || 'No products found';
       descriptionText = t('no_products_in_category') || `No products found in ${selectedCategory?.name || 'this category'}`;
     }
-    
+
     if (error) {
       descriptionText = error;
     }
-    
+
     return (
       <View className="py-20 items-center px-4">
         <Text className="text-gray-600 text-lg font-medium mb-2">
@@ -573,8 +680,8 @@ const CategoryScreenContent = () => {
         <Text className="text-gray-500 text-center mb-6">
           {descriptionText}
         </Text>
-        <TouchableOpacity 
-          className="bg-red-600 px-6 py-3 rounded-lg" 
+        <TouchableOpacity
+          className="bg-red-600 px-6 py-3 rounded-lg"
           onPress={handleRetry}
         >
           <Text className="text-white font-medium">
@@ -588,14 +695,14 @@ const CategoryScreenContent = () => {
   // Memoized values
   const parentCategories = useMemo(() => getParentCategoriesWithChildren(), [getParentCategoriesWithChildren]);
   const displayedProducts = useMemo(() => filteredProducts, [filteredProducts]);
-  const productCount = useMemo(() => 
-    filteredProducts.length > 0 ? filteredProducts.length : totalProducts, 
+  const productCount = useMemo(() =>
+    filteredProducts.length > 0 ? filteredProducts.length : totalProducts,
     [filteredProducts.length, totalProducts]
   );
   const sortDisplayText = useMemo(() => getSortDisplayText(), [getSortDisplayText]);
 
   // Loading state
-  if (loading && products.length === 0) {
+  if (loading && products.length === 0 && !selectedCategory) {
     return (
       <View className="flex-1 bg-gray-50">
         <DashboardHeader />
@@ -638,7 +745,7 @@ const CategoryScreenContent = () => {
   return (
     <View className="flex-1 bg-gray-50">
       <DashboardHeader />
-      
+
       <View className="flex-row flex-1">
         {/* LEFT SIDEBAR */}
         <SidebarMenu
@@ -667,7 +774,7 @@ const CategoryScreenContent = () => {
                   </Text>
                 )}
               </View>
-              
+
               {/* Clear filter/search buttons */}
               <View className="flex-row items-center">
                 {searchQuery && (
@@ -702,7 +809,7 @@ const CategoryScreenContent = () => {
               </Text>
 
               <View className="relative">
-                <TouchableOpacity 
+                <TouchableOpacity
                   className="flex-row items-center"
                   onPress={() => setShowSortOptions(!showSortOptions)}
                   activeOpacity={0.7}
@@ -715,7 +822,7 @@ const CategoryScreenContent = () => {
                     {sortDisplayText} ▾
                   </Text>
                 </TouchableOpacity>
-                
+
                 {/* Sort options dropdown */}
                 {showSortOptions && (
                   <View className="absolute top-8 right-0 bg-white rounded-lg shadow-lg border border-gray-200 z-50 min-w-48">

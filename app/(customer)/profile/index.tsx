@@ -17,8 +17,7 @@ import {
 import { useRouter, Stack, useFocusEffect } from 'expo-router';
 import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
-import { useBiometric } from '@/context/BiometricContext'; // ✅ ADD THIS IMPORT
-import { BiometricSettings } from '@/components/BiometricSettings'; // ✅ ADD THIS IMPORT
+import { useBiometric } from '@/context/BiometricContext';
 import api from '@/api/api';
 import { endpoints } from '@/api/endpoints';
 
@@ -53,7 +52,7 @@ export default function ProfileScreen() {
     biometricEnabled,
     toggleBiometricSetting,
     loading: biometricLoading 
-  } = useBiometric(); // ✅ ADD BIOMETRIC HOOK
+  } = useBiometric();
 
   const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -282,7 +281,6 @@ export default function ProfileScreen() {
         options={{
           title: 'My Profile',
           headerBackVisible: false,
-          // ✅ inline styles — NativeWind doesn't work inside Stack.Screen options
           headerLeft: () => (
             <TouchableOpacity
               onPress={() => {
@@ -473,12 +471,12 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* ✅ Biometric Settings - Add this section */}
+          {/* ✅ Biometric Settings - Fixed icon names */}
           {isBiometricAvailable && (
             <View className="bg-white rounded-xl p-5 mb-4 shadow-sm border border-gray-100">
               <View className="flex-row items-center mb-4">
                 <Ionicons 
-                  name={Platform.OS === 'ios' ? 'ios-finger-print' : 'md-finger-print'} 
+                  name="finger-print" 
                   size={24} 
                   color="#3B82F6" 
                 />
@@ -529,7 +527,7 @@ export default function ProfileScreen() {
                   className="mt-4 bg-blue-50 py-3 rounded-lg flex-row items-center justify-center"
                 >
                   <Ionicons 
-                    name={Platform.OS === 'ios' ? 'ios-finger-print' : 'md-finger-print'} 
+                    name="finger-print" 
                     size={18} 
                     color="#3B82F6" 
                   />

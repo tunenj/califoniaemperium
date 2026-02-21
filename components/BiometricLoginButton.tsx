@@ -4,7 +4,6 @@ import {
   Text,
   ActivityIndicator,
   Platform,
-  View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useBiometric } from '@/context/BiometricContext';
@@ -35,7 +34,8 @@ export const BiometricLoginButton: React.FC<BiometricLoginButtonProps> = ({
     return null;
   }
 
-  const biometricIcon = Platform.OS === 'ios' ? 'ios-finger-print' : 'md-finger-print';
+  // FIXED: Use the correct Ionicons name
+  const biometricIcon = 'finger-print';
   const biometricName = Platform.OS === 'ios' ? 'Face ID' : 'Fingerprint';
 
   const handlePress = async () => {

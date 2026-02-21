@@ -1,3 +1,4 @@
+// context/BiometricContext.tsx
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { Alert, Platform } from 'react-native';
@@ -49,7 +50,6 @@ export const BiometricProvider: React.FC<BiometricProviderProps> = ({ children }
   
   const router = useRouter();
 
-  // Check if biometric hardware is available
   const checkBiometricAvailability = useCallback(async () => {
     try {
       const compatible = await LocalAuthentication.hasHardwareAsync();
@@ -86,7 +86,6 @@ export const BiometricProvider: React.FC<BiometricProviderProps> = ({ children }
     }
   }, []);
 
-  // Authenticate with biometrics
   const authenticate = useCallback(async (
     promptMessage: string = 'Authenticate to continue'
   ): Promise<BiometricAuthResult> => {
@@ -115,7 +114,7 @@ export const BiometricProvider: React.FC<BiometricProviderProps> = ({ children }
         setLoading(false);
         return {
           success: true,
-          type: biometricTypes[0]
+          type: biometricTypes[0] || 'Biometric'
         };
       } else {
         setLoading(false);
@@ -128,15 +127,13 @@ export const BiometricProvider: React.FC<BiometricProviderProps> = ({ children }
       setLoading(false);
       return {
         success: false,
-        error: error.message || 'An error occurred during authentication'
+        error: error?.message || 'An error occurred during authentication'
       };
     }
   }, [checkBiometricAvailability, biometricTypes]);
 
-  // Save credentials securely for biometric login
   const saveCredentialsForBiometric = useCallback(async (email: string, password: string) => {
     try {
-      // Store credentials securely (consider using expo-secure-store for better security)
       await AsyncStorage.setItem('biometric_email', email);
       await AsyncStorage.setItem('biometric_password', password);
       console.log('✅ Credentials saved for biometric login');
@@ -145,7 +142,6 @@ export const BiometricProvider: React.FC<BiometricProviderProps> = ({ children }
     }
   }, []);
 
-  // Clear biometric credentials
   const clearBiometricCredentials = useCallback(async () => {
     try {
       await AsyncStorage.removeItem('biometric_email');
@@ -156,13 +152,11 @@ export const BiometricProvider: React.FC<BiometricProviderProps> = ({ children }
     }
   }, []);
 
-  // Handle biometric login flow
   const handleBiometricLogin = useCallback(async (email?: string, password?: string) => {
     if (!isBiometricAvailable) {
-      Alert.alert(
-        'Not Available',
-        'Biometric authentication is not available on this device'
-      );
+      if (Platform.OS !== 'web') {
+        Alert.alert('Not Available', 'Biometric authentication is not available on this device');
+      }
       return;
     }
 
@@ -170,42 +164,41 @@ export const BiometricProvider: React.FC<BiometricProviderProps> = ({ children }
     
     if (result.success) {
       try {
-        // If credentials are provided directly (after login), use them
         if (email && password) {
           await saveCredentialsForBiometric(email, password);
-          Alert.alert('Success', 'Biometric login enabled');
+          if (Platform.OS !== 'web') {
+            Alert.alert('Success', 'Biometric login enabled');
+          }
           return;
         }
 
-        // Otherwise, get stored credentials
         const storedEmail = await AsyncStorage.getItem('biometric_email');
         const storedPassword = await AsyncStorage.getItem('biometric_password');
         
         if (storedEmail && storedPassword) {
-          // Here you would call your login API with stored credentials
           console.log('Logging in with:', storedEmail);
-          
-          // For now, simulate successful login
-          Alert.alert('Success', 'Logged in with biometric');
-          
-          // Navigate to main app
+          if (Platform.OS !== 'web') {
+            Alert.alert('Success', 'Logged in with biometric');
+          }
           router.replace('/(customer)/main');
         } else {
-          Alert.alert(
-            'No Saved Credentials',
-            'Please login with email first to enable biometric login'
-          );
+          if (Platform.OS !== 'web') {
+            Alert.alert('No Saved Credentials', 'Please login with email first to enable biometric login');
+          }
         }
       } catch (error) {
         console.error('Error during biometric login:', error);
-        Alert.alert('Error', 'Failed to complete login');
+        if (Platform.OS !== 'web') {
+          Alert.alert('Error', 'Failed to complete login');
+        }
       }
     } else {
-      Alert.alert('Authentication Failed', result.error);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Authentication Failed', result.error || 'Authentication failed');
+      }
     }
   }, [isBiometricAvailable, authenticate, saveCredentialsForBiometric, router]);
 
-  // Save biometric preference
   const enableBiometricLogin = useCallback(async (enabled: boolean) => {
     try {
       await AsyncStorage.setItem('biometricEnabled', String(enabled));
@@ -215,7 +208,6 @@ export const BiometricProvider: React.FC<BiometricProviderProps> = ({ children }
     }
   }, []);
 
-  // Check if biometric login is enabled
   const isBiometricEnabled = useCallback(async () => {
     try {
       const enabled = await AsyncStorage.getItem('biometricEnabled');
@@ -228,31 +220,34 @@ export const BiometricProvider: React.FC<BiometricProviderProps> = ({ children }
     }
   }, []);
 
-  // Toggle biometric setting (with authentication)
   const toggleBiometricSetting = useCallback(async () => {
     if (!biometricEnabled) {
-      // If enabling, authenticate first
       const result = await authenticate('Authenticate to enable biometric login');
       if (result.success) {
         await enableBiometricLogin(true);
-        Alert.alert('Success', 'Biometric login enabled');
+        if (Platform.OS !== 'web') {
+          Alert.alert('Success', 'Biometric login enabled');
+        }
       } else {
-        Alert.alert('Error', result.error || 'Failed to authenticate');
+        if (Platform.OS !== 'web') {
+          Alert.alert('Error', result.error || 'Failed to authenticate');
+        }
       }
     } else {
-      // If disabling, just turn off
       await enableBiometricLogin(false);
       await clearBiometricCredentials();
-      Alert.alert('Success', 'Biometric login disabled');
+      if (Platform.OS !== 'web') {
+        Alert.alert('Success', 'Biometric login disabled');
+      }
     }
   }, [biometricEnabled, authenticate, enableBiometricLogin, clearBiometricCredentials]);
 
-  // Check biometric availability and user preference on mount
   useEffect(() => {
     checkBiometricAvailability();
     isBiometricEnabled();
   }, []);
 
+  // IMPORTANT: This provider ONLY returns the Context.Provider with children
   return (
     <BiometricContext.Provider
       value={{

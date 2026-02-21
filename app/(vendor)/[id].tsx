@@ -319,12 +319,10 @@ export default function VendorProductDetails() {
         setShowEditModal(true);
     };
 
+    // Updated formatPrice function to use Euro (€)
     const formatPrice = (price: string | number) => {
         const numPrice = typeof price === 'string' ? parseFloat(price) : price;
-        return `₦${numPrice.toLocaleString('en-NG', { 
-            minimumFractionDigits: 2, 
-            maximumFractionDigits: 2 
-        })}`;
+        return `€${numPrice.toFixed(2)}`;
     };
 
     if (loading) {
@@ -600,7 +598,7 @@ export default function VendorProductDetails() {
                         <ScrollView showsVerticalScrollIndicator={false}>
                             <View className="mb-4">
                                 <Text className="text-sm font-medium text-gray-700 mb-2">
-                                    {t('price') || 'Price'} (₦)
+                                    {t('price') || 'Price'} (€)
                                 </Text>
                                 <TextInput
                                     className="border border-gray-300 rounded-lg px-4 py-3 text-base"
@@ -616,7 +614,7 @@ export default function VendorProductDetails() {
 
                             <View className="mb-4">
                                 <Text className="text-sm font-medium text-gray-700 mb-2">
-                                    {t('compare_at_price') || 'Compare at Price'} (₦)
+                                    {t('compare_at_price') || 'Compare at Price'} (€)
                                 </Text>
                                 <TextInput
                                     className="border border-gray-300 rounded-lg px-4 py-3 text-base"

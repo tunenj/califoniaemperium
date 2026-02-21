@@ -105,4 +105,6 @@ export const endpoints = {
   googleSignUp: '/accounts/login/google/',
   // shipping calculation
   calculateShip: 'orders/shipping/calculate/',
+  //category tree
+  categoryTree: '/products/categories/tree/',
 };

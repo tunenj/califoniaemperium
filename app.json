@@ -1,18 +1,21 @@
 {
   "expo": {
-    "name": "califoniaemperium",
-    "slug": "califoniaemperium",
+    "name": "Califonia Emporium",
+    "slug": "califoniaemporium",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "califoniaemperium",
+    "scheme": "califoniaemporium",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.tunenj.califoniaemperium",
+      "bundleIdentifier": "com.tunenj.califoniaemporium",
+      "buildNumber": "1.0.0",
       "infoPlist": {
-        "NSFaceIDUsageDescription": "This app uses Face ID / Touch ID to securely authenticate you for quick login."
+        "NSFaceIDUsageDescription": "This app uses Face ID / Touch ID to securely authenticate you for quick login.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to photo library to let you upload profile pictures.",
+        "NSCameraUsageDescription": "This app needs access to camera to take photos for your profile."
       }
     },
     "android": {
@@ -22,10 +25,14 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.tunenj.califoniaemperium",
+      "package": "com.tunenj.califoniaemporium",
+      "versionCode": 1,
       "permissions": [
         "USE_BIOMETRIC",
-        "USE_FINGERPRINT"
+        "USE_FINGERPRINT",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
       ]
     },
     "web": {
@@ -40,18 +47,22 @@
           "image": "./assets/icons/setupIcon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#ffffff"
-          }
+          "backgroundColor": "#ffffff"
         }
       ],
       "expo-web-browser",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app needs access to your photos to let you upload profile pictures.",
+          "cameraPermission": "The app needs access to your camera to take photos for your profile."
+        }
+      ],
+      [
         "@stripe/stripe-react-native",
         {
-          "merchantIdentifier": "",
-          "enableGooglePay": false
+          "merchantIdentifier": "merchant.com.tunenj.califoniaemporium",
+          "enableGooglePay": true
         }
       ],
       [
@@ -71,6 +82,9 @@
         "projectId": "4ed08c40-78bf-41d6-a34f-4ed526c9ba4c"
       }
     },
-    "owner": "tunenj"
+    "owner": "tunenj",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    }
   }
 }
