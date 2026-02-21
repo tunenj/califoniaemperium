@@ -39,9 +39,9 @@ const BestSellingProducts = () => {
   const { t } = useLanguage();
 
   // Use the cart context
-  const { 
-    addItem, 
-    isInCart, 
+  const {
+    addItem,
+    isInCart,
     syncing: cartSyncing
   } = useCart();
 
@@ -59,19 +59,19 @@ const BestSellingProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // State to track which products are being added to cart
-  const [addingToCart, setAddingToCart] = useState<{[key: string]: boolean}>({});
-  
-  // State to track which products are being toggled in wishlist
-  const [togglingWishlist, setTogglingWishlist] = useState<{[key: string]: boolean}>({});
 
-  /* ---------- Helpers ---------- */
+  // State to track which products are being added to cart
+  const [addingToCart, setAddingToCart] = useState<{ [key: string]: boolean }>({});
+
+  // State to track which products are being toggled in wishlist
+  const [togglingWishlist, setTogglingWishlist] = useState<{ [key: string]: boolean }>({});
+
+
   const formatPrice = useCallback((price: string | undefined | null) => {
-    if (!price) return "₦0";
+    if (!price) return "$0.00";
     const numPrice = parseFloat(price);
-    if (isNaN(numPrice)) return "₦0";
-    return `₦${numPrice.toLocaleString("en-NG", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+    if (isNaN(numPrice)) return "$0.00";
+    return `$${numPrice.toFixed(2)}`;
   }, []);
 
   const calculateDiscount = useCallback((price: string | undefined | null, comparePrice: string | null | undefined) => {
@@ -163,7 +163,7 @@ const BestSellingProducts = () => {
         storeName: product.brand_name || 'Unknown Store',
         productName: product.name,
         price: parseFloat(product.price),
-        originalPrice: product.compare_at_price 
+        originalPrice: product.compare_at_price
           ? parseFloat(product.compare_at_price)
           : parseFloat(product.price),
         image: product.main_image || (product.images && product.images.length > 0 ? product.images[0] : null),
@@ -173,7 +173,7 @@ const BestSellingProducts = () => {
 
       // Add to cart via API
       const result = await addItem(itemData, 1);
-      
+
       if (result.success) {
         console.log("✅ Added to cart:", product.name);
       }
@@ -224,38 +224,38 @@ const BestSellingProducts = () => {
       if (isCurrentlyInWishlist) {
         // Get the wishlist ID for this product
         const wishlistId = getWishlistId(productId);
-        
+
         if (!wishlistId) {
           console.error('[Wishlist] No wishlist ID found for product:', productId);
           Alert.alert('Error', 'Failed to remove from wishlist');
           setTogglingWishlist(prev => ({ ...prev, [productId]: false }));
           return;
         }
-        
+
         // Remove from wishlist using wishlist_id
         // This calls DELETE /orders/wishlist/:wishlist_id/
         const success = await removeFromWishlist(wishlistId);
-        
+
         if (success) {
           console.log("✅ Removed from wishlist:", product.name);
         }
       } else {
         // Add to wishlist
         const result = await addToWishlist(productId);
-        
+
         if (result.success) {
           console.log("✅ Added to wishlist:", product.name);
         }
       }
     } catch (error: any) {
       console.error("Error toggling wishlist:", error);
-      
+
       // Error is already handled in WishlistContext, but show a user-friendly message
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.detail ||
-                          error.message ||
-                          "Failed to update wishlist";
-      
+      const errorMessage = error.response?.data?.message ||
+        error.response?.data?.detail ||
+        error.message ||
+        "Failed to update wishlist";
+
       Alert.alert(
         "Wishlist Error",
         errorMessage,
@@ -337,7 +337,7 @@ const BestSellingProducts = () => {
                     <Text className="text-white text-xs font-bold">-{discount}%</Text>
                   </View>
                 )}
-                
+
                 {/* Wishlist Button */}
                 <TouchableOpacity
                   className="absolute top-2 right-2 bg-white p-2 rounded-full shadow-md z-20"
@@ -350,9 +350,9 @@ const BestSellingProducts = () => {
                   {isWishlistToggling ? (
                     <ActivityIndicator size="small" color={colors.darkRed} />
                   ) : (
-                    <AntDesign 
-                      name="heart" 
-                      size={16} 
+                    <AntDesign
+                      name="heart"
+                      size={16}
                       color={colors.darkRed}
                       style={{ color: isProductInWishlist ? colors.darkRed : colors.darkRed }}
                     />
@@ -372,7 +372,7 @@ const BestSellingProducts = () => {
                 </View>
                 <View className="flex-row justify-between items-center">
                   <Text className="text-lg font-bold text-darkRed">{formatPrice(product.price)}</Text>
-                  
+
                   {/* Add to Cart Button */}
                   <TouchableOpacity
                     className={`p-2 rounded-lg ${isProductInCart ? 'bg-green-600' : 'bg-darkRed'}`}

@@ -18,6 +18,8 @@ export const endpoints = {
   refreshToken: '/accounts/token/refresh/',
   // categories
   categories: '/products/categories/',
+  //to get category three
+  getCategory: '/products/categories/tree/',
   //Vendor account creation
   createVendorAccount: '/vendors/',
   // vendor dashboard
@@ -27,6 +29,7 @@ export const endpoints = {
   getVendorDetails: (slug: string) => `/vendors/${slug}/`,
   //get vendor details
   getMyVendorDetails: 'vendors/me/dashboard/',
+  getVendorProducts: '/products/vendor-products/',
   //edit vendor details
   editVendorDetails: (slug: string) => `/vendors/${slug}/`,
   //vendor application to admin
@@ -37,6 +40,10 @@ export const endpoints = {
   getVendorApplicationDetails: (id: string) => `/vendors/applications/${id}/`,
   vendorApproval: (id: string) => `/vendors/applications/${id}/review/`,
   listVendors: '/vendors/',
+  // to get specific details of product on vendor
+  getProductDetails: (slug: string) => `/products/${slug}/`,
+  // vendor to update product
+  updateProduct: (slug: string) => `/products/${slug}/`,
   // Products
   addProduct: '/products/',
   products: '/products/',
@@ -52,6 +59,7 @@ export const endpoints = {
   vendorCard: '/vendors/me/stats/',
   //to get dropship products
   dropshipProducts: '/products/dropship-products/',
+  dropShipping: '/products/dropship-products/sync_with_cj/',
   //add to cart
   addToCart: '/orders/cart/add/',
   toGetCart: '/orders/cart/',
@@ -69,8 +77,32 @@ export const endpoints = {
   //list order
   listOrder: '/orders/',
   // get order details
-  orderDetails:  (id: string) => `/orders/${id}/`,
+  orderDetails: (id: string) => `/orders/${id}/`,
   //cancel order
-  cancelOrder: (id: string) =>`/orders/${id}/cancel/`
-
+  cancelOrder: (id: string) => `/orders/${id}/cancel/`,
+  // to add review on project
+  review: '/vendors/reviews/',
+  //admin endpoints
+  payout: '/vendors/',
+  //get vendor commission
+  vendorCommission: '/vendors/commissions/',
+  createCommission: (slug: string) =>  `/vendors/commissions/${slug}/set/`,
+  //commission table to get total vendor earning
+  getVendorEarning: '/vendors/earnings/',
+  //list of order
+  getOrder: '/orders/',
+  //payment
+  stripConfig: '/orders/payments/config/',
+  createPaymentIntent: '/orders/payments/create-payment-intent/',
+  confirmPayment: '/orders/payments/confirm-payment/',
+  //support
+  support: '/support-requests/',
+  //search item with image
+  searchItem: '/search/by-image/',
+  //admin stats
+  adminStat: '/vendors/admin-analytics/stats/',
+  //google signup
+  googleSignUp: '/accounts/login/google/',
+  // shipping calculation
+  calculateShip: 'orders/shipping/calculate/',
 };

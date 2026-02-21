@@ -35,9 +35,9 @@ interface ProductCardProps {
   cartSyncing?: boolean;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ 
-  product, 
-  viewMode, 
+const ProductCard: React.FC<ProductCardProps> = ({
+  product,
+  viewMode,
   onPress,
   onAddToCart,
   onToggleWishlist,
@@ -49,9 +49,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
 }) => {
   const router = useRouter();
 
-  const formatPrice = (priceValue: string) => {
-    const numPrice = parseFloat(priceValue);
-    return `₦${numPrice.toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  // Updated formatPrice function to use Euro (€)
+  const formatPrice = (price: string) => {
+    const numPrice = parseFloat(price);
+    return `€${numPrice.toFixed(2)}`;
   };
 
   const handlePress = () => {
@@ -115,7 +116,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
               <Text className="text-gray-400 text-xs">No Image</Text>
             </View>
           )}
-          
+
           {product.discount_percentage > 0 && (
             <View className="absolute top-2 left-2 bg-darkRed px-2 py-0.5 rounded">
               <Text className="text-white text-xs font-bold">-{product.discount_percentage}%</Text>
@@ -133,15 +134,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
               {isTogglingWishlist ? (
                 <ActivityIndicator size="small" color={colors.darkRed} />
               ) : isInWishlist ? (
-                <MaterialIcons 
-                  name="favorite" 
-                  size={14} 
+                <MaterialIcons
+                  name="favorite"
+                  size={14}
                   color={colors.darkRed}
                 />
               ) : (
-                <MaterialIcons 
-                  name="favorite-border" 
-                  size={14} 
+                <MaterialIcons
+                  name="favorite-border"
+                  size={14}
                   color={colors.darkRed}
                 />
               )}
@@ -179,7 +180,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 onPress={handleCartPress}
                 disabled={!product.is_in_stock || isAddingToCart || cartSyncing}
                 className={`p-2 rounded-lg ${isInCart ? 'bg-green-600' : 'bg-darkRed'}`}
-                style={{ 
+                style={{
                   opacity: !product.is_in_stock ? 0.5 : 1,
                   minWidth: 36,
                   minHeight: 36,
@@ -237,15 +238,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
             {isTogglingWishlist ? (
               <ActivityIndicator size="small" color={colors.darkRed} />
             ) : isInWishlist ? (
-              <MaterialIcons 
-                name="favorite" 
-                size={16} 
+              <MaterialIcons
+                name="favorite"
+                size={16}
                 color={colors.darkRed}
               />
             ) : (
-              <MaterialIcons 
-                name="favorite-border" 
-                size={16} 
+              <MaterialIcons
+                name="favorite-border"
+                size={16}
                 color={colors.darkRed}
               />
             )}

@@ -1,14 +1,15 @@
 import React from "react";
 import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useLanguage } from "@/context/LanguageContext"; // Add import
+import { useLanguage } from "@/context/LanguageContext";
 
-interface StatCardProps {
+// Export the interface so it can be used elsewhere
+export interface StatCardProps {
   icon: keyof typeof Ionicons.glyphMap;
   count: number;
   title: string;
   subtitle: string;
-  color: string; // used for icon, text & border
+  color: string;
 }
 
 const StatCard: React.FC<StatCardProps> = ({
@@ -18,7 +19,7 @@ const StatCard: React.FC<StatCardProps> = ({
   subtitle,
   color,
 }) => {
-  const { t } = useLanguage(); // Add hook
+  const { t } = useLanguage();
 
   return (
     <View
@@ -28,28 +29,19 @@ const StatCard: React.FC<StatCardProps> = ({
       {/* Icon + Count */}
       <View className="flex-row items-center mb-3">
         <Ionicons name={icon} size={22} color={color} />
-        <Text
-          className="ml-2 text-lg font-bold"
-          style={{ color }}
-        >
+        <Text className="ml-2 text-lg font-bold" style={{ color }}>
           {count}
         </Text>
       </View>
 
       {/* Title */}
-      <Text
-        className="text-sm font-semibold"
-        style={{ color }}
-      >
-        {t(title)} {/* Wrap title with t() function */}
+      <Text className="text-sm font-semibold" style={{ color }}>
+        {t(title)}
       </Text>
 
       {/* Subtitle */}
-      <Text
-        className="text-xs mt-1"
-        style={{ color }}
-      >
-        {t(subtitle)} {/* Wrap subtitle with t() function */}
+      <Text className="text-xs mt-1" style={{ color }}>
+        {t(subtitle)}
       </Text>
     </View>
   );

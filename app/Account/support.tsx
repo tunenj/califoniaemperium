@@ -6,11 +6,9 @@ import {
   TouchableOpacity,
   Linking,
   Image,
-  Alert,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -19,8 +17,8 @@ import { useLanguage } from '@/context/LanguageContext';
 export type SocialMediaPlatform =
   | 'instagram'
   | 'facebook'
-  | 'x'
-  | 'tiktok';
+  | 'tiktok'
+  | 'youtube';
 
 export type SectionItem = {
   text: string;
@@ -43,33 +41,24 @@ const SupportScreen = () => {
   const { t } = useLanguage();
 
   const socialUrls: SocialMediaUrls = {
-    instagram: 'https://instagram.com/coffords',
-    facebook: 'https://facebook.com/coffords',
-    x: 'https://twitter.com/coffords',
-    tiktok: 'https://tiktok.com/@coffords',
+    instagram: 'https://www.instagram.com/califonia.emporium?utm_source=qr&igsh=d3VlYXd3cjV6ZnZh',
+    facebook: 'https://www.facebook.com/share/1DD5ogWR4e/',
+    tiktok: 'https://www.tiktok.com/@califonia.emporiu?_r=1&_t=ZN-93kpvqhQzfK',
+    youtube: 'https://youtube.com/@califoniaemporiumlimited?si=glRlkzefyBBUeMGd', 
   };
 
   const sections: Section[] = [
     {
       title: t('about'),
       items: [
-        { text: t('report_issue'), icon: 'bug-outline' },
-        { text: t('rate_us'), icon: 'star-outline' },
-        { text: t('contact_us'), icon: 'mail-outline' },
-      ],
-    },
-    {
-      title: t('contact_information'),
-      items: [
-        {
-          text: 'support@coffordhelp.com',
-          icon: 'mail-outline',
-          onPress: () => Linking.openURL('mailto:support@coffordhelp.com'),
+        { 
+          text: t('report_issue'), 
+          icon: 'bug-outline',
+          onPress: () => router.push('/(customer)/messages')
         },
-        {
-          text: '+224 818 8130',
-          icon: 'call-outline',
-          onPress: () => Linking.openURL('tel:+2248188130'),
+        { 
+          text: t('rate_us'), 
+          icon: 'star-outline' 
         },
       ],
     },
@@ -87,23 +76,15 @@ const SupportScreen = () => {
           platform: 'facebook',
         },
         {
-          text: t('x_twitter'),
-          icon: 'logo-twitter',
-          platform: 'x',
-        },
-        {
           text: t('tiktok'),
           icon: 'logo-tiktok',
           platform: 'tiktok',
         },
-      ],
-    },
-    {
-      title: t('faqs'),
-      items: [
-        { text: t('faq_initiate_transaction') },
-        { text: t('faq_validate_vendor') },
-        { text: t('faq_transaction_charges') },
+        {
+          text: t('youtube'),
+          icon: 'logo-youtube',
+          platform: 'youtube',
+        },
       ],
     },
   ];
@@ -115,12 +96,9 @@ const SupportScreen = () => {
       return;
     }
 
-    item.onPress?.();
-  };
-
-  const handleCopy = async (text: string) => {
-    await Clipboard.setStringAsync(text);
-    Alert.alert(t('copied'), t('copied_to_clipboard', { text }));
+    if (item.onPress) {
+      item.onPress();
+    }
   };
 
   return (
@@ -152,6 +130,19 @@ const SupportScreen = () => {
             </Text>
           </View>
 
+          {/* Send Message Button */}
+          <TouchableOpacity
+            onPress={() => router.push('/(customer)/messages')}
+            className="bg-darkRed py-4 rounded-xl items-center mb-6"
+          >
+            <View className="flex-row items-center">
+              <Ionicons name="mail-outline" size={20} color="white" />
+              <Text className="text-white font-semibold text-base ml-2">
+                {t('send_us_a_message') || 'Send us a Message'}
+              </Text>
+            </View>
+          </TouchableOpacity>
+
           {sections.map((section, index) => (
             <View key={index} className="mb-6">
               <Text className="mb-3 font-semibold text-gray-700">
@@ -164,34 +155,20 @@ const SupportScreen = () => {
                   onPress={() => handleItemPress(section, item)}
                   className="flex-row items-center py-3 border-b border-gray-100"
                 >
-                  {section.title === t('faqs') ? (
-                    <View className="w-1 h-1 bg-black rounded-full mr-3" />
-                  ) : (
-                    <Ionicons
-                      name={item.icon!}
-                      size={22}
-                      color="#000"
-                      style={{ marginRight: 12 }}
-                    />
-                  )}
+                  <Ionicons
+                    name={item.icon!}
+                    size={22}
+                    color="#000"
+                    style={{ marginRight: 12 }}
+                  />
 
                   <Text className="flex-1 text-gray-700">{item.text}</Text>
 
-                  {section.title === t('contact_information') ? (
-                    <TouchableOpacity onPress={() => handleCopy(item.text)}>
-                      <Ionicons
-                        name="copy-outline"
-                        size={18}
-                        color="#9CA3AF"
-                      />
-                    </TouchableOpacity>
-                  ) : (
-                    <Ionicons
-                      name="chevron-forward-outline"
-                      size={18}
-                      color="#9CA3AF"
-                    />
-                  )}
+                  <Ionicons
+                    name="chevron-forward-outline"
+                    size={18}
+                    color="#9CA3AF"
+                  />
                 </TouchableOpacity>
               ))}
             </View>

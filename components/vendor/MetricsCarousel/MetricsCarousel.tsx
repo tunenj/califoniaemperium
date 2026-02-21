@@ -15,6 +15,12 @@ export default function MetricsCarousel() {
     const [dashboardData, setDashboardData] = useState<any>(null);
     const [token, setToken] = useState<string | null>(null);
 
+    // Helper function to format price in euros
+    const formatPrice = (price: string | number) => {
+        const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+        return `€${numPrice.toFixed(2)}`;
+    };
+
     // Get token from AsyncStorage or authState
     useEffect(() => {
         const getToken = async () => {
@@ -192,7 +198,7 @@ export default function MetricsCarousel() {
                     {/* Revenue Card */}
                     <MetricCard
                         label={t('total_revenue') || "Revenue"}
-                        value={`${parseFloat(dashboardData?.total_revenue || "0").toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                        value={formatPrice(dashboardData?.total_revenue || "0")}
                         icon="wallet"
                         sideColor="#10B981" // Green for revenue
                     />

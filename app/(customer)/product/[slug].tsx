@@ -1,5 +1,5 @@
-// app/(customer)/product/[slug].tsx - COMPLETE WITH OPTIMIZED IMAGE LOADING
-import React, { useEffect, useState, useCallback, memo } from "react";
+// app/(customer)/product/[slug].tsx - COMPLETE WITH OPTIMIZED IMAGE LOADING AND QUANTITY-BASED PRICING
+import React, { useEffect, useState, useCallback, memo, useMemo } from "react";
 import {
     View,
     Text,
@@ -180,6 +180,13 @@ interface ProductResponse {
     data: Product;
 }
 
+// Define return types for cart operations
+interface CartOperationResult {
+    success: boolean;
+    message?: string;
+    error?: string;
+}
+
 const ProductDetailsPage = () => {
     const router = useRouter();
     const params = useLocalSearchParams();
@@ -264,16 +271,26 @@ const ProductDetailsPage = () => {
         return isNaN(numRating) ? "0.0" : numRating.toFixed(1);
     }, []);
 
-    // Format price
-    const formatPrice = (price: string | undefined | null) => {
-        if (!price) return "₦0";
-        const numPrice = parseFloat(price);
-        if (isNaN(numPrice)) return "₦0";
-        return `₦${numPrice.toLocaleString('en-NG', {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 2
-        })}`;
+    // Format price - UPDATED TO EURO
+    const formatPrice = (price: string | number | undefined | null) => {
+        if (price === undefined || price === null) return "€0.00";
+        const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+        if (isNaN(numPrice)) return "€0.00";
+        return `€${numPrice.toFixed(2)}`;
     };
+
+    // Calculate unit price
+    const getUnitPrice = useMemo(() => {
+        if (selectedVariant) {
+            return parseFloat(selectedVariant.final_price);
+        }
+        return product ? parseFloat(product.price) : 0;
+    }, [selectedVariant, product]);
+
+    // Calculate total price based on quantity
+    const getTotalPrice = useMemo(() => {
+        return getUnitPrice * quantity;
+    }, [getUnitPrice, quantity]);
 
     // Calculate discount percentage
     const calculateDiscount = (price: string, comparePrice: string | null) => {
@@ -284,6 +301,13 @@ const ProductDetailsPage = () => {
         const discount = ((originalPrice - currentPrice) / originalPrice) * 100;
         return Math.round(discount);
     };
+
+    // Calculate total savings if there's a compare price
+    const getTotalSavings = useMemo(() => {
+        if (!product?.compare_at_price) return 0;
+        const comparePrice = parseFloat(product.compare_at_price);
+        return (comparePrice - getUnitPrice) * quantity;
+    }, [product, getUnitPrice, quantity]);
 
     // Fetch product details
     const fetchProductDetails = useCallback(async () => {
@@ -381,6 +405,8 @@ const ProductDetailsPage = () => {
 
             if (matchingVariant) {
                 setSelectedVariant(matchingVariant);
+                // Reset quantity to 1 when variant changes
+                setQuantity(1);
             }
         }
     };
@@ -388,7 +414,8 @@ const ProductDetailsPage = () => {
     // Handle quantity changes
     const handleQuantityChange = (change: number) => {
         const newQuantity = quantity + change;
-        if (newQuantity >= 1 && newQuantity <= (selectedVariant?.stock_quantity || product?.stock_quantity || 10)) {
+        const maxStock = selectedVariant?.stock_quantity || product?.stock_quantity || 10;
+        if (newQuantity >= 1 && newQuantity <= maxStock) {
             setQuantity(newQuantity);
         }
     };
@@ -421,21 +448,21 @@ const ProductDetailsPage = () => {
                 productId: product.id,
                 storeName: product.vendor_info?.vendor_name || product.brand?.name || 'Stock',
                 productName: product.name,
-                price: selectedVariant ? parseFloat(selectedVariant.final_price) : parseFloat(product.price),
-                originalPrice: product.compare_at_price ? parseFloat(product.compare_at_price) : parseFloat(product.price),
+                price: getUnitPrice,
+                originalPrice: product.compare_at_price ? parseFloat(product.compare_at_price) : getUnitPrice,
                 image: productImageUrl,
                 variantId: selectedVariant?.id,
             };
 
-            console.log("Adding to cart:", itemData);
+            console.log("Adding to cart:", itemData, "Quantity:", quantity);
             
-            const result = await addItem(itemData, quantity);
+            const result = await addItem(itemData, quantity) as CartOperationResult;
             
-            if (result.success) {
+            if (result && result.success) {
                 setIsInCartState(true);
                 Alert.alert(
                     t('added_to_cart') || "Added to Cart",
-                    `${product.name} has been added to your cart`,
+                    `${quantity} x ${product.name} has been added to your cart\nTotal: ${formatPrice(getTotalPrice)}`,
                     [
                         { 
                             text: t('view_cart') || "View Cart", 
@@ -447,14 +474,14 @@ const ProductDetailsPage = () => {
             } else {
                 Alert.alert(
                     t('error') || "Error",
-                    result.message || t('failed_to_add_cart') || "Failed to add to cart"
+                    (result as any)?.message || (result as any)?.error || t('failed_to_add_cart') || "Failed to add to cart"
                 );
             }
         } catch (error: any) {
             console.error("Error adding to cart:", error);
             Alert.alert(
                 t('error') || "Error",
-                error.message || t('failed_to_add_cart') || "Failed to add to cart"
+                error?.message || t('failed_to_add_cart') || "Failed to add to cart"
             );
         } finally {
             setAddingToCart(false);
@@ -524,7 +551,7 @@ const ProductDetailsPage = () => {
                     if (uuidMatch) {
                         const extractedUuid = uuidMatch[0];
                         const result = await addToWishlist(extractedUuid);
-                        if (result.success) {
+                        if (result && result.success) {
                             setIsInWishlistState(true);
                         }
                     }
@@ -533,7 +560,7 @@ const ProductDetailsPage = () => {
                 }
 
                 const result = await addToWishlist(productIdStr);
-                if (result.success) {
+                if (result && result.success) {
                     setIsInWishlistState(true);
                     Alert.alert(
                         'Saved Successfully!',
@@ -587,22 +614,31 @@ const ProductDetailsPage = () => {
                 productId: product.id,
                 storeName: product.vendor_info?.vendor_name || product.brand?.name || 'Stock',
                 productName: product.name,
-                price: selectedVariant ? parseFloat(selectedVariant.final_price) : parseFloat(product.price),
-                originalPrice: product.compare_at_price ? parseFloat(product.compare_at_price) : parseFloat(product.price),
+                price: getUnitPrice,
+                originalPrice: product.compare_at_price ? parseFloat(product.compare_at_price) : getUnitPrice,
                 image: productImageUrl,
                 variantId: selectedVariant?.id,
             };
 
-            const result = await addItem(itemData, quantity);
+            const result = await addItem(itemData, quantity) as CartOperationResult;
             
-            if (result.success) {
+            if (result && result.success) {
                 setIsInCartState(true);
                 setTimeout(() => {
                     router.push('/cart');
                 }, 500);
+            } else {
+                Alert.alert(
+                    t('error') || "Error",
+                    (result as any)?.message || (result as any)?.error || t('failed_to_add_cart') || "Failed to add to cart"
+                );
             }
         } catch (error: any) {
             console.error("Error in buy now:", error);
+            Alert.alert(
+                t('error') || "Error",
+                error?.message || t('failed_to_add_cart') || "Failed to add to cart"
+            );
         } finally {
             setAddingToCart(false);
         }
@@ -682,8 +718,6 @@ const ProductDetailsPage = () => {
     const discount = calculateDiscount(product.price, product.compare_at_price);
     const hasDiscount = discount > 0;
     const isInStock = product.is_in_stock || false;
-    const currentPrice = selectedVariant ? parseFloat(selectedVariant.final_price) : parseFloat(product.price);
-    const displayPrice = selectedVariant ? selectedVariant.final_price : product.price;
     const maxQuantity = selectedVariant?.stock_quantity || product.stock_quantity || 10;
     const rating = formatRating(product.rating_average || "0");
     const ratingCount = product.rating_count || 0;
@@ -796,10 +830,11 @@ const ProductDetailsPage = () => {
                         </Text>
                     </View>
 
+                    {/* Price Section - Shows Unit Price and Total Price */}
                     <View className="mb-4">
                         <View className="flex-row items-center">
                             <Text className="text-3xl font-bold text-darkRed mr-3">
-                                {formatPrice(displayPrice)}
+                                {formatPrice(getUnitPrice)}
                             </Text>
                             {hasDiscount && product.compare_at_price && (
                                 <Text className="text-lg text-gray-400 line-through">
@@ -809,8 +844,27 @@ const ProductDetailsPage = () => {
                         </View>
                         {hasDiscount && (
                             <Text className="text-sm text-green-600 font-medium mt-1">
-                                You save {formatPrice((parseFloat(product.compare_at_price || "0") - currentPrice).toString())}
+                                Save {formatPrice(parseFloat(product.compare_at_price || "0") - getUnitPrice)} per item
                             </Text>
+                        )}
+                        
+                        {/* Total Price for Quantity */}
+                        {quantity > 1 && (
+                            <View className="mt-3 p-3 bg-gray-50 rounded-lg">
+                                <Text className="text-sm text-gray-600">
+                                    Total for {quantity} {quantity === 1 ? 'item' : 'items'}:
+                                </Text>
+                                <View className="flex-row items-center justify-between mt-1">
+                                    <Text className="text-2xl font-bold text-darkRed">
+                                        {formatPrice(getTotalPrice)}
+                                    </Text>
+                                    {hasDiscount && getTotalSavings > 0 && (
+                                        <Text className="text-sm text-green-600 font-medium">
+                                            Save {formatPrice(getTotalSavings)} total
+                                        </Text>
+                                    )}
+                                </View>
+                            </View>
                         )}
                     </View>
 
@@ -897,6 +951,23 @@ const ProductDetailsPage = () => {
                                 {maxQuantity} {t('available') || 'available'}
                             </Text>
                         </View>
+                        
+                        {/* Quick quantity selectors for bulk purchase */}
+                        {maxQuantity >= 5 && (
+                            <View className="flex-row mt-3 gap-2">
+                                {[2, 3, 5, 10].filter(num => num <= maxQuantity).map(num => (
+                                    <TouchableOpacity
+                                        key={num}
+                                        className={`px-3 py-1.5 rounded-lg border ${quantity === num ? 'bg-darkRed border-darkRed' : 'border-gray-300'}`}
+                                        onPress={() => setQuantity(num)}
+                                    >
+                                        <Text className={quantity === num ? 'text-white' : 'text-gray-700'}>
+                                            {num}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        )}
                     </View>
 
                     <View className="flex-row space-x-3 mb-8 gap-2">
@@ -1020,7 +1091,7 @@ const ProductDetailsPage = () => {
                                     • {t('delivery_time_3_7') || '3-7 business days'}
                                 </Text>
                                 <Text className="text-gray-600 mb-2">
-                                    • {t('free_shipping_over') || 'Free shipping on orders over ₦50,000'}
+                                    • {t('free_shipping_over') || 'Free shipping on orders over €500'}
                                 </Text>
                                 <Text className="text-gray-600">
                                     • {t('tracking_available') || 'Tracking number provided'}
@@ -1089,7 +1160,7 @@ const ProductDetailsPage = () => {
                             <ActivityIndicator size="small" color="white" />
                         ) : (
                             <Text className="text-white text-lg font-semibold">
-                                {t('buy_now') || 'Buy Now'}
+                                {t('buy_now') || 'Buy Now'} • {formatPrice(getTotalPrice)}
                             </Text>
                         )}
                     </TouchableOpacity>

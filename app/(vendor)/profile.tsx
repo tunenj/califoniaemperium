@@ -15,11 +15,11 @@ import * as ImagePicker from "expo-image-picker";
 import { useLanguage } from '@/context/LanguageContext';
 import { useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Toast from 'react-native-toast-message';
 import api from '@/api/api';
 import { endpoints } from '@/api/endpoints';
 import { colors } from "@/constants/color";
 
-// Define the interface based on your API response
 interface VendorData {
   id: string;
   user: string;
@@ -68,7 +68,6 @@ interface UpdateVendorResponse {
   data: VendorData;
 }
 
-// Define ImageFile interface for React Native
 interface ImageFile {
   uri: string;
   name: string;
@@ -81,12 +80,10 @@ export default function StoreProfileScreen() {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
 
-  // Get business_slug from route params or will be set from API response
   const [businessSlug, setBusinessSlug] = useState<string>(
     params.business_slug as string || ""
   );
 
-  // State for form data
   const [formData, setFormData] = useState({
     business_name: "",
     business_type: "",
@@ -99,12 +96,10 @@ export default function StoreProfileScreen() {
     country: "NG",
   });
 
-  // State for images
   const [bannerImage, setBannerImage] = useState<string | null>(null);
   const [logoImage, setLogoImage] = useState<string | null>(null);
   const [bannerFile, setBannerFile] = useState<ImageFile | null>(null);
   const [logoFile, setLogoFile] = useState<ImageFile | null>(null);
-
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [originalData, setOriginalData] = useState<VendorData | null>(null);
 
@@ -117,7 +112,6 @@ export default function StoreProfileScreen() {
     { value: "others", label: t('others') || "Others" },
   ];
 
-  // Fetch vendor data on component mount
   useEffect(() => {
     fetchVendorData();
   }, []);
@@ -125,51 +119,64 @@ export default function StoreProfileScreen() {
   const fetchVendorData = async () => {
     try {
       setFetching(true);
-      // Changed from 'accessToken' to 'authToken' to match VendorDashboardPage
-      const token = await AsyncStorage.getItem('authToken');
 
+      const token = await AsyncStorage.getItem('authToken');
       if (!token) {
-        Alert.alert(t('error') || "Error", t('authentication_required') || "Please sign in again");
+        Toast.show({
+          type: 'error',
+          text1: 'Authentication Required',
+          text2: 'Please sign in again',
+          position: 'top',
+          visibilityTime: 4000,
+          topOffset: 30,
+        });
         return;
       }
 
-      // Assuming you have an endpoint to get vendor details
-      const response = await api.get<VendorData>(endpoints.getVendoInfo);
+      const response = await api.get(endpoints.getVendorList);
 
-      setOriginalData(response.data);
+      // Data is inside results array — pick the first vendor
+      const vendorData: VendorData = response.data.results[0];
 
-      // Set business_slug from API response if not already set
-      if (response.data.business_slug && !businessSlug) {
-        setBusinessSlug(response.data.business_slug);
+      if (!vendorData) {
+        Toast.show({
+          type: 'error',
+          text1: 'Not Found',
+          text2: 'No vendor profile found.',
+          position: 'top',
+          visibilityTime: 4000,
+          topOffset: 30,
+        });
+        return;
       }
 
-      // Populate form with existing data
+      setOriginalData(vendorData);
+      setBusinessSlug(vendorData.business_slug);
+
       setFormData({
-        business_name: response.data.business_name || "",
-        business_type: response.data.business_type || "",
-        description: response.data.description || "",
-        business_email: response.data.business_email || "",
-        business_phone: response.data.business_phone || "",
-        address_line1: response.data.address_line1 || "",
-        city: response.data.city || "",
-        state: response.data.state || "",
-        country: response.data.country || "NG",
+        business_name: vendorData.business_name || "",
+        business_type: vendorData.business_type || "",
+        description: vendorData.description || "",
+        business_email: vendorData.business_email || "",
+        business_phone: vendorData.business_phone || "",
+        address_line1: vendorData.address_line1 || "",
+        city: vendorData.city || "",
+        state: vendorData.state || "",
+        country: vendorData.country || "NG",
       });
 
-      // Set existing images
-      if (response.data.banner) {
-        setBannerImage(response.data.banner);
-      }
-      if (response.data.logo) {
-        setLogoImage(response.data.logo);
-      }
+      if (vendorData.banner) setBannerImage(vendorData.banner);
+      if (vendorData.logo) setLogoImage(vendorData.logo);
 
     } catch (error: any) {
-      console.error("Error fetching vendor data:", error);
-      Alert.alert(
-        t('error') || "Error",
-        error.response?.data?.message || t('failed_to_load_profile') || "Failed to load profile"
-      );
+      Toast.show({
+        type: 'error',
+        text1: 'Failed to Load',
+        text2: error.response?.data?.message || "Failed to load profile",
+        position: 'top',
+        visibilityTime: 4000,
+        topOffset: 30,
+      });
     } finally {
       setFetching(false);
     }
@@ -179,10 +186,14 @@ export default function StoreProfileScreen() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (status !== "granted") {
-      Alert.alert(
-        t('permission_required') || "Permission Required",
-        t('camera_roll_permission_needed') || "Camera roll permission is needed to upload images"
-      );
+      Toast.show({
+        type: 'error',
+        text1: 'Permission Required',
+        text2: 'Camera roll permission is needed to upload images',
+        position: 'top',
+        visibilityTime: 4000,
+        topOffset: 30,
+      });
       return;
     }
 
@@ -197,16 +208,11 @@ export default function StoreProfileScreen() {
       const asset = result.assets[0];
       const uri = asset.uri;
 
-      // Convert URI to File object for upload
       const filename = uri.split('/').pop() || `${imageType}_${Date.now()}.jpg`;
       const match = /\.(\w+)$/.exec(filename);
       const mimeType = match ? `image/${match[1]}` : 'image/jpeg';
 
-      const file: ImageFile = {
-        uri,
-        name: filename,
-        type: mimeType,
-      };
+      const file: ImageFile = { uri, name: filename, type: mimeType };
 
       if (imageType === "banner") {
         setBannerImage(uri);
@@ -219,62 +225,79 @@ export default function StoreProfileScreen() {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Parse API field errors into readable message
+  const parseErrorDetails = (details: string): string => {
+    try {
+      const matches = details.match(/'(\w+)':\s*\[ErrorDetail\(string='(.+?)',\s*code=/g);
+      if (matches && matches.length > 0) {
+        return matches
+          .map((m: string) => {
+            const field = m.match(/'(\w+)':/)?.[1]?.replace(/_/g, ' ');
+            const msg = m.match(/string='(.+?)'/)?.[1];
+            return `${field}: ${msg}`;
+          })
+          .join('\n');
+      }
+    } catch (_) {}
+    return details;
   };
 
   const handleSave = async () => {
     try {
       setLoading(true);
 
-      // Create FormData for multipart upload
-      const formDataToSend = new FormData();
+      const slugToUse = businessSlug || originalData?.business_slug;
 
-      // Only append fields that have changed from original data
-      if (originalData) {
-        // Compare and append only changed text fields
-        if (formData.business_name !== originalData.business_name) {
-          formDataToSend.append('business_name', formData.business_name);
-        }
-        
-        if (formData.business_type !== originalData.business_type) {
-          formDataToSend.append('business_type', formData.business_type);
-        }
-        
-        if (formData.description !== originalData.description) {
-          formDataToSend.append('description', formData.description);
-        }
-        
-        if (formData.business_email !== originalData.business_email) {
-          formDataToSend.append('business_email', formData.business_email);
-        }
-        
-        if (formData.business_phone !== originalData.business_phone) {
-          formDataToSend.append('business_phone', formData.business_phone);
-        }
-        
-        if (formData.address_line1 !== originalData.address_line1) {
-          formDataToSend.append('address_line1', formData.address_line1);
-        }
-        
-        if (formData.city !== originalData.city) {
-          formDataToSend.append('city', formData.city);
-        }
-        
-        if (formData.state !== originalData.state) {
-          formDataToSend.append('state', formData.state);
-        }
-        
-        if (formData.country !== originalData.country) {
-          formDataToSend.append('country', formData.country);
-        }
+      if (!slugToUse) {
+        Toast.show({
+          type: 'error',
+          text1: 'Update Failed',
+          text2: 'Business slug is missing. Please try again.',
+          position: 'top',
+          visibilityTime: 4000,
+          topOffset: 30,
+        });
+        setLoading(false);
+        return;
       }
 
-      // Add image files if they exist (images are always sent if selected)
+      const formDataToSend = new FormData();
+
+      // Only append fields that have changed
+      if (originalData) {
+        if (formData.business_name !== originalData.business_name)
+          formDataToSend.append('business_name', formData.business_name);
+
+        if (formData.business_type !== originalData.business_type)
+          formDataToSend.append('business_type', formData.business_type);
+
+        if (formData.description !== originalData.description)
+          formDataToSend.append('description', formData.description);
+
+        if (formData.business_email !== originalData.business_email)
+          formDataToSend.append('business_email', formData.business_email);
+
+        if (formData.business_phone !== originalData.business_phone)
+          formDataToSend.append('business_phone', formData.business_phone);
+
+        if (formData.address_line1 !== originalData.address_line1)
+          formDataToSend.append('address_line1', formData.address_line1);
+
+        if (formData.city !== originalData.city)
+          formDataToSend.append('city', formData.city);
+
+        if (formData.state !== originalData.state)
+          formDataToSend.append('state', formData.state);
+
+        if (formData.country !== originalData.country)
+          formDataToSend.append('country', formData.country);
+      }
+
+      // Append image files if selected
       if (bannerFile) {
-        // React Native FormData requires specific format
         formDataToSend.append('banner', {
           uri: bannerFile.uri,
           type: bannerFile.type,
@@ -283,7 +306,6 @@ export default function StoreProfileScreen() {
       }
 
       if (logoFile) {
-        // React Native FormData requires specific format
         formDataToSend.append('logo', {
           uri: logoFile.uri,
           type: logoFile.type,
@@ -291,7 +313,7 @@ export default function StoreProfileScreen() {
         } as any);
       }
 
-      // Check if there are any changes to send
+      // Check if anything changed
       const hasTextChanges = originalData && (
         formData.business_name !== originalData.business_name ||
         formData.business_type !== originalData.business_type ||
@@ -307,35 +329,18 @@ export default function StoreProfileScreen() {
       const hasImageChanges = bannerFile || logoFile;
 
       if (!hasTextChanges && !hasImageChanges) {
-        Alert.alert(
-          t('no_changes') || "No Changes",
-          t('no_changes_detected') || "No changes detected to save"
-        );
+        Toast.show({
+          type: 'info',
+          text1: 'No Changes',
+          text2: 'No changes detected to save',
+          position: 'top',
+          visibilityTime: 3000,
+          topOffset: 30,
+        });
         setLoading(false);
         return;
       }
 
-      console.log('Has text changes:', hasTextChanges);
-      console.log('Has image changes:', hasImageChanges);
-      console.log('Banner file:', bannerFile);
-      console.log('Logo file:', logoFile);
-
-      // Get business slug from state or original data
-      const slugToUse = businessSlug || originalData?.business_slug;
-      
-      if (!slugToUse) {
-        Alert.alert(
-          t('error') || "Error",
-          t('business_slug_missing') || "Unable to update profile. Please try again."
-        );
-        setLoading(false);
-        return;
-      }
-
-      console.log('Using business slug:', slugToUse);
-      console.log('FormData entries:', Array.from(formDataToSend as any));
-
-      // Make PATCH request using your endpoint
       const response = await api.patch<UpdateVendorResponse>(
         endpoints.editVendorDetails(slugToUse),
         formDataToSend,
@@ -347,73 +352,78 @@ export default function StoreProfileScreen() {
       );
 
       if (response.data.success) {
-        Alert.alert(
-          t('success') || "Success",
-          response.data.message || t('store_profile_saved_successfully') || "Store profile saved successfully"
-        );
+        Toast.show({
+          type: 'success',
+          text1: t('success') || 'Success',
+          text2: response.data.message || 'Store profile updated successfully',
+          position: 'top',
+          visibilityTime: 4000,
+          topOffset: 30,
+        });
 
-        // Update original data with new response
-        setOriginalData(response.data.data);
+        const updatedVendor = response.data.data;
 
-        // Update images from response
-        if (response.data.data.banner) {
-          setBannerImage(response.data.data.banner);
+        setOriginalData(updatedVendor);
+
+        if (updatedVendor.business_slug) {
+          setBusinessSlug(updatedVendor.business_slug);
         }
-        if (response.data.data.logo) {
-          setLogoImage(response.data.data.logo);
-        }
 
-        // Clear file objects since they've been uploaded
+        if (updatedVendor.banner) setBannerImage(updatedVendor.banner);
+        if (updatedVendor.logo) setLogoImage(updatedVendor.logo);
+
+        setFormData({
+          business_name: updatedVendor.business_name || "",
+          business_type: updatedVendor.business_type || "",
+          description: updatedVendor.description || "",
+          business_email: updatedVendor.business_email || "",
+          business_phone: updatedVendor.business_phone || "",
+          address_line1: updatedVendor.address_line1 || "",
+          city: updatedVendor.city || "",
+          state: updatedVendor.state || "",
+          country: updatedVendor.country || "NG",
+        });
+
         setBannerFile(null);
         setLogoFile(null);
+
       } else {
-        throw new Error(response.data.message || "Failed to update vendor details");
+        throw new Error(response.data.message || "Failed to update profile");
       }
 
     } catch (error: any) {
-      console.error("Error updating vendor:", error);
-      console.error("Error response data:", error.response?.data);
-      console.error("Error response status:", error.response?.status);
-      console.error("Error response headers:", error.response?.headers);
-      console.error("Error config:", error.config);
-      
-      // Extract detailed error message
-      let errorMessage = t('failed_to_save_profile') || "Failed to save profile";
-      
-      if (error.response?.data) {
-        // Try to extract error message from response
-        if (typeof error.response.data === 'string') {
-          errorMessage = error.response.data;
-        } else if (error.response.data.message) {
-          errorMessage = error.response.data.message;
-        } else if (error.response.data.error) {
-          errorMessage = error.response.data.error;
-        } else if (error.response.data.detail) {
-          errorMessage = error.response.data.detail;
-        } else {
-          // Show all error fields if available
-          const errorFields = Object.entries(error.response.data)
-            .map(([key, value]) => `${key}: ${value}`)
-            .join('\n');
-          if (errorFields) {
-            errorMessage = errorFields;
-          }
-        }
+
+      let errorMessage = "Failed to save profile";
+
+      if (error.response?.data?.error?.details) {
+        // Parse field-level errors from API e.g. address_line1, city, state
+        errorMessage = parseErrorDetails(error.response.data.error.details);
+      } else if (error.response?.data?.error?.message) {
+        errorMessage = error.response.data.error.message;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
-      Alert.alert(
-        t('error') || "Error",
-        errorMessage
-      );
+
+      Toast.show({
+        type: 'error',
+        text1: 'Update Failed',
+        text2: errorMessage,
+        position: 'top',
+        visibilityTime: 5000,
+        autoHide: true,
+        topOffset: 30,
+      });
+
     } finally {
       setLoading(false);
     }
   };
 
   const handleCancel = () => {
-    // Check if there are unsaved changes
     const hasChanges =
       originalData?.business_name !== formData.business_name ||
       originalData?.business_type !== formData.business_type ||
@@ -430,17 +440,13 @@ export default function StoreProfileScreen() {
     if (hasChanges) {
       Alert.alert(
         t('discard_changes') || "Discard Changes",
-        t('changes_will_be_lost') || "Any unsaved changes will be lost",
+        "Any unsaved changes will be lost",
         [
-          {
-            text: t('continue_editing') || "Continue Editing",
-            style: "cancel"
-          },
+          { text: t('continue_editing') || "Continue Editing", style: "cancel" },
           {
             text: t('discard') || "Discard",
             style: "destructive",
             onPress: () => {
-              // Reset to original data
               if (originalData) {
                 setFormData({
                   business_name: originalData.business_name || "",
@@ -453,7 +459,6 @@ export default function StoreProfileScreen() {
                   state: originalData.state || "",
                   country: originalData.country || "NG",
                 });
-
                 setBannerImage(originalData.banner);
                 setLogoImage(originalData.logo);
                 setBannerFile(null);
@@ -533,11 +538,7 @@ export default function StoreProfileScreen() {
                   resizeMode="cover"
                 />
               ) : (
-                <Ionicons
-                  name="storefront-outline"
-                  size={28}
-                  color="#9ca3af"
-                />
+                <Ionicons name="storefront-outline" size={28} color="#9ca3af" />
               )}
             </TouchableOpacity>
             <Text className="ml-3 text-xs text-gray-500">
@@ -547,6 +548,7 @@ export default function StoreProfileScreen() {
 
           {/* Form */}
           <View className="mt-6 space-y-6">
+
             {/* Store Name */}
             <View>
               <Text className="text-xs text-gray-400 mb-2">
@@ -566,17 +568,13 @@ export default function StoreProfileScreen() {
               <Text className="text-xs text-gray-400 mb-2">
                 {t('category') || "Category"}
               </Text>
-
               <TouchableOpacity
                 className="flex-row items-center justify-between bg-gray-100 rounded-lg px-4 py-3"
                 onPress={() => setCategoryOpen((prev) => !prev)}
                 disabled={loading}
               >
-                <Text
-                  className={`text-sm ${formData.business_type ? "text-gray-800" : "text-gray-400"
-                    }`}
-                >
-                  {formData.business_type || (t('select') || "Select")}
+                <Text className={`text-sm ${formData.business_type ? "text-gray-800" : "text-gray-400"}`}>
+                  {categories.find(c => c.value === formData.business_type)?.label || (t('select') || "Select")}
                 </Text>
                 <Ionicons
                   name={categoryOpen ? "chevron-up" : "chevron-down"}
@@ -596,9 +594,7 @@ export default function StoreProfileScreen() {
                         setCategoryOpen(false);
                       }}
                     >
-                      <Text className="text-sm text-gray-800">
-                        {item.label}
-                      </Text>
+                      <Text className="text-sm text-gray-800">{item.label}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -694,36 +690,38 @@ export default function StoreProfileScreen() {
                 />
               </View>
             </View>
+
           </View>
         </View>
-        {/* Bottom Buttons - Fixed at bottom */}
-      <View className="absolute bottom-0 left-0 right-0 bg-white px-5 py-4 border-t border-gray-200">
-        <View className="flex-row justify-end items-center space-x-4 gap-6">
-          <TouchableOpacity
-            onPress={handleCancel}
-            disabled={loading}
-          >
-            <Text className="text-sm text-secondary border border-secondary px-6 py-2 rounded-2xl font-medium">
-              {t('cancel') || "Cancel"}
-            </Text>
-          </TouchableOpacity>
 
-          <TouchableOpacity
-            className="bg-secondary px-6 py-2 rounded-2xl"
-            onPress={handleSave}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <Text className="text-sm text-white font-medium">
-                {t('save') || "Save"}
+        {/* Bottom Buttons */}
+        <View className="absolute bottom-0 left-0 right-0 bg-white px-5 py-4 border-t border-gray-200">
+          <View className="flex-row justify-end items-center space-x-4 gap-6">
+            <TouchableOpacity onPress={handleCancel} disabled={loading}>
+              <Text className="text-sm text-secondary border border-secondary px-6 py-2 rounded-2xl font-medium">
+                {t('cancel') || "Cancel"}
               </Text>
-            )}
-          </TouchableOpacity>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className="bg-secondary px-6 py-2 rounded-2xl"
+              onPress={handleSave}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text className="text-sm text-white font-medium">
+                  {t('save') || "Save"}
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
       </ScrollView>
+
+      {/* Toast must be at root level to appear above everything */}
+      <Toast />
     </SafeAreaView>
   );
 }

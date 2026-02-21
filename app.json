@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tunenj.califoniaemperium"
     },
     "android": {
       "adaptiveIcon": {
@@ -36,6 +37,14 @@
           "dark": {
             "backgroundColor": "#ffffff"
           }
+        }
+      ],
+      "expo-web-browser",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "",
+          "enableGooglePay": false
         }
       ]
     ],
