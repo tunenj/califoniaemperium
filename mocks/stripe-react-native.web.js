@@ -1,7 +1,5 @@
 // mocks/stripe-react-native.web.js
 
-const React = require('react');
-
 module.exports = {
   StripeProvider: ({ children }) => children,
   useStripe: () => ({
