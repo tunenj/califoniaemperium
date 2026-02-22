@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "califoniaemperium",
+    "name": "Califonia Emporium",
     "slug": "califoniaemperium",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -10,7 +10,13 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.tunenj.califoniaemperium"
+      "bundleIdentifier": "com.tunenj.califoniaemperium",
+      "buildNumber": "1.0.0",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "This app uses Face ID / Touch ID to securely authenticate you for quick login.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to photo library to let you upload profile pictures.",
+        "NSCameraUsageDescription": "This app needs access to camera to take photos for your profile."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +25,15 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.tunenj.califoniaemperium"
+      "package": "com.tunenj.califoniaemperium",
+      "versionCode": 1,
+      "permissions": [
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "output": "static",
@@ -33,18 +47,28 @@
           "image": "./assets/icons/setupIcon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#ffffff"
-          }
+          "backgroundColor": "#ffffff"
         }
       ],
       "expo-web-browser",
       [
-        "@stripe/stripe-react-native",
+        "expo-image-picker",
         {
-          "merchantIdentifier": "",
-          "enableGooglePay": false
+          "photosPermission": "The app needs access to your photos to let you upload profile pictures.",
+          "cameraPermission": "The app needs access to your camera to take photos for your profile."
+        }
+      ],
+      [
+         "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.tunenj.califoniaemperium",
+          "enableGooglePay": true
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow $(PRODUCT_NAME) to use Face ID for secure authentication."
         }
       ]
     ],
@@ -58,6 +82,9 @@
         "projectId": "4ed08c40-78bf-41d6-a34f-4ed526c9ba4c"
       }
     },
-    "owner": "tunenj"
+    "owner": "tunenj",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    }
   }
 }

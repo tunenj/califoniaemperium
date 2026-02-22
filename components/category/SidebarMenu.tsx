@@ -1,7 +1,8 @@
 // components/category/SidebarMenu.tsx
-import React, { useMemo } from "react";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import React, { useMemo, useState, useEffect } from "react";
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native";
 import { useLanguage } from "@/context/LanguageContext";
+import { useRouter, usePathname } from "expo-router";
 
 interface Category {
   id: string;
@@ -26,25 +27,37 @@ interface SidebarMenuProps {
   categories?: Category[];
   onCategorySelect?: (category: Category | null) => void;
   selectedCategory?: Category | null;
+  isLoading?: boolean;
 }
 
 const SidebarMenu = ({ 
   categories = [], 
   onCategorySelect = () => {}, 
-  selectedCategory = null 
+  selectedCategory = null,
+  isLoading = false
 }: SidebarMenuProps) => {
   const { t } = useLanguage();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [isReady, setIsReady] = useState(false);
+
+  // Set ready state after mount
+  useEffect(() => {
+    setIsReady(true);
+  }, []);
 
   // Filter categories to show only parent categories (where parent is null)
   const parentCategories = useMemo(() => {
-    const safeCategories = Array.isArray(categories) ? categories : [];
+    if (!Array.isArray(categories) || categories.length === 0) {
+      return [];
+    }
     
     // First, find all parent categories (where parent is null)
-    const parents = safeCategories.filter(cat => cat.parent === null);
+    const parents = categories.filter(cat => cat.parent === null);
     
     // For each parent, find its children from the flat list
     return parents.map(parent => {
-      const children = safeCategories.filter(cat => cat.parent === parent.id);
+      const children = categories.filter(cat => cat.parent === parent.id);
       return {
         ...parent,
         children: children || []
@@ -53,27 +66,55 @@ const SidebarMenu = ({
   }, [categories]);
 
   const handleCategoryPress = (category: Category) => {
-    // If clicking the same category, deselect it (show all products)
-    if (selectedCategory?.id === category.id) {
-      onCategorySelect(null);
+    // Call the callback first
+    onCategorySelect(category);
+    
+    // Check if we're already on the category screen
+    if (pathname === '/(customer)/category') {
+      // If we're on the category screen, just update the selected category
+      console.log('📍 Category selected:', category.name, 'Slug:', category.slug);
     } else {
-      onCategorySelect(category);
-    }
-  };
-
-  // Calculate total product count from children
-  const getTotalProductCount = (category: Category): number => {
-    let total = category.product_count || 0;
-    if (category.children && Array.isArray(category.children) && category.children.length > 0) {
-      category.children.forEach(child => {
-        total += child.product_count || 0;
+      // If we're on a different screen, navigate to category screen with params
+      router.push({
+        pathname: "/(customer)/category",
+        params: { 
+          category: category.slug,
+          categoryName: category.name
+        }
       });
     }
-    return total;
   };
 
-  // Safety check for categories
-  const safeCategories = Array.isArray(parentCategories) ? parentCategories : [];
+  const handleAllProductsPress = () => {
+    onCategorySelect(null);
+    
+    if (pathname === '/(customer)/category') {
+      // Already on category screen, just clear selection
+      console.log('📍 Showing all products');
+    } else {
+      // Navigate to category screen without category param
+      router.push("/(customer)/category");
+    }
+  };
+
+  // Show loading state if not ready or loading
+  if (!isReady || isLoading) {
+    return (
+      <View className="w-[110px] bg-white">
+        <View className="px-3 py-4 border-b border-gray-200 bg-pink-50">
+          <Text className="text-base text-gray-900 border-l-8 border-red-800 pl-3 pt-3 h-20">
+            {t('categories') || 'Categories'}
+          </Text>
+        </View>
+        <View className="h-[400px] items-center justify-center border-r border-gray-200">
+          <ActivityIndicator size="small" color="#C62828" />
+          <Text className="text-xs text-gray-500 mt-2">
+            {t('loading_categories') || 'Loading...'}
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View className="w-[110px] bg-white">
@@ -94,7 +135,7 @@ const SidebarMenu = ({
             !selectedCategory ? 'bg-red-50 border-l-6 border-l-red-600' : ''
           }`}
           activeOpacity={0.7}
-          onPress={() => onCategorySelect(null)}
+          onPress={handleAllProductsPress}
         >
           <View>
             <Text className={`text-sm ${
@@ -106,9 +147,8 @@ const SidebarMenu = ({
         </TouchableOpacity>
 
         {/* Parent Categories */}
-        {safeCategories.length > 0 ? (
-          safeCategories.map((category) => {
-            const totalCount = getTotalProductCount(category);
+        {parentCategories.length > 0 ? (
+          parentCategories.map((category) => {
             const isSelected = selectedCategory?.id === category.id;
             
             return (
@@ -130,20 +170,6 @@ const SidebarMenu = ({
                   >
                     {category.name}
                   </Text>
-                  
-                  {/* Product count */}
-                  {totalCount > 0 && (
-                    <Text className="text-xs text-gray-500 mt-1">
-                      {totalCount} {t('items') || 'items'}
-                    </Text>
-                  )}
-                  
-                  {/* Children count if any */}
-                  {category.children && category.children.length > 0 && (
-                    <Text className="text-xs text-gray-400 mt-0.5">
-                      {category.children.length} {t('subcategories') || 'subcategories'}
-                    </Text>
-                  )}
                 </View>
               </TouchableOpacity>
             );
@@ -151,7 +177,7 @@ const SidebarMenu = ({
         ) : (
           <View className="py-8 px-4">
             <Text className="text-sm text-gray-500 text-center">
-              {t('no_categories') || 'No categories available'}
+              {t('loading_categories') || 'Loading categories...'}
             </Text>
           </View>
         )}

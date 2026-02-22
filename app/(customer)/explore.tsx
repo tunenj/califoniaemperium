@@ -269,7 +269,7 @@ ProductItem.displayName = "ProductItem";
 
 const Explore = () => {
   const router = useRouter();
-  const { searchQuery } = useExploreSearch();
+  const { searchQuery, clearSearch } = useExploreSearch();
 
   // Read category params passed from CategoryGrid
   const { categoryId, categoryName } = useLocalSearchParams<{
@@ -504,6 +504,12 @@ const Explore = () => {
     ]
   );
 
+  // Handle clear search
+  const handleClearSearch = useCallback(() => {
+    clearSearch();
+    // Navigation will be handled by the useEffect that watches searchQuery
+  }, [clearSearch]);
+
   const renderProductItem = useCallback(
     ({ item }: { item: Product }) => (
       <ProductItem
@@ -657,16 +663,29 @@ const Explore = () => {
               : ""}
           </Text>
 
-          {/* Clear category filter button */}
-          {categoryId && (
-            <TouchableOpacity
-              onPress={() => router.push("/(customer)/explore")}
-              className="flex-row items-center"
-            >
-              <MaterialIcons name="close" size={16} color="#DC2626" />
-              <Text className="text-xs text-red-600 ml-1">Clear</Text>
-            </TouchableOpacity>
-          )}
+          <View className="flex-row items-center">
+            {/* Clear search button - shown when there's a search query */}
+            {searchQuery && !categoryId && (
+              <TouchableOpacity
+                onPress={handleClearSearch}
+                className="flex-row items-center mr-3"
+              >
+                <MaterialIcons name="close" size={16} color="#DC2626" />
+                <Text className="text-xs text-red-600 ml-1">Clear Search</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Clear category filter button */}
+            {categoryId && (
+              <TouchableOpacity
+                onPress={() => router.push("/(customer)/explore")}
+                className="flex-row items-center"
+              >
+                <MaterialIcons name="close" size={16} color="#DC2626" />
+                <Text className="text-xs text-red-600 ml-1">Clear Category</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
 

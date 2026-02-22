@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { SafeAreaView, View, Text, TouchableOpacity, Switch } from "react-native";
+import { SafeAreaView, View, Text, TouchableOpacity } from "react-native";
 import Icon from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -7,7 +7,6 @@ import { useLanguage } from '@/context/LanguageContext'; // Add import
 
 export default function SecurityScreen() {
   const { t } = useLanguage(); // Add hook
-  const [biometrics, setBiometrics] = useState(false);
   const router = useRouter();
 
   return (
@@ -30,22 +29,6 @@ export default function SecurityScreen() {
 
       {/* Content */}
       <View className="mt-4 px-5 gap-6">
-        {/* Biometrics Row */}
-        <View className="flex-row justify-between items-center">
-          <View className="flex-row items-center">
-            <Icon name="finger-print-outline" size={22} />
-            <Text className="ml-3 text-base">{t('biometrics')}</Text>
-          </View>
-
-          <Switch
-            value={biometrics}
-            onValueChange={setBiometrics}
-            trackColor={{ false: "#D1D5DB", true: "#B13239" }}
-            thumbColor={biometrics ? "#000" : "#f4f3f4"}
-            ios_backgroundColor="#D1D5DB"
-          />
-        </View>
-
         {/* Change Password */}
         <TouchableOpacity className="flex-row justify-between items-center">
           <View className="flex-row items-center">

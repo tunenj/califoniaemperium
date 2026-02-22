@@ -16,7 +16,7 @@ import { useRouter } from "expo-router";
 import DashboardHeader from "@/components/explore/DashboardHeader";
 import api from "@/api/api";
 import { endpoints } from "@/api/endpoints";
-import { MaterialCommunityIcons, Feather, AntDesign } from "@expo/vector-icons";
+import { MaterialCommunityIcons, Feather, AntDesign, MaterialIcons } from "@expo/vector-icons";
 import { useExploreSearch } from "@/context/ExploreSearchContext";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
@@ -134,7 +134,7 @@ const cleanDropshipProductData = (dropshipProduct: any): DropshipProduct => {
 
 const ExploreDropship = () => {
   const router = useRouter();
-  const { searchQuery } = useExploreSearch();
+  const { searchQuery, clearSearch } = useExploreSearch();
   
   // Use the cart context
   const { 
@@ -178,6 +178,12 @@ const ExploreDropship = () => {
     return `€${numPrice.toFixed(2)}`;
   }, []);
 
+  // Handle clear search
+  const handleClearSearch = useCallback(() => {
+    clearSearch();
+    // The useEffect will automatically refetch with empty search
+  }, [clearSearch]);
+
   // Fetch dropship products with data cleaning
   const fetchDropshipProducts = useCallback(
     async (page: number = 1, isRefresh: boolean = false) => {
@@ -190,8 +196,12 @@ const ExploreDropship = () => {
         }
 
         let url = `${endpoints.dropshipProducts}?page=${page}`;
-        if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
+        if (searchQuery) {
+          url += `&search=${encodeURIComponent(searchQuery)}`;
+          console.log('🔍 Searching dropship products for:', searchQuery);
+        }
 
+        console.log('🌐 Fetching dropship products from:', url);
         const response = await api.get<DropshipProductsResponse>(url);
 
         // Clean the data by removing product_type from each product
@@ -230,7 +240,7 @@ const ExploreDropship = () => {
     setCurrentPage(1);
     setProducts([]);
     fetchDropshipProducts(1);
-  }, [fetchDropshipProducts]);
+  }, [searchQuery, fetchDropshipProducts]);
 
   const loadMoreProducts = useCallback(() => {
     if (hasMore && !productsLoading && !loading) {
@@ -452,7 +462,7 @@ const ExploreDropship = () => {
             <AntDesign 
               name={isProductInWishlist ? "heart" : "heart"} 
               size={18} 
-              color="#DC2626" 
+              color={isProductInWishlist ? "#DC2626" : "#6B7280"} 
             />
           )}
         </TouchableOpacity>
@@ -621,13 +631,14 @@ const ExploreDropship = () => {
 
   const renderEmpty = useCallback(() => (
     <View className="py-20 items-center px-4">
-      <Text className="text-gray-600 text-lg font-medium mb-2">
-        No dropship products available
+      <MaterialIcons name="search-off" size={64} color="#9CA3AF" />
+      <Text className="text-gray-800 text-lg font-medium mt-4 mb-2">
+        No dropship products found
       </Text>
       <Text className="text-gray-500 text-center mb-6">
-        {typeof error === 'string' ? error : (searchQuery 
+        {error || (searchQuery 
           ? `No results found for "${searchQuery}"`
-          : "There are currently no dropship products.")}
+          : "There are currently no dropship products available.")}
       </Text>
 
       {/* Toggle back to Regular Explore */}
@@ -662,7 +673,9 @@ const ExploreDropship = () => {
         <DashboardHeader />
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#DC2626" />
-          <Text className="mt-4 text-gray-600">Loading products...</Text>
+          <Text className="mt-4 text-gray-600">
+            {searchQuery ? `Searching for "${searchQuery}"...` : "Loading products..."}
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -691,10 +704,23 @@ const ExploreDropship = () => {
       {/* Product Count and Info */}
       {products.length > 0 && (
         <View className="px-4 py-3 bg-white border-b border-gray-200">
-          <Text className="text-sm font-medium text-gray-900">
-            {totalProducts} {totalProducts === 1 ? "Product" : "Products"} found
-            {searchQuery ? ` for "${searchQuery}"` : ""}
-          </Text>
+          <View className="flex-row items-center justify-between">
+            <Text className="text-sm font-medium text-gray-900">
+              {totalProducts} {totalProducts === 1 ? "Product" : "Products"} found
+              {searchQuery ? ` for "${searchQuery}"` : ""}
+            </Text>
+            
+            {/* Clear search button - shown when there's a search query */}
+            {searchQuery && (
+              <TouchableOpacity
+                onPress={handleClearSearch}
+                className="flex-row items-center"
+              >
+                <MaterialIcons name="close" size={16} color="#DC2626" />
+                <Text className="text-xs text-red-600 ml-1">Clear Search</Text>
+              </TouchableOpacity>
+            )}
+          </View>
           <Text className="text-xs text-gray-500 mt-1">
             Fast delivery with {shippingTimeRange.min}-{shippingTimeRange.max} day shipping
           </Text>

@@ -48,13 +48,6 @@ api.interceptors.request.use(
       console.error('❌ Error getting token from storage:', error);
     }
 
-    // ✅ REMOVED: cache-busting _t timestamp
-    // React Native does NOT cache HTTP responses like browsers do.
-    // Adding _t to every GET request was causing:
-    // 1. Unnecessary unique requests that bypass any server-side caching
-    // 2. Extra query params that some backends reject or log as errors
-    // 3. fetchCart() being triggered repeatedly, overwriting optimistic updates
-
     return config;
   },
   (error) => {
@@ -67,6 +60,22 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
+
+    // ─── DEBUG LOGGING (remove after fixing) ───────────────────────────────
+    if (__DEV__) {
+      console.log('🔴 ---- AXIOS ERROR DEBUG ----');
+      console.log('🔴 Error code      :', error.code);
+      console.log('🔴 Error message   :', error.message);
+      console.log('🔴 Has response    :', !!error.response);
+      console.log('🔴 Response status :', error.response?.status ?? 'N/A');
+      console.log('🔴 Response data   :', JSON.stringify(error.response?.data ?? null));
+      console.log('🔴 Request URL     :', error.config?.url);
+      console.log('🔴 Full base URL   :', error.config?.baseURL);
+      console.log('🔴 Request method  :', error.config?.method?.toUpperCase());
+      console.log('🔴 ----------------------------');
+    }
+    // ───────────────────────────────────────────────────────────────────────
+
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
       _skipAuth?: boolean;

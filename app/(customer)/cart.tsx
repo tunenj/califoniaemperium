@@ -1,6 +1,6 @@
 // app/(customer)/cart.tsx
 
-import React, { useState, memo, useCallback, useEffect } from 'react';
+import React, { useState, memo, useCallback } from 'react';
 import {
   View,
   Text,

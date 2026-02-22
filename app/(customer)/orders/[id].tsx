@@ -68,12 +68,15 @@ const PaymentSheetForm = ({
 }) => {
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [processing, setProcessing] = useState(false);
-
   const handlePay = async () => {
     setProcessing(true);
     try {
-      // Step 1: Create payment intent
-      const paymentIntent = await stripePaymentService.createPaymentIntent(orderId);
+      console.log('Creating payment intent for order:', orderId);
+
+      // Step 1: Create payment intent with EUR currency
+      const paymentIntent = await stripePaymentService.createPaymentIntent(orderId, 'eur');
+
+      console.log('Payment intent response:', paymentIntent);
 
       // Step 2: Initialize payment sheet
       const { error: initError } = await initPaymentSheet({
@@ -83,6 +86,7 @@ const PaymentSheetForm = ({
       });
 
       if (initError) {
+        console.error('Init error:', initError);
         onError(initError.message);
         setProcessing(false);
         return;
@@ -92,6 +96,7 @@ const PaymentSheetForm = ({
       const { error: presentError } = await presentPaymentSheet();
 
       if (presentError) {
+        console.error('Present error:', presentError);
         if (presentError.code !== 'Canceled') {
           onError(presentError.message);
         }
@@ -101,6 +106,7 @@ const PaymentSheetForm = ({
         onSuccess(paymentIntent.payment_intent_id);
       }
     } catch (err: any) {
+      console.error('Payment error:', err);
       onError(err?.message || 'Payment failed. Please try again.');
     } finally {
       setProcessing(false);
@@ -369,14 +375,12 @@ export default function OrderDetailsScreen() {
           <View className="flex-row justify-between items-center mb-3">
             <Text className="text-gray-600">Order Status</Text>
             <View
-              className={`px-3 py-1 rounded-full ${
-                order.status === 'completed' ? 'bg-green-100' : 'bg-orange-100'
-              }`}
+              className={`px-3 py-1 rounded-full ${order.status === 'completed' ? 'bg-green-100' : 'bg-orange-100'
+                }`}
             >
               <Text
-                className={`text-sm font-medium ${
-                  order.status === 'completed' ? 'text-green-700' : 'text-orange-700'
-                }`}
+                className={`text-sm font-medium ${order.status === 'completed' ? 'text-green-700' : 'text-orange-700'
+                  }`}
               >
                 {order.status.toUpperCase()}
               </Text>
@@ -386,14 +390,12 @@ export default function OrderDetailsScreen() {
           <View className="flex-row justify-between items-center">
             <Text className="text-gray-600">Payment Status</Text>
             <View
-              className={`px-3 py-1 rounded-full ${
-                order.payment_status === 'paid' ? 'bg-green-100' : 'bg-yellow-100'
-              }`}
+              className={`px-3 py-1 rounded-full ${order.payment_status === 'paid' ? 'bg-green-100' : 'bg-yellow-100'
+                }`}
             >
               <Text
-                className={`text-sm font-medium ${
-                  order.payment_status === 'paid' ? 'text-green-700' : 'text-yellow-700'
-                }`}
+                className={`text-sm font-medium ${order.payment_status === 'paid' ? 'text-green-700' : 'text-yellow-700'
+                  }`}
               >
                 {order.payment_status.toUpperCase()}
               </Text>
@@ -449,9 +451,8 @@ export default function OrderDetailsScreen() {
           {order.items.map((item, index) => (
             <View
               key={item.id}
-              className={`py-3 ${
-                index < order.items.length - 1 ? 'border-b border-gray-100' : ''
-              }`}
+              className={`py-3 ${index < order.items.length - 1 ? 'border-b border-gray-100' : ''
+                }`}
             >
               <View className="flex-row justify-between">
                 <View className="flex-1 mr-3">

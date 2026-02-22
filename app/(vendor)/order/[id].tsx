@@ -9,6 +9,7 @@ import {
   Alert,
   SafeAreaView,
   Modal,
+  Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -44,13 +45,101 @@ interface OrderItem {
   vendor: string | null;
 }
 
-// Helper function to format price in euros
 const formatPrice = (price: number): string => {
-  if (isNaN(price)) return "€0.00";
+  if (isNaN(price)) return '€0.00';
   return `€${price.toFixed(2)}`;
 };
 
-// ─── Payment Sheet Form (must be inside StripeProvider) ───────────────────────
+// ─── Web Payment Fallback ─────────────────────────────────────────────────────
+const WebPaymentForm = ({
+  orderId,
+  orderNumber,
+  amount,
+  onSuccess,
+  onError,
+  onClose,
+}: {
+  orderId: string;
+  orderNumber: string;
+  amount: number;
+  onSuccess: (paymentIntentId: string) => void;
+  onError: (error: string) => void;
+  onClose: () => void;
+}) => {
+  const [processing, setProcessing] = useState(false);
+
+  const handlePay = async () => {
+    setProcessing(true);
+    try {
+      const paymentIntent = await stripePaymentService.createPaymentIntent(orderId);
+      // On web, redirect to Stripe Checkout or use Stripe.js
+      // For now, confirm directly if your backend handles it
+      await stripePaymentService.confirmPayment(paymentIntent.payment_intent_id);
+      onSuccess(paymentIntent.payment_intent_id);
+    } catch (err: any) {
+      onError(err?.message || 'Payment failed. Please try again.');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  return (
+    <View>
+      <View className="bg-gray-50 p-4 rounded-xl mb-6">
+        <Text className="text-gray-500 text-sm mb-1">Order #{orderNumber}</Text>
+        <Text className="text-3xl font-bold text-gray-900">{formatPrice(amount)}</Text>
+      </View>
+
+      <View className="bg-yellow-50 border border-yellow-200 p-3 rounded-xl mb-6">
+        <Text className="text-yellow-800 text-sm text-center">
+          You&apos;re on the web version. Payment will be processed securely.
+        </Text>
+      </View>
+
+      <View className="flex-row justify-around mb-6 py-3 border border-gray-100 rounded-xl bg-gray-50">
+        <View className="flex-row items-center">
+          <MaterialIcons name="lock" size={14} color="#10B981" />
+          <Text className="text-gray-500 text-xs ml-1">SSL</Text>
+        </View>
+        <View className="flex-row items-center">
+          <MaterialIcons name="security" size={14} color="#10B981" />
+          <Text className="text-gray-500 text-xs ml-1">PCI DSS</Text>
+        </View>
+        <View className="flex-row items-center">
+          <MaterialIcons name="verified" size={14} color="#10B981" />
+          <Text className="text-gray-500 text-xs ml-1">3D Secure</Text>
+        </View>
+      </View>
+
+      <TouchableOpacity
+        onPress={handlePay}
+        disabled={processing}
+        className={`py-4 rounded-xl ${processing ? 'bg-gray-400' : 'bg-[#635BFF]'}`}
+      >
+        {processing ? (
+          <View className="flex-row items-center justify-center">
+            <ActivityIndicator size="small" color="white" />
+            <Text className="text-white font-semibold text-lg ml-2">Processing...</Text>
+          </View>
+        ) : (
+          <Text className="text-white font-semibold text-lg text-center">
+            Pay {formatPrice(amount)}
+          </Text>
+        )}
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={onClose} disabled={processing} className="mt-3 py-3">
+        <Text className="text-gray-400 text-center text-sm">Cancel</Text>
+      </TouchableOpacity>
+
+      <Text className="text-center text-gray-400 text-xs mt-4">
+        Powered by Stripe · Your payment is secure
+      </Text>
+    </View>
+  );
+};
+
+// ─── Native Payment Sheet Form (mobile only) ──────────────────────────────────
 const PaymentSheetForm = ({
   orderId,
   orderNumber,
@@ -72,10 +161,8 @@ const PaymentSheetForm = ({
   const handlePay = async () => {
     setProcessing(true);
     try {
-      // Step 1: Create payment intent
       const paymentIntent = await stripePaymentService.createPaymentIntent(orderId);
 
-      // Step 2: Initialize payment sheet
       const { error: initError } = await initPaymentSheet({
         paymentIntentClientSecret: paymentIntent.client_secret,
         merchantDisplayName: 'Stock',
@@ -88,7 +175,6 @@ const PaymentSheetForm = ({
         return;
       }
 
-      // Step 3: Present payment sheet
       const { error: presentError } = await presentPaymentSheet();
 
       if (presentError) {
@@ -96,7 +182,6 @@ const PaymentSheetForm = ({
           onError(presentError.message);
         }
       } else {
-        // Step 4: Confirm on backend
         await stripePaymentService.confirmPayment(paymentIntent.payment_intent_id);
         onSuccess(paymentIntent.payment_intent_id);
       }
@@ -109,15 +194,11 @@ const PaymentSheetForm = ({
 
   return (
     <View>
-      {/* Order Summary */}
       <View className="bg-gray-50 p-4 rounded-xl mb-6">
         <Text className="text-gray-500 text-sm mb-1">Order #{orderNumber}</Text>
-        <Text className="text-3xl font-bold text-gray-900">
-          {formatPrice(amount)}
-        </Text>
+        <Text className="text-3xl font-bold text-gray-900">{formatPrice(amount)}</Text>
       </View>
 
-      {/* Security Badges */}
       <View className="flex-row justify-around mb-6 py-3 border border-gray-100 rounded-xl bg-gray-50">
         <View className="flex-row items-center">
           <MaterialIcons name="lock" size={14} color="#10B981" />
@@ -133,7 +214,6 @@ const PaymentSheetForm = ({
         </View>
       </View>
 
-      {/* Pay Button */}
       <TouchableOpacity
         onPress={handlePay}
         disabled={processing}
@@ -151,12 +231,7 @@ const PaymentSheetForm = ({
         )}
       </TouchableOpacity>
 
-      {/* Cancel */}
-      <TouchableOpacity
-        onPress={onClose}
-        disabled={processing}
-        className="mt-3 py-3"
-      >
+      <TouchableOpacity onPress={onClose} disabled={processing} className="mt-3 py-3">
         <Text className="text-gray-400 text-center text-sm">Cancel</Text>
       </TouchableOpacity>
 
@@ -205,13 +280,10 @@ const StripePaymentModal = ({
     }
   }, [visible, orderId, stableOnClose]);
 
+  const isWeb = Platform.OS === 'web';
+
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View className="flex-1 bg-black/50 justify-end">
         <View className="bg-white rounded-t-3xl p-6 min-h-[440px]">
           {/* Modal Header */}
@@ -230,7 +302,18 @@ const StripePaymentModal = ({
               <ActivityIndicator size="large" color="#635BFF" />
               <Text className="text-gray-500 mt-3 text-sm">Initializing payment...</Text>
             </View>
+          ) : isWeb ? (
+            // ── Web: use plain form, no native Stripe SDK ──
+            <WebPaymentForm
+              orderId={orderId}
+              orderNumber={orderNumber}
+              amount={amount}
+              onSuccess={onSuccess}
+              onError={onError}
+              onClose={onClose}
+            />
           ) : (
+            // ── Native: use Stripe payment sheet ──
             <StripeProvider
               publishableKey={publishableKey}
               merchantIdentifier="merchant.com.califoniaemperium"
@@ -280,7 +363,6 @@ export default function OrderDetailsScreen() {
     fetchOrderDetails();
   }, [fetchOrderDetails]);
 
-  // ✅ Opens modal instead of navigating
   const handlePayNow = () => {
     setPaymentModalVisible(true);
   };
@@ -290,7 +372,7 @@ export default function OrderDetailsScreen() {
     Alert.alert(
       'Payment Successful 🎉',
       `Order #${order?.order_number} has been paid successfully.`,
-      [{ text: 'OK', onPress: fetchOrderDetails }] // refresh to update payment status
+      [{ text: 'OK', onPress: fetchOrderDetails }]
     );
   };
 
@@ -299,37 +381,32 @@ export default function OrderDetailsScreen() {
   };
 
   const handleCancelOrder = async () => {
-    Alert.alert(
-      'Cancel Order',
-      'Are you sure you want to cancel this order?',
-      [
-        { text: 'No', style: 'cancel' },
-        {
-          text: 'Yes, Cancel',
-          style: 'destructive',
-          onPress: async () => {
-            setProcessing(true);
-            try {
-              await api.post(endpoints.cancelOrder(id as string));
-              await fetchOrderDetails();
-              await refreshCurrentOrder();
-              Alert.alert('Success', 'Order cancelled successfully');
-            } catch {
-              Alert.alert('Error', 'Failed to cancel order');
-            } finally {
-              setProcessing(false);
-            }
-          },
+    Alert.alert('Cancel Order', 'Are you sure you want to cancel this order?', [
+      { text: 'No', style: 'cancel' },
+      {
+        text: 'Yes, Cancel',
+        style: 'destructive',
+        onPress: async () => {
+          setProcessing(true);
+          try {
+            await api.post(endpoints.cancelOrder(id as string));
+            await fetchOrderDetails();
+            await refreshCurrentOrder();
+            Alert.alert('Success', 'Order cancelled successfully');
+          } catch {
+            Alert.alert('Error', 'Failed to cancel order');
+          } finally {
+            setProcessing(false);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleReorder = () => {
     router.push('/(customer)/cart');
   };
 
-  // Handle back navigation
   const handleGoBack = () => {
     router.back();
   };
@@ -408,24 +485,18 @@ export default function OrderDetailsScreen() {
           <View className="space-y-2">
             <View className="flex-row justify-between">
               <Text className="text-gray-600">Subtotal</Text>
-              <Text className="text-gray-900">
-                {formatPrice(parseFloat(order.subtotal))}
-              </Text>
+              <Text className="text-gray-900">{formatPrice(parseFloat(order.subtotal))}</Text>
             </View>
 
             <View className="flex-row justify-between">
               <Text className="text-gray-600">Shipping</Text>
-              <Text className="text-gray-900">
-                {formatPrice(parseFloat(order.shipping_cost))}
-              </Text>
+              <Text className="text-gray-900">{formatPrice(parseFloat(order.shipping_cost))}</Text>
             </View>
 
             {parseFloat(order.discount) > 0 && (
               <View className="flex-row justify-between">
                 <Text className="text-green-600">Discount</Text>
-                <Text className="text-green-600">
-                  -{formatPrice(parseFloat(order.discount))}
-                </Text>
+                <Text className="text-green-600">-{formatPrice(parseFloat(order.discount))}</Text>
               </View>
             )}
 
@@ -442,25 +513,19 @@ export default function OrderDetailsScreen() {
 
         {/* Items */}
         <View className="bg-white border border-gray-200 rounded-xl p-4 mt-4">
-          <Text className="font-bold text-gray-900 mb-3">
-            Items ({order.items.length})
-          </Text>
+          <Text className="font-bold text-gray-900 mb-3">Items ({order.items.length})</Text>
 
           {order.items.map((item, index) => (
             <View
               key={item.id}
-              className={`py-3 ${
-                index < order.items.length - 1 ? 'border-b border-gray-100' : ''
-              }`}
+              className={`py-3 ${index < order.items.length - 1 ? 'border-b border-gray-100' : ''}`}
             >
               <View className="flex-row justify-between">
                 <View className="flex-1 mr-3">
                   <Text className="font-medium text-gray-900" numberOfLines={2}>
                     {item.product_name}
                   </Text>
-                  <Text className="text-gray-500 text-xs mt-1">
-                    SKU: {item.product_sku}
-                  </Text>
+                  <Text className="text-gray-500 text-xs mt-1">SKU: {item.product_sku}</Text>
                   <Text className="text-gray-500 text-xs">Qty: {item.quantity}</Text>
                 </View>
                 <View className="items-end">
@@ -473,9 +538,7 @@ export default function OrderDetailsScreen() {
                 </View>
               </View>
               {item.vendor && (
-                <Text className="text-gray-500 text-xs mt-2">
-                  Sold by: {item.vendor}
-                </Text>
+                <Text className="text-gray-500 text-xs mt-2">Sold by: {item.vendor}</Text>
               )}
             </View>
           ))}
@@ -483,7 +546,6 @@ export default function OrderDetailsScreen() {
 
         {/* Action Buttons */}
         <View className="space-y-3 mt-6 mb-8">
-          {/* ✅ Opens modal instead of navigating */}
           {order.payment_status === 'pending' && (
             <TouchableOpacity
               onPress={handlePayNow}
@@ -504,9 +566,7 @@ export default function OrderDetailsScreen() {
               {processing ? (
                 <ActivityIndicator color="#dc2626" />
               ) : (
-                <Text className="text-red-600 font-semibold text-lg">
-                  Cancel Order
-                </Text>
+                <Text className="text-red-600 font-semibold text-lg">Cancel Order</Text>
               )}
             </TouchableOpacity>
           )}
@@ -522,7 +582,7 @@ export default function OrderDetailsScreen() {
         </View>
       </ScrollView>
 
-      {/* ✅ Stripe Payment Modal */}
+      {/* Stripe Payment Modal */}
       {order && (
         <StripePaymentModal
           visible={paymentModalVisible}
