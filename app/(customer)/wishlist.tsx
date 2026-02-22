@@ -20,7 +20,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useFocusEffect } from '@react-navigation/native';
 
-// Define the WishlistItem type
+// Define the WishlistItem type with proper image handling
 interface WishlistItem {
   id: string;
   productId: string;
@@ -55,6 +55,7 @@ const WishlistScreen = () => {
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [removingItems, setRemovingItems] = useState<{[key: string]: boolean}>({});
   const [addingToCart, setAddingToCart] = useState<{[key: string]: boolean}>({});
+  const [imageErrors, setImageErrors] = useState<{[key: string]: boolean}>({});
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   // Animation for empty state
@@ -109,6 +110,11 @@ const WishlistScreen = () => {
       setSelectedItems(allIds);
     }
   }, [wishlistItems, selectedItems.size]);
+
+  // Handle image error
+  const handleImageError = useCallback((itemId: string) => {
+    setImageErrors(prev => ({ ...prev, [itemId]: true }));
+  }, []);
 
   // Move item to cart with better feedback
   const handleMoveToCart = useCallback(async (item: WishlistItem) => {
@@ -179,6 +185,12 @@ const WishlistScreen = () => {
                   const newSet = new Set(prev);
                   newSet.delete(itemId);
                   return newSet;
+                });
+                // Clear image error state for removed item
+                setImageErrors(prev => {
+                  const newErrors = { ...prev };
+                  delete newErrors[itemId];
+                  return newErrors;
                 });
               }
             }
@@ -328,7 +340,7 @@ const WishlistScreen = () => {
             Your saved items will be available across all your devices
           </Text>
           
-          <View className="flex-row space-x-4">
+          <View className="flex-row space-x-4 gap-3">
             <TouchableOpacity
               className="bg-secondary px-6 py-3 rounded-full"
               onPress={() => router.push('/(auth)/signIn')}
@@ -392,11 +404,12 @@ const WishlistScreen = () => {
     );
   }, [router, isAuthenticated, fadeAnim, cartCount]);
 
-  // Render wishlist item
+  // Render wishlist item with proper image display
   const renderItem = useCallback(({ item }: { item: WishlistItem }) => {
     const isRemoving = removingItems[item.id] || false;
     const isAddingToCart = addingToCart[item.id] || false;
     const isSelected = selectedItems.has(item.id);
+    const hasImageError = imageErrors[item.id] || false;
     
     return (
       <TouchableOpacity
@@ -432,12 +445,13 @@ const WishlistScreen = () => {
 
         {/* Product Image with overlay for out of stock */}
         <View className="relative w-24 h-24 bg-gray-100 rounded-lg overflow-hidden mr-4">
-          {item.image ? (
+          {item.image && !hasImageError ? (
             <>
               <Image
                 source={{ uri: item.image }}
                 className="w-full h-full"
                 resizeMode="cover"
+                onError={() => handleImageError(item.id)}
               />
               {!item.isInStock && (
                 <View className="absolute inset-0 bg-black/30 justify-center items-center">
@@ -449,7 +463,18 @@ const WishlistScreen = () => {
             </>
           ) : (
             <View className="flex-1 justify-center items-center">
-              <MaterialCommunityIcons name="shopping-outline" size={32} color="#9CA3AF" />
+              <MaterialCommunityIcons 
+                name="image-off" 
+                size={32} 
+                color="#9CA3AF" 
+              />
+              {!item.isInStock && (
+                <View className="absolute inset-0 bg-black/30 justify-center items-center">
+                  <Text className="text-white text-xs font-bold bg-black/50 px-2 py-1 rounded">
+                    OUT OF STOCK
+                  </Text>
+                </View>
+              )}
             </View>
           )}
         </View>
@@ -540,9 +565,11 @@ const WishlistScreen = () => {
     removingItems, 
     addingToCart,
     syncing, 
+    imageErrors,
     handleMoveToCart, 
     handleRemoveFromWishlist, 
-    toggleItemSelection
+    toggleItemSelection,
+    handleImageError
   ]);
 
   // Header with selection options - FIXED VERSION
@@ -627,8 +654,7 @@ const WishlistScreen = () => {
                 <Text className="text-white font-semibold text-center">
                   {selectedInStock > 0 
                     ? `Add ${selectedInStock} to Cart` 
-                    : 'Selected items unavailable'
-                  }
+                    : 'Selected items unavailable'}
                 </Text>
               </TouchableOpacity>
 
@@ -730,7 +756,7 @@ const WishlistScreen = () => {
         initialNumToRender={10}
         windowSize={10}
         removeClippedSubviews={true}
-        extraData={[selectedItems, removingItems, addingToCart, syncing]}
+        extraData={[selectedItems, removingItems, addingToCart, syncing, imageErrors]}
       />
 
       {Footer}

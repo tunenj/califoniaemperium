@@ -5,25 +5,36 @@
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
-
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    background: '#FFFFFF',
+    text: '#111827',
+    textSecondary: '#6B7280',
+    border: '#E5E7EB',
+    card: '#FFFFFF',
+    cardBackground: '#F9FAFB',
+    icon: '#4B5563',
+    primary: '#B13239',
+    primaryLight: '#FEE2E2',
+    success: '#10B981',
+    error: '#EF4444',
+    warning: '#F59E0B',
+    gradient: ['#B13239', '#4D0812'] as const,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    background: '#111827',
+    text: '#F9FAFB',
+    textSecondary: '#9CA3AF',
+    border: '#374151',
+    card: '#1F2937',
+    cardBackground: '#2D3748',
+    icon: '#9CA3AF',
+    primary: '#DC2626',
+    primaryLight: '#451A1A',
+    success: '#059669',
+    error: '#DC2626',
+    warning: '#D97706',
+    gradient: ['#1F2937', '#111827'] as const,
   },
 };
 
@@ -51,3 +62,7 @@ export const Fonts = Platform.select({
     mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
   },
 });
+
+// Type exports for TypeScript support
+export type Theme = typeof Colors.light;
+export type ColorScheme = keyof typeof Colors;

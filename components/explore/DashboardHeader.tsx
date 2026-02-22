@@ -1,188 +1,313 @@
 // components/explore/DashboardHeader.tsx
 import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useState, useCallback, memo } from "react";
+import React, { useState, useCallback, memo, useEffect } from "react";
 import {
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
+  ActivityIndicator,
+  Platform,
+  Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useExploreSearch } from "@/context/ExploreSearchContext"; 
 import { useLanguage } from "@/context/LanguageContext";
-import { useCart } from "@/context/CartContext"; // Import cart context
-import { useRouter } from "expo-router"; // Import router for navigation
+import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "expo-router";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Responsive scale helper
+const scale = (size: number) => (SCREEN_WIDTH / 390) * size;
 
 const DashboardHeader = memo(() => {
   const { t } = useLanguage();
-  const { searchQuery, setSearchQuery } = useExploreSearch(); 
-  const { getItemCount, loading: cartLoading } = useCart(); // Get cart count
-  const router = useRouter(); // Initialize router
+  const { setSearchQuery } = useExploreSearch(); 
+  const { getItemCount, loading: cartLoading } = useCart();
+  const { isAuthenticated } = useAuth();
+  const router = useRouter();
   
-  const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery || '');
+  const [localSearchQuery, setLocalSearchQuery] = useState('');
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [checkingMessages, setCheckingMessages] = useState(false);
   
   // Get cart item count
   const cartItemCount = getItemCount();
 
-  const categories = ["All Store", "Electronics", "Fashion", "Home & Garden", "Sports"];
+  // Get categories with safety checks
+  const getCategories = () => {
+    const categoryKeys = ["all_store", "electronics", "fashion", "home_garden", "sports"];
+    return categoryKeys.map(key => {
+      const translation = t(key);
+      if (typeof translation === 'string' && translation.trim()) {
+        return translation;
+      }
+      const fallbacks = ["All Store", "Electronics", "Fashion", "Home & Garden", "Sports"];
+      const index = categoryKeys.indexOf(key);
+      return fallbacks[index] || `Category ${index + 1}`;
+    });
+  };
 
-  // Sync local search with context
-  React.useEffect(() => {
-    setLocalSearchQuery(searchQuery || '');
-  }, [searchQuery]);
+  const categories = getCategories();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      checkUnreadMessages();
+    } else {
+      setUnreadMessages(0);
+    }
+  }, [isAuthenticated]);
+
+  const checkUnreadMessages = async () => {
+    setCheckingMessages(true);
+    try {
+      const token = await AsyncStorage.getItem('accessToken');
+      if (!token) return;
+      // In a real app, you'd fetch unread count from API
+      setUnreadMessages(0);
+    } catch (error) {
+      console.error('Error checking messages:', error);
+    } finally {
+      setCheckingMessages(false);
+    }
+  };
 
   const handleSearch = useCallback(() => {
     if (localSearchQuery.trim()) {
       setSearchQuery(localSearchQuery.trim());
+      router.push('/(customer)/explore');
     }
-  }, [localSearchQuery, setSearchQuery]);
+  }, [localSearchQuery, setSearchQuery, router]);
 
   const handleClearSearch = useCallback(() => {
     setLocalSearchQuery('');
-    setSearchQuery('');
-  }, [setSearchQuery]);
+  }, []);
+
+  const handleImageSearchPress = useCallback(() => {
+    router.push('/(customer)/image-search');
+  }, [router]);
 
   const handleCategoryPress = useCallback((category: string) => {
     setSearchQuery(category);
-  }, [setSearchQuery]);
+    router.push('/(customer)/explore');
+  }, [setSearchQuery, router]);
 
-  // Navigate to cart screen
   const handleCartPress = useCallback(() => {
     router.push("/(customer)/cart");
   }, [router]);
 
-  // Navigate to wishlist screen
   const handleWishlistPress = useCallback(() => {
     router.push("/(customer)/wishlist");
   }, [router]);
 
-  // Navigate to notifications screen
-  // const handleNotificationsPress = useCallback(() => {
-  //   router.push("/(customer)/notifications");
-  // }, [router]);
+  const handleMessagesPress = useCallback(() => {
+    if (!isAuthenticated) {
+      router.push('/(auth)/signIn');
+    } else {
+      router.push("/(customer)/messages");
+    }
+  }, [router, isAuthenticated]);
 
-  // // Navigate to messages screen
-  // const handleMessagesPress = useCallback(() => {
-  //   router.push("/(customer)/messages");
-  // }, [router]);
+  const handleProfilePress = useCallback(() => {
+    if (isAuthenticated) {
+      router.push("/(customer)/profile");
+    } else {
+      router.push('/(auth)/signIn');
+    }
+  }, [router, isAuthenticated]);
 
-  // // Navigate to profile screen
-  // const handleProfilePress = useCallback(() => {
-  //   router.push("/(customer)/profile");
-  // }, [router]);
+  const getSafeText = (translationKey: string, fallback: string) => {
+    const text = t(translationKey);
+    return typeof text === 'string' ? text : fallback;
+  };
 
   return (
     <View className="rounded-b-2xl overflow-hidden">
       <LinearGradient
-        className="h-60 w-full"
+        className="w-full"
+        style={{ 
+          height: Platform.select({ 
+            ios: scale(260), 
+            android: scale(240) 
+          }) 
+        }}
         colors={["#B13239", "#4D0812"]}
         start={[0, 0]}
         end={[1, 0]}
       >
-        <SafeAreaView className="flex-1">
-          <View className="flex-1">
+        <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
+          <View className="flex-1 px-4">
             {/* Top Icons Row */}
-            <View className="flex-row justify-end items-center px-4 pt-4 mb-1">
-              {/* Email icon with badge */}
-              <View className="mx-2 relative">
-                {/* <TouchableOpacity onPress={handleMessagesPress}>
-                  <Ionicons name="mail-outline" size={26} color="white" />
-                </TouchableOpacity> */}
-                <View className="absolute -top-0.5 -right-1 bg-red-600 w-3 h-3 rounded-full" />
-              </View>
+            <View className="flex-row justify-end items-center pt-2 pb-1">
+              {/* Messages Icon */}
+              <TouchableOpacity 
+                className="mx-2 relative"
+                onPress={handleMessagesPress}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons 
+                  name={isAuthenticated ? "mail" : "mail-outline"} 
+                  size={Platform.select({ ios: 24, android: 26 })}
+                  color="white" 
+                />
+                {isAuthenticated && unreadMessages > 0 && (
+                  <View className="absolute -top-1 -right-1 bg-red-600 min-w-4 h-4 rounded-full items-center justify-center">
+                    <Text className="text-white text-[10px] font-bold px-1">
+                      {unreadMessages > 9 ? '9+' : unreadMessages}
+                    </Text>
+                  </View>
+                )}
+                {checkingMessages && isAuthenticated && (
+                  <View className="absolute -top-1 -right-1">
+                    <ActivityIndicator size="small" color="white" />
+                  </View>
+                )}
+              </TouchableOpacity>
 
-              {/* Notifications icon with badge */}
-              {/* <View className="mx-2 relative">
-                <TouchableOpacity onPress={handleNotificationsPress}>
-                  <Ionicons name="notifications-outline" size={26} color="white" />
-                </TouchableOpacity>
-                <View className="absolute -top-0.5 -right-1 bg-red-600 w-3 h-3 rounded-full" />
-              </View> */}
-              
-              {/* Profile icon */}
-              {/* <View className="mx-2">
-                <TouchableOpacity onPress={handleProfilePress}>
-                  <MaterialIcons name="person-outline" size={28} color="white" />
-                </TouchableOpacity>
-              </View> */}
+              {/* Profile Icon */}
+              <TouchableOpacity
+                className="mx-2"
+                onPress={handleProfilePress}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <MaterialIcons 
+                  name={isAuthenticated ? "person" : "person-outline"} 
+                  size={Platform.select({ ios: 26, android: 28 })}
+                  color="white" 
+                />
+              </TouchableOpacity>
             </View>
 
             {/* Horizontal Categories */}
-            <View className="mb-6">
+            <View className="mb-4">
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 3 }}
+                contentContainerStyle={{ 
+                  paddingHorizontal: 4,
+                  paddingVertical: Platform.select({ ios: 4, android: 2 })
+                }}
+                bounces={Platform.OS === 'ios'}
+                overScrollMode={Platform.OS === 'ios' ? 'always' : 'never'}
               >
-                {categories.map((cat, index) => (
-                  <TouchableOpacity
-                    key={`category-${index}-${cat}`}
-                    className="px-1.5 py-2"
-                    activeOpacity={0.8}
-                    onPress={() => handleCategoryPress(cat)}
-                  >
-                    <Text
-                      className={`text-base ${
-                        searchQuery === cat ? "font-bold" : "font-normal"
-                      } text-white`}
+                {categories.map((cat, index) => {
+                  const categoryText = cat || `Category ${index + 1}`;
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      className="px-3 py-2"
+                      activeOpacity={0.7}
+                      onPress={() => handleCategoryPress(categoryText)}
+                      hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
                     >
-                      {cat}
-                    </Text>
-                    {searchQuery === cat && (
-                      <View className="absolute bottom-0 left-3 right-3 h-1 bg-white rounded-full" />
-                    )}
-                  </TouchableOpacity>
-                ))}
+                      <Text
+                        className={`text-base ${
+                          index === 0 ? "font-bold" : "font-normal"
+                        } text-white`}
+                        style={{ 
+                          fontSize: scale(15),
+                          opacity: index === 0 ? 1 : 0.9
+                        }}
+                      >
+                        {categoryText}
+                      </Text>
+                      {index === 0 && (
+                        <View className="absolute bottom-0 left-3 right-3 h-0.5 bg-white rounded-full" />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
               </ScrollView>
             </View>
 
-            {/* Search Bar */}
-            <View className="flex-row items-center px-4">
-              {/* Search Bar */}
-              <View className="flex-1 flex-row items-center bg-white rounded-full h-16 px-4 shadow-md">
-                <Feather name="camera" size={22} color="#666" />
+            {/* Search Bar Row */}
+            <View className="flex-row items-center">
+              {/* Search Bar Container */}
+              <View 
+                className="flex-1 flex-row items-center bg-white rounded-full px-4"
+                style={[
+                  { 
+                    height: Platform.select({ ios: 48, android: 52 }),
+                  },
+                  Platform.select({
+                    ios: {
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 4,
+                    },
+                    android: {
+                      elevation: 4,
+                    },
+                  })
+                ]}
+              >
+                {/* Camera Icon */}
+                <TouchableOpacity 
+                  onPress={handleImageSearchPress}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Feather name="camera" size={scale(20)} color="#666" />
+                </TouchableOpacity>
+                
                 <TextInput
-                  placeholder={t("search_products") || "Search for products..."}
+                  placeholder={getSafeText("search", "Search products, stores...")}
                   placeholderTextColor="#999"
-                  className="flex-1 mx-3 text-base text-black"
+                  className="flex-1 mx-3 text-black"
+                  style={{ 
+                    fontSize: scale(14),
+                    paddingVertical: Platform.select({ ios: 10, android: 8 }),
+                    includeFontPadding: false,
+                  }}
                   value={localSearchQuery}
                   onChangeText={setLocalSearchQuery}
                   onSubmitEditing={handleSearch}
                   returnKeyType="search"
+                  clearButtonMode="while-editing"
                 />
                 
-                {/* Clear button when there's text */}
-                {localSearchQuery ? (
+                {/* Android clear button */}
+                {Platform.OS === 'android' && localSearchQuery ? (
                   <TouchableOpacity onPress={handleClearSearch}>
-                    <Ionicons name="close-circle" size={20} color="#999" />
+                    <Ionicons name="close-circle" size={scale(18)} color="#999" />
                   </TouchableOpacity>
                 ) : null}
                 
-                {/* Search button */}
-                <TouchableOpacity onPress={handleSearch}>
-                  <Ionicons name="search" size={22} color="#666" />
+                <TouchableOpacity 
+                  onPress={handleSearch}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="search" size={scale(20)} color="#666" />
                 </TouchableOpacity>
               </View>
               
               {/* Wishlist icon */}
               <TouchableOpacity 
-                className="ml-4"
+                className="ml-3"
                 onPress={handleWishlistPress}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Ionicons name="heart-outline" size={24} color="#ffffff" />
+                <Ionicons 
+                  name={isAuthenticated ? "heart" : "heart-outline"} 
+                  size={scale(22)}
+                  color="#ffffff" 
+                />
               </TouchableOpacity>
 
-              {/* Cart icon with badge */}
+              {/* Cart icon */}
               <TouchableOpacity 
-                className="ml-4 relative"
+                className="ml-3 relative"
                 onPress={handleCartPress}
                 disabled={cartLoading}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Feather name="shopping-cart" size={24} color="#ffffff" />
+                <Feather name="shopping-cart" size={scale(22)} color="#ffffff" />
                 
-                {/* Cart badge with item count */}
                 {cartItemCount > 0 && (
                   <View className="absolute -top-2 -right-2 bg-red-600 min-w-5 h-5 rounded-full items-center justify-center">
                     <Text className="text-white text-xs font-bold px-1">
@@ -191,10 +316,12 @@ const DashboardHeader = memo(() => {
                   </View>
                 )}
                 
-                {/* Loading indicator when cart is loading */}
                 {cartLoading && cartItemCount === 0 && (
-                  <View className="absolute -top-2 -right-2 bg-yellow-500 w-4 h-4 rounded-full items-center justify-center">
-                    <View className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <View className="absolute -top-2 -right-2">
+                    <ActivityIndicator 
+                      size="small" 
+                      color="#fbbf24" 
+                    />
                   </View>
                 )}
               </TouchableOpacity>

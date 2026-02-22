@@ -1,9 +1,12 @@
 import { Tabs } from "expo-router";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { useLanguage } from '@/context/LanguageContext';
+import { View } from 'react-native';
+import { useCheckout } from '@/context/CheckoutContext';
 
 export default function CustomerLayout() {
   const { t } = useLanguage();
+  const { hasActiveOrder } = useCheckout();
 
   // Screens that should be hidden from tab bar
   const hiddenScreens = [
@@ -16,6 +19,12 @@ export default function CustomerLayout() {
     'explore-dropship',
     'wishlist',
     'checkout/confirmation',
+    'orders/[id]',
+    'orders/history',
+    'messages/index',
+    'faq/index',
+    'profile/index',
+    'image-search'
   ];
 
   return (
@@ -68,6 +77,22 @@ export default function CustomerLayout() {
         }}
       />
 
+      {/* Orders Tab */}
+      <Tabs.Screen
+        name="orders/index"
+        options={{
+          title: t('orders') || 'Orders',
+          tabBarIcon: ({ color, size }) => (
+            <View>
+              <Ionicons name="bag-handle-outline" size={size} color={color} />
+              {hasActiveOrder && (
+                <View className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+              )}
+            </View>
+          )
+        }}
+      />
+
       <Tabs.Screen
         name="account"
         options={{
@@ -78,11 +103,11 @@ export default function CustomerLayout() {
         }}
       />
 
-      {/* Hidden screens - NOT in tab bar */}
+      {/* Hidden screens */}
       {hiddenScreens.map((screenName) => (
         <Tabs.Screen
           key={screenName}
-          name={screenName as any}
+          name={screenName}
           options={{
             href: null,
           }}

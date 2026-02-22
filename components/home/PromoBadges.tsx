@@ -16,7 +16,7 @@ const PromoBadges = () => {
             {t("free_shipping") || "Free Shipping"}
           </Text>
           <Text className="text-xs text-darkRed">
-            {t("buy_more_for_free_shipping") || "Buy ₦102,000 more to get"}
+            {"Buy $102 more to get"}
           </Text>
         </View>
       </View>

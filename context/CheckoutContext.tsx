@@ -4,7 +4,7 @@ import { countries } from '@/data/countries';
 import { formatPhoneNumber } from '@/utils/phoneValidation';
 import api from '@/api/api';
 import { endpoints } from '@/api/endpoints';
-import { useCart } from './CartContext'; // Import useCart
+import { useCart } from './CartContext';
 
 // ✅ Updated ShippingInfo type with all required fields
 export interface ShippingInfo {
@@ -87,7 +87,7 @@ interface CheckoutContextType {
   setShowCountryPicker: any;
   showDeliveryOptions: boolean;
   setShowDeliveryOptions: any;
-  
+
   // Order & Cart - Now using CartContext
   orderItems: any[];
   cartItems: CartItem[];
@@ -96,16 +96,16 @@ interface CheckoutContextType {
   discount: number;
   shipping: number;
   total: number;
-  
+
   // Promo
   promoCode: string;
   setPromoCode: any;
-  
+
   // Payment
   selectedPayment: string;
   setSelectedPayment: any;
   phoneError: string;
-  
+
   // ✅ Order State
   orderId: string | null;
   setOrderId: (id: string | null) => void;
@@ -114,14 +114,14 @@ interface CheckoutContextType {
   currentOrder: OrderDetail | null;
   setCurrentOrder: (order: OrderDetail | null) => void;
   refreshCurrentOrder: () => Promise<void>;
-  
+
   // Misc
   handleCheckout: () => void;
   phoneInputRef: any;
   mappedCountries: any[];
   deliveryOptions: string[];
   formatDisplayPhoneNumber: (phone: string, countryCode: string) => string;
-  
+
   // Cart actions - Use from CartContext
   clearCart: () => Promise<boolean>;
 }
@@ -129,20 +129,22 @@ interface CheckoutContextType {
 const CheckoutContext = createContext<CheckoutContextType>({} as CheckoutContextType);
 
 export const CheckoutProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // ✅ Get cart data from CartContext - removed getItemCount since it's not used
-  const { 
-    items: cartItems, 
-    getCartTotal, 
-    clearCart: clearCartFromContext 
+  // ✅ Get cart data from CartContext — now including shipping fields
+  const {
+    items: cartItems,
+    getCartTotal,
+    clearCart: clearCartFromContext,
+    shippingCost,             // ✅ Real shipping cost selected in cart
+    getCartTotalWithShipping, // ✅ Subtotal + shipping
   } = useCart();
-  
+
   // Payment state
   const [selectedPayment, setSelectedPayment] = useState('stripe');
   const [promoCode, setPromoCode] = useState('');
   const [phoneError] = useState('');
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [showDeliveryOptions, setShowDeliveryOptions] = useState(false);
-  
+
   // ✅ ORDER STATE
   const [orderId, setOrderId] = useState<string | null>(null);
   const [hasActiveOrder, setHasActiveOrder] = useState(false);
@@ -188,17 +190,17 @@ export const CheckoutProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     store: item.storeName,
     name: item.productName,
     quantity: item.quantity,
-    price: item.price
+    price: item.price,
   }));
 
   const deliveryOptions = ['My Address', 'Office', 'Pickup Station', 'Other Location'];
-  
-  // ✅ Calculate totals from actual cart items
+
+  // ✅ Calculate totals from actual cart items — shipping now included
   const cartTotal = getCartTotal();
   const subtotal = cartTotal;
-  const discount = 800; // This should come from promo code logic
-  const shipping = 1000; // This should be calculated based on delivery option
-  const total = subtotal + shipping - discount;
+  const discount = 0;                    // Will be updated when promo code is implemented
+  const shipping = shippingCost;         // ✅ Real shipping cost from CartContext
+  const total = getCartTotalWithShipping(); // ✅ subtotal + shipping cost
 
   // Format phone number
   const formatDisplayPhoneNumber = (phone: string, countryCode: string) => {
@@ -226,16 +228,18 @@ export const CheckoutProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [orderId]);
 
-  const handleCheckout = async () => { 
+  const handleCheckout = async () => {
     console.log('Checkout initiated');
   };
 
-  // ✅ Debug: Log cart items to verify they're coming through
+  // ✅ Debug: Log cart items and totals to verify they're coming through correctly
   useEffect(() => {
     console.log('🛒 CheckoutContext - Cart Items:', cartItems);
-    console.log('📦 CheckoutContext - Cart Total:', total);
+    console.log('📦 CheckoutContext - Subtotal:', subtotal);
+    console.log('🚚 CheckoutContext - Shipping Cost:', shipping);
+    console.log('💰 CheckoutContext - Total (with shipping):', total);
     console.log('🔢 CheckoutContext - Item Count:', cartItems.length);
-  }, [cartItems, total]);
+  }, [cartItems, subtotal, shipping, total]);
 
   return (
     <CheckoutContext.Provider
@@ -249,25 +253,25 @@ export const CheckoutProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setShowCountryPicker,
         showDeliveryOptions,
         setShowDeliveryOptions,
-        
+
         // Order & Cart - Now using real cart data
         orderItems,
-        cartItems, // This is now from CartContext
+        cartItems,
         cartTotal,
         subtotal,
         discount,
-        shipping,
-        total,
-        
+        shipping,   // ✅ Real shipping cost
+        total,      // ✅ Total including shipping
+
         // Promo
         promoCode,
         setPromoCode,
-        
+
         // Payment
         selectedPayment,
         setSelectedPayment,
         phoneError,
-        
+
         // ✅ Order State
         orderId,
         setOrderId,
@@ -276,14 +280,14 @@ export const CheckoutProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         currentOrder,
         setCurrentOrder,
         refreshCurrentOrder,
-        
+
         // Misc
         handleCheckout,
         phoneInputRef,
         mappedCountries,
         deliveryOptions,
         formatDisplayPhoneNumber,
-        
+
         // ✅ Cart actions - Now using CartContext
         clearCart,
       }}

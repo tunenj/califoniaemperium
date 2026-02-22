@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,242 +6,246 @@ import {
   TextInput,
   Pressable,
   ScrollView,
+  ActivityIndicator,
+  Alert,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useLanguage } from '@/context/LanguageContext'; // Import hook
+import { useLanguage } from '@/context/LanguageContext';
+import api from '@/api/api';
+import { endpoints } from '@/api/endpoints';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /* ================= TYPES ================= */
 
-type StatusType = "All" | "Pending" | "Processing" | "Completed";
-
-interface PayoutRow {
+// Vendor type from API based on actual response
+interface Vendor {
   id: string;
-  vendor: string;
-  email: string;
-  amount: number;
-  method: string;
-  status: Exclude<StatusType, "All">;
-  date: string;
+  user: string;
+  user_email: string;
+  user_name: string;
+  business_name: string;
+  business_slug: string;
+  business_type: string;
+  business_email: string;
+  business_phone: string;
+  description: string;
+  logo: string | null;
+  banner: string | null;
+  verification_status: string;
+  is_verified: boolean;
+  verified_at: string | null;
+  is_active: boolean;
+  is_accepting_orders: boolean;
+  rating_average: string;
+  rating_count: number;
+  total_sales: number;
+  return_policy: string;
+  shipping_policy: string;
+  website: string;
+  facebook: string;
+  twitter: string;
+  instagram: string;
+  created_at: string;
+  updated_at: string;
+  pending_products_count: number;
 }
 
-interface PendingBalance {
-  id: string;
-  vendor: string;
-  email: string;
-  amount: number;
+interface VendorsResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Vendor[];
 }
-
-/* ================= DATA ================= */
-
-const PAYOUTS: PayoutRow[] = [
-  {
-    id: "TXN-78901234",
-    vendor: "Emily Tech",
-    email: "emily@gmail.com",
-    amount: 200000,
-    method: "paypal",
-    status: "Completed",
-    date: "Jan 5, 2026",
-  },
-  {
-    id: "TXN-78901235",
-    vendor: "Fashion Hub",
-    email: "emily@gmail.com",
-    amount: 200000,
-    method: "paypal",
-    status: "Pending",
-    date: "Jan 5, 2026",
-  },
-  {
-    id: "TXN-78901236",
-    vendor: "Sport Hub",
-    email: "king@gmail.com",
-    amount: 200000,
-    method: "bank transfer",
-    status: "Processing",
-    date: "Jan 5, 2026",
-  },
-];
-
-const PENDING_BALANCES: PendingBalance[] = [
-  {
-    id: "1",
-    vendor: "TechZone Electronics",
-    email: "john@techzone.com",
-    amount: 100000,
-  },
-  {
-    id: "2",
-    vendor: "Fashion Forward",
-    email: "jane@fashion.com",
-    amount: 100000,
-  },
-];
-
-/* ================= ROW ================= */
-
-const PayoutRowItem = memo(({ item }: { item: PayoutRow }) => {
-  const { t } = useLanguage(); // Add hook
-  
-  const initial = item.vendor.charAt(0).toUpperCase();
-
-  const statusMap = {
-    Completed: {
-      bg: "bg-green-100",
-      text: "text-green-700",
-      label: t('completed'),
-    },
-    Pending: {
-      bg: "bg-yellow-100",
-      text: "text-yellow-700",
-      label: t('pending'),
-    },
-    Processing: {
-      bg: "bg-orange-100",
-      text: "text-orange-700",
-      label: t('processing'),
-    },
-  };
-
-  const getMethodTranslation = (method: string) => {
-    const methodTranslations: Record<string, string> = {
-      'paypal': t('paypal'),
-      'bank transfer': t('bank_transfer'),
-    };
-    return methodTranslations[method] || method;
-  };
-
-  const status = statusMap[item.status];
-
-  return (
-    <View className="flex-row px-5 py-4 bg-white border-b border-gray-100">
-      {/* Vendor */}
-      <View className="w-44 flex-row items-center gap-3">
-        <View className="w-9 h-9 rounded-full bg-red-100 items-center justify-center">
-          <Text className="text-red-600 font-bold">{initial}</Text>
-        </View>
-        <View>
-          <Text className="text-sm font-medium text-gray-900">
-            {item.vendor}
-          </Text>
-          <Text className="text-xs text-gray-500">{item.email}</Text>
-        </View>
-      </View>
-
-      {/* Amount */}
-      <Text className="w-28 text-sm text-green-600">
-        ₦{item.amount.toLocaleString()}
-      </Text>
-
-      {/* Method */}
-      <Text className="w-28 text-sm text-gray-600 capitalize">
-        {getMethodTranslation(item.method)}
-      </Text>
-
-      {/* Transaction ID */}
-      <Text className="w-40 text-sm text-gray-500">{item.id}</Text>
-
-      {/* Status */}
-      <View className="w-32">
-        <View className={`px-3 py-1 rounded-full self-start ${status.bg}`}>
-          <Text className={`text-xs font-semibold ${status.text}`}>
-            {status.label}
-          </Text>
-        </View>
-      </View>
-
-      {/* Date */}
-      <Text className="w-28 text-sm text-gray-500">{item.date}</Text>
-
-      {/* Action */}
-      <Pressable className="w-16 items-center justify-center">
-        <Ionicons name="ellipsis-vertical" size={16} color="#6B7280" />
-      </Pressable>
-    </View>
-  );
-});
-
-PayoutRowItem.displayName = "PayoutRowItem";
 
 /* ================= SCREEN ================= */
 
 const PayoutManagement = () => {
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<StatusType>("All");
-  const { t } = useLanguage(); // Add hook
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { t } = useLanguage();
 
-  const filteredData = useMemo(() => {
-    return PAYOUTS.filter((item) => {
-      const matchesSearch =
-        item.vendor.toLowerCase().includes(search.toLowerCase()) ||
-        item.id.toLowerCase().includes(search.toLowerCase());
+  // Fetch vendors from API using the payout endpoint
+  const fetchVendors = useCallback(async (refresh = false) => {
+    try {
+      if (refresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      setError(null);
 
-      const matchesStatus =
-        status === "All" ? true : item.status === status;
+      const token = await AsyncStorage.getItem('accessToken');
+      
+      // Use the payout endpoint which points to '/vendors/'
+      const response = await api.get<VendorsResponse>(endpoints.payout, {
+        headers: {
+          Authorization: `Bearer ${token || ''}`,
+        },
+      });
 
-      return matchesSearch && matchesStatus;
-    });
-  }, [search, status]);
+      console.log('Vendors response:', response.data);
+      
+      if (response.data.results) {
+        setVendors(response.data.results);
+      }
+    } catch (error: any) {
+      console.error('Error fetching vendors:', error);
+      setError(error.response?.data?.message || error.message || 'Failed to load vendors');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
-  const statusFilters = ["All", "Pending", "Processing", "Completed"] as StatusType[];
-  
-  const getStatusTranslation = (status: StatusType) => {
-    const translations: Record<StatusType, string> = {
-      'All': t('all'),
-      'Pending': t('pending'),
-      'Processing': t('processing'),
-      'Completed': t('completed'),
+  useEffect(() => {
+    fetchVendors();
+  }, [fetchVendors]);
+
+  // Filter vendors based on search
+  const filteredVendors = useMemo(() => {
+    if (!search.trim()) return vendors;
+    
+    const query = search.toLowerCase();
+    return vendors.filter(v => 
+      v.business_name.toLowerCase().includes(query) ||
+      v.business_email.toLowerCase().includes(query) ||
+      v.user_name.toLowerCase().includes(query) ||
+      v.user_email.toLowerCase().includes(query)
+    );
+  }, [vendors, search]);
+
+  // Calculate summary statistics from vendor data
+  const summaryStats = useMemo(() => {
+    const totalVendors = vendors.length;
+    const verifiedVendors = vendors.filter(v => v.is_verified).length;
+    const activeVendors = vendors.filter(v => v.is_active).length;
+    const vendorsWithPendingProducts = vendors.filter(v => v.pending_products_count > 0).length;
+    
+    // Calculate total sales
+    const totalSales = vendors.reduce((sum, v) => sum + v.total_sales, 0);
+    
+    // Calculate total pending products
+    const totalPendingProducts = vendors.reduce((sum, v) => sum + v.pending_products_count, 0);
+
+    // Calculate average rating
+    const totalRating = vendors.reduce((sum, v) => sum + parseFloat(v.rating_average), 0);
+    const avgRating = vendors.length > 0 ? (totalRating / vendors.length).toFixed(2) : "0.00";
+
+    return {
+      totalVendors: totalVendors.toString(),
+      verifiedVendors: verifiedVendors.toString(),
+      activeVendors: activeVendors.toString(),
+      vendorsWithPendingProducts: vendorsWithPendingProducts.toString(),
+      totalSales: totalSales.toLocaleString(),
+      totalPendingProducts: totalPendingProducts.toString(),
+      avgRating: avgRating,
     };
-    return translations[status];
+  }, [vendors]);
+
+  // Get vendors with pending products for the balances section
+  const vendorsWithPending = useMemo(() => {
+    return vendors.filter(v => v.pending_products_count > 0);
+  }, [vendors]);
+
+  const handleRefresh = useCallback(() => {
+    fetchVendors(true);
+  }, [fetchVendors]);
+
+  const getVerificationBadge = (vendor: Vendor) => {
+    if (vendor.is_verified) {
+      return (
+        <View className="flex-row items-center">
+          <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+          <Text className="text-xs text-green-600 ml-1">Verified</Text>
+        </View>
+      );
+    } else {
+      return (
+        <View className="flex-row items-center">
+          <Ionicons name="close-circle" size={16} color="#EF4444" />
+          <Text className="text-xs text-red-600 ml-1">Unverified</Text>
+        </View>
+      );
+    }
   };
+
+  const getStatusBadge = (isActive: boolean) => {
+    if (isActive) {
+      return (
+        <View className="px-3 py-1 rounded-full bg-green-100 self-start">
+          <Text className="text-xs font-semibold text-green-700">Active</Text>
+        </View>
+      );
+    } else {
+      return (
+        <View className="px-3 py-1 rounded-full bg-red-100 self-start">
+          <Text className="text-xs font-semibold text-red-700">Inactive</Text>
+        </View>
+      );
+    }
+  };
+
+  if (loading) {
+    return (
+      <View className="flex-1 bg-white justify-center items-center">
+        <ActivityIndicator size="large" color="#DC2626" />
+        <Text className="mt-4 text-gray-600">Loading vendor data...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View className="flex-1 bg-white justify-center items-center p-4">
+        <Ionicons name="alert-circle-outline" size={48} color="#DC2626" />
+        <Text className="text-red-600 text-center mt-4">{error}</Text>
+        <Pressable 
+          onPress={() => fetchVendors()}
+          className="mt-4 bg-red-600 px-6 py-3 rounded-lg"
+        >
+          <Text className="text-white font-semibold">Retry</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-white -mt-7">
       {/* HEADER */}
       <View className="px-5 pt-6">
         <Text className="text-lg font-semibold text-gray-900">
-          {t('payout_management')}
+          Vendor Management
         </Text>
         <Text className="text-sm text-gray-500 mt-1">
-          {t('process_and_track_payouts')}
+          Manage and track vendor payouts
         </Text>
 
         {/* SEARCH */}
         <View className="mt-4 flex-row items-center bg-gray-100 rounded-xl px-4 h-11">
           <Ionicons name="search" size={18} color="#6B7280" />
           <TextInput
-            placeholder={t('search_vendor_transaction')}
+            placeholder="Search vendors by name or email..."
             placeholderTextColor="#6b7280"
             className="flex-1 ml-2 text-sm text-gray-700"
             value={search}
             onChangeText={setSearch}
           />
+          {search ? (
+            <Pressable onPress={() => setSearch('')}>
+              <Ionicons name="close-circle" size={18} color="#6B7280" />
+            </Pressable>
+          ) : refreshing ? (
+            <ActivityIndicator size="small" color="#DC2626" />
+          ) : (
+            <Pressable onPress={handleRefresh}>
+              <Ionicons name="refresh" size={18} color="#6B7280" />
+            </Pressable>
+          )}
         </View>
-      </View>
-
-      {/* STATUS FILTER */}
-      <View className="flex-row gap-3 px-5 mt-4">
-        {statusFilters.map((item) => (
-          <Pressable
-            key={item}
-            onPress={() => setStatus(item)}
-            className={`px-4 py-2 rounded-full ${
-              status === item
-                ? "bg-gray-900"
-                : "bg-gray-100"
-            }`}
-          >
-            <Text
-              className={`text-xs font-medium ${
-                status === item
-                  ? "text-white"
-                  : "text-gray-600"
-              }`}
-            >
-              {getStatusTranslation(item)}
-            </Text>
-          </Pressable>
-        ))}
       </View>
 
       {/* SUMMARY CARDS */}
@@ -250,96 +254,212 @@ const PayoutManagement = () => {
         showsHorizontalScrollIndicator={false}
         className="mt-6 mb-4 pl-4"
       >
-        {[
-          { title: t('pending_payout'), value: "₦2,000,000", accent: "bg-orange-300" },
-          { title: t('processing_count'), value: "2", accent: "bg-emerald-300" },
-          { title: t('completed_payout'), value: "₦2,000,000", accent: "bg-green-300" },
-          { title: t('total_vendors'), value: "20", accent: "bg-purple-300" },
-        ].map((item, index) => (
-          <View
-            key={index}
-            className="w-44 h-44 bg-white rounded-2xl p-3 border border-gray-200 overflow-hidden mr-3"
-          >
-            <View
-              className={`absolute bottom-[-24px] right-[-24px] w-32 h-36 rounded-full ${item.accent}`}
-            />
-            <Text className="text-xs text-gray-500 mb-2">
-              {item.title}
-            </Text>
-            <Text className="text-xl font-bold text-gray-900">
-              {item.value}
-            </Text>
-          </View>
-        ))}
-      </ScrollView>
+        <View className="w-44 h-44 bg-white rounded-2xl p-3 border border-gray-200 overflow-hidden mr-3">
+          <View className="absolute bottom-[-24px] right-[-24px] w-32 h-36 rounded-full bg-purple-300" />
+          <Text className="text-xs text-gray-500 mb-2">Total Vendors</Text>
+          <Text className="text-xl font-bold text-gray-900">{summaryStats.totalVendors}</Text>
+          <Text className="text-xs text-gray-500 mt-2">Registered vendors</Text>
+        </View>
 
-      {/* TABLE */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View>
-          <View className="flex-row bg-gray-100 px-5 py-3 border-y border-gray-200">
-            <Text className="w-44 text-xs font-semibold text-gray-500">
-              {t('vendor')}
-            </Text>
-            <Text className="w-28 text-xs font-semibold text-gray-500">
-              {t('amount')}
-            </Text>
-            <Text className="w-28 text-xs font-semibold text-gray-500">
-              {t('method')}
-            </Text>
-            <Text className="w-40 text-xs font-semibold text-gray-500">
-              {t('transaction_id')}
-            </Text>
-            <Text className="w-32 text-xs font-semibold text-gray-500">
-              {t('status')}
-            </Text>
-            <Text className="w-28 text-xs font-semibold text-gray-500">
-              {t('date')}
-            </Text>
-            <Text className="w-16 text-xs font-semibold text-gray-500 text-center">
-              {t('action')}
-            </Text>
-          </View>
-
-          <FlatList
-            data={filteredData}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => <PayoutRowItem item={item} />}
-            contentContainerStyle={{ paddingBottom: 24 }}
-          />
+        <View className="w-44 h-44 bg-white rounded-2xl p-3 border border-gray-200 overflow-hidden mr-3">
+          <View className="absolute bottom-[-24px] right-[-24px] w-32 h-36 rounded-full bg-blue-300" />
+          <Text className="text-xs text-gray-500 mb-2">Active</Text>
+          <Text className="text-xl font-bold text-gray-900">{summaryStats.activeVendors}</Text>
+          <Text className="text-xs text-gray-500 mt-2">Active vendors</Text>
+        </View>
+        <View className="w-44 h-44 bg-white rounded-2xl p-3 border border-gray-200 overflow-hidden mr-3">
+          <View className="absolute bottom-[-24px] right-[-24px] w-32 h-36 rounded-full bg-yellow-300" />
+          <Text className="text-xs text-gray-500 mb-2">Total Sales</Text>
+          <Text className="text-xl font-bold text-gray-900">{summaryStats.totalSales}</Text>
+          <Text className="text-xs text-gray-500 mt-2">Items sold</Text>
         </View>
       </ScrollView>
 
-      {/* VENDOR PENDING BALANCES */}
-      <View className="px-5 mt-8 mb-10">
-        <Text className="text-sm font-semibold text-gray-900 mb-3">
-          {t('vendor_pending_balances')}
+      {/* VENDORS LIST HEADER */}
+      <View className="px-5 mt-2 mb-3">
+        <Text className="text-sm font-semibold text-gray-900">
+          Vendors List ({filteredVendors.length} of {vendors.length})
         </Text>
-
-        {PENDING_BALANCES.map((item) => (
-          <View
-            key={item.id}
-            className="flex-row items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3 mb-2"
-          >
-            <View>
-              <Text className="text-sm font-medium text-gray-900">
-                {item.vendor}
-              </Text>
-              <Text className="text-xs text-gray-500">{item.email}</Text>
-            </View>
-
-            <View className="flex-row items-center gap-3">
-              <Text className="text-sm font-semibold text-green-600">
-                ₦{item.amount.toLocaleString()}
-              </Text>
-              <Pressable className="px-3 py-1 rounded-full bg-green-100">
-                <Text className="text-xs font-medium text-green-700">
-                  {t('pay_now')}
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        ))}
       </View>
+
+      {/* VENDORS TABLE */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <View>
+          {/* Table Header */}
+          <View className="flex-row bg-gray-100 px-5 py-3 border-y border-gray-200">
+            <Text className="w-48 text-xs font-semibold text-gray-500">Vendor</Text>
+            <Text className="w-24 text-xs font-semibold text-gray-500">Status</Text>
+            <Text className="w-24 text-xs font-semibold text-gray-500">Rating</Text>
+            <Text className="w-24 text-xs font-semibold text-gray-500">Sales</Text>
+            <Text className="w-28 text-xs font-semibold text-gray-500">Pending Products</Text>
+            <Text className="w-24 text-xs font-semibold text-gray-500">Verification</Text>
+            <Text className="w-20 text-xs font-semibold text-gray-500 text-center">Action</Text>
+          </View>
+
+          {/* Table Body */}
+          {filteredVendors.length === 0 ? (
+            <View className="py-10 items-center">
+              <Ionicons name="people-outline" size={48} color="#9CA3AF" />
+              <Text className="text-gray-500 mt-2">No vendors found</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={filteredVendors}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <View className="flex-row px-5 py-4 bg-white border-b border-gray-100">
+                  {/* Vendor */}
+                  <View className="w-48 flex-row items-center gap-3">
+                    <View className="w-10 h-10 rounded-full bg-red-100 items-center justify-center overflow-hidden">
+                      {item.logo ? (
+                        <Image 
+                          source={{ uri: item.logo }} 
+                          className="w-full h-full"
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <Text className="text-red-600 font-bold text-lg">
+                          {item.business_name.charAt(0).toUpperCase()}
+                        </Text>
+                      )}
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-sm font-medium text-gray-900" numberOfLines={1}>
+                        {item.business_name}
+                      </Text>
+                      <Text className="text-xs text-gray-500" numberOfLines={1}>
+                        {item.business_email}
+                      </Text>
+                      <Text className="text-xs text-gray-400" numberOfLines={1}>
+                        {item.business_phone}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Status */}
+                  <View className="w-24">
+                    {getStatusBadge(item.is_active)}
+                  </View>
+
+                  {/* Rating */}
+                  <View className="w-24">
+                    <View className="flex-row items-center">
+                      <Ionicons name="star" size={14} color="#F59E0B" />
+                      <Text className="text-sm text-gray-900 ml-1">
+                        {parseFloat(item.rating_average).toFixed(1)}
+                      </Text>
+                      <Text className="text-xs text-gray-400 ml-1">
+                        ({item.rating_count})
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Sales */}
+                  <Text className="w-24 text-sm text-green-600">
+                    {item.total_sales.toLocaleString()}
+                  </Text>
+
+                  {/* Pending Products */}
+                  <View className="w-28">
+                    {item.pending_products_count > 0 ? (
+                      <View className="flex-row items-center">
+                        <Ionicons name="alert-circle" size={16} color="#F59E0B" />
+                        <Text className="text-sm text-orange-600 ml-1 font-medium">
+                          {item.pending_products_count}
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text className="text-sm text-gray-400">None</Text>
+                    )}
+                  </View>
+
+                  {/* Verification */}
+                  <View className="w-24">
+                    {getVerificationBadge(item)}
+                  </View>
+
+                  {/* Action */}
+                  <Pressable className="w-20 items-center justify-center">
+                    <Ionicons name="ellipsis-vertical" size={18} color="#6B7280" />
+                  </Pressable>
+                </View>
+              )}
+              contentContainerStyle={{ paddingBottom: 24 }}
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+            />
+          )}
+        </View>
+      </ScrollView>
+
+      {/* VENDORS WITH PENDING PRODUCTS */}
+      {vendorsWithPending.length > 0 && (
+        <View className="px-5 mt-8 mb-10">
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-sm font-semibold text-gray-900">
+              Vendors with Pending Products
+            </Text>
+            <Text className="text-xs text-gray-500">
+              {vendorsWithPending.length} vendors
+            </Text>
+          </View>
+
+          {vendorsWithPending.map((vendor) => (
+            <View
+              key={vendor.id}
+              className="flex-row items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3 mb-2"
+            >
+              <View className="flex-1">
+                <View className="flex-row items-center">
+                  <View className="w-8 h-8 rounded-full bg-red-100 items-center justify-center mr-2 overflow-hidden">
+                    {vendor.logo ? (
+                      <Image 
+                        source={{ uri: vendor.logo }} 
+                        className="w-full h-full"
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Text className="text-red-600 font-bold">
+                        {vendor.business_name.charAt(0).toUpperCase()}
+                      </Text>
+                    )}
+                  </View>
+                  <View>
+                    <Text className="text-sm font-medium text-gray-900">
+                      {vendor.business_name}
+                    </Text>
+                    <Text className="text-xs text-gray-500">{vendor.business_email}</Text>
+                  </View>
+                </View>
+                <Text className="text-xs text-orange-500 mt-1 ml-10">
+                  {vendor.pending_products_count} product{vendor.pending_products_count !== 1 ? 's' : ''} pending approval
+                </Text>
+              </View>
+
+              <View className="flex-row items-center gap-2">
+                <Text className="text-sm font-semibold text-green-600">
+                  ₦{(vendor.pending_products_count * 5000).toLocaleString()}
+                </Text>
+                <Pressable 
+                  className="px-3 py-1 rounded-full bg-green-100"
+                  onPress={() => Alert.alert(
+                    'Process Payout',
+                    `Process payout of ₦${(vendor.pending_products_count * 5000).toLocaleString()} to ${vendor.business_name}?`,
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Process', onPress: () => Alert.alert('Success', 'Payout processed successfully') }
+                    ]
+                  )}
+                >
+                  <Text className="text-xs font-medium text-green-700">
+                    Pay Now
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
     </View>
   );
 };
