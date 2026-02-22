@@ -1,16 +1,16 @@
 {
   "expo": {
     "name": "Califonia Emporium",
-    "slug": "califoniaemporium",
+    "slug": "califoniaemperium",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "califoniaemporium",
+    "scheme": "califoniaemperium",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.tunenj.califoniaemporium",
+      "bundleIdentifier": "com.tunenj.califoniaemperium",
       "buildNumber": "1.0.0",
       "infoPlist": {
         "NSFaceIDUsageDescription": "This app uses Face ID / Touch ID to securely authenticate you for quick login.",
@@ -25,7 +25,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.tunenj.califoniaemporium",
+      "package": "com.tunenj.califoniaemperium",
       "versionCode": 1,
       "permissions": [
         "USE_BIOMETRIC",
@@ -59,9 +59,9 @@
         }
       ],
       [
-        "@stripe/stripe-react-native",
+         "@stripe/stripe-react-native",
         {
-          "merchantIdentifier": "merchant.com.tunenj.califoniaemporium",
+          "merchantIdentifier": "merchant.com.tunenj.califoniaemperium",
           "enableGooglePay": true
         }
       ],
