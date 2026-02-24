@@ -1,6 +1,6 @@
 // app/(customer)/cart.tsx
 
-import React, { useState, memo, useCallback, useEffect } from 'react';
+import React, { useState, memo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -24,7 +24,6 @@ import { useAuth } from '@/context/AuthContext';
 import api from '@/api/api';
 import { endpoints } from '@/api/endpoints';
 
-// Define CartItem type
 interface CartItem {
   id: string;
   productId: string;
@@ -51,7 +50,6 @@ interface WishlistResult {
   message?: string;
 }
 
-// ── Toast helper ──────────────────────────────────────────────────
 const showToast = (type: 'success' | 'error' | 'info', title: string, message?: string) => {
   Toast.show({
     type,
@@ -64,7 +62,6 @@ const showToast = (type: 'success' | 'error' | 'info', title: string, message?: 
   });
 };
 
-// ── Image URI extractor ───────────────────────────────────────────
 const extractImageUri = (image: any): string | null => {
   if (!image) return null;
   if (typeof image === 'string') return image.startsWith('http') ? image : null;
@@ -82,7 +79,6 @@ const formatPrice = (price: number): string => {
   return `€${price.toFixed(2)}`;
 };
 
-// ── Product Image ─────────────────────────────────────────────────
 const ProductImage = memo(({ uri, productName }: { uri: string | null; productName?: string }) => {
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
@@ -122,22 +118,19 @@ const ProductImage = memo(({ uri, productName }: { uri: string | null; productNa
 
 ProductImage.displayName = 'ProductImage';
 
-// ── Main Screen ───────────────────────────────────────────────────
 export default function CartScreen() {
   const router = useRouter();
   const { t } = useLanguage();
   const { isAuthenticated } = useAuth();
 
   const {
-    items, 
-    updateQuantity, 
-    removeItem, 
+    items,
+    updateQuantity,
+    removeItem,
     clearCart,
-    getCartTotal, 
-    getItemCount, 
+    getCartTotal,
+    getItemCount,
     syncing: cartSyncing,
-    
-    // Shipping from context
     shippingAddress,
     setShippingAddress,
     shippingOptions,
@@ -154,8 +147,6 @@ export default function CartScreen() {
   const [updatingItems, setUpdatingItems] = useState<{ [key: string]: boolean }>({});
   const [removingItems, setRemovingItems] = useState<{ [key: string]: boolean }>({});
   const [savingItems, setSavingItems] = useState<{ [key: string]: boolean }>({});
-
-  // Local UI state
   const [loadingShipping, setLoadingShipping] = useState(false);
   const [shippingModalVisible, setShippingModalVisible] = useState(false);
   const [addressExpanded, setAddressExpanded] = useState(false);
@@ -164,20 +155,20 @@ export default function CartScreen() {
   const subtotal = getCartTotal();
   const total = getCartTotalWithShipping();
 
+  // ✅ Checkout is blocked until a shipping method is selected
+  const canCheckout = !!selectedShipping && !cartSyncing && !wishlistSyncing;
+
   const isValidUUID = (uuid: string): boolean => {
     if (!uuid || typeof uuid !== 'string') return false;
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uuid.trim());
   };
 
-  // ── Fetch shipping ────────────────────────────────────────────
   const fetchShippingOptions = useCallback(async () => {
     const { country, state, city, postal_code } = shippingAddress;
-
     if (!country.trim() || !city.trim()) {
       showToast('error', 'Missing Info', 'Please enter at least country and city.');
       return;
     }
-
     setLoadingShipping(true);
     try {
       const response = await api.post(endpoints.calculateShip, {
@@ -186,7 +177,6 @@ export default function CartScreen() {
         shipping_city: city.trim(),
         shipping_postal_code: postal_code.trim(),
       });
-
       if (response.data?.success && response.data?.data?.shipping_options?.length > 0) {
         setShippingOptions(response.data.data.shipping_options);
         setShippingModalVisible(true);
@@ -204,6 +194,7 @@ export default function CartScreen() {
   const handleSelectShipping = (option: ShippingOption) => {
     setSelectedShipping(option);
     setShippingModalVisible(false);
+    setAddressExpanded(false); // collapse the form after selecting
     showToast('success', 'Shipping Selected', `${option.logistics_name} · ${option.estimated_delivery}`);
   };
 
@@ -212,7 +203,6 @@ export default function CartScreen() {
     showToast('info', 'Shipping Removed', 'Shipping method cleared.');
   };
 
-  // ── Wishlist ──────────────────────────────────────────────────
   const saveToWishlistWithId = useCallback(async (itemId: string, cartItem: CartItem, productId: string) => {
     try {
       const alreadyInWishlist = await isInWishlist(productId);
@@ -220,9 +210,7 @@ export default function CartScreen() {
         showToast('info', 'Already Saved', 'This item is already in your wishlist.');
         return;
       }
-
       const result = await addToWishlist(productId) as WishlistResult;
-
       if (result?.success) {
         await removeItem(itemId);
         showToast('success', 'Saved!', `${cartItem.productName} moved to wishlist.`);
@@ -237,10 +225,15 @@ export default function CartScreen() {
     }
   }, [addToWishlist, removeItem, isInWishlist]);
 
-  // ── Checkout ──────────────────────────────────────────────────
   const handleCheckout = () => {
     if (cartItems.length === 0) {
       showToast('info', 'Empty Cart', 'Please add items before checking out.');
+      return;
+    }
+    // ✅ Guard: should never reach here without shipping, but just in case
+    if (!selectedShipping) {
+      showToast('info', 'Shipping Required', 'Please select a shipping method before checking out.');
+      setAddressExpanded(true);
       return;
     }
     if (cartSyncing || wishlistSyncing) {
@@ -250,7 +243,6 @@ export default function CartScreen() {
     router.push('/checkout');
   };
 
-  // ── Clear cart — keep Alert for destructive confirmation ──────
   const handleClearCart = () => {
     Alert.alert(
       t('clear_cart') || 'Clear Cart',
@@ -265,7 +257,7 @@ export default function CartScreen() {
             if (!success) {
               showToast('error', 'Error', 'Failed to clear cart.');
             } else {
-              clearShipping(); // Clear shipping when cart is cleared
+              clearShipping();
               showToast('success', 'Cart Cleared', 'All items have been removed.');
             }
           },
@@ -274,7 +266,6 @@ export default function CartScreen() {
     );
   };
 
-  // ── Remove item — keep Alert for destructive confirmation ─────
   const handleRemoveItem = useCallback(async (itemId: string) => {
     Alert.alert(
       t('remove_item') || 'Remove Item',
@@ -300,7 +291,6 @@ export default function CartScreen() {
     );
   }, [removeItem, t]);
 
-  // ── Update quantity ───────────────────────────────────────────
   const handleUpdateQuantity = useCallback(async (itemId: string, newQuantity: number, maxStock?: number) => {
     if (newQuantity < 1) { handleRemoveItem(itemId); return; }
     if (maxStock && newQuantity > maxStock) {
@@ -309,7 +299,6 @@ export default function CartScreen() {
     }
     const currentItem = cartItems.find(item => item.id === itemId);
     if (currentItem && currentItem.quantity === newQuantity) return;
-
     try {
       setUpdatingItems(prev => ({ ...prev, [itemId]: true }));
       const success = await updateQuantity(itemId, newQuantity);
@@ -321,22 +310,18 @@ export default function CartScreen() {
     }
   }, [updateQuantity, cartItems, handleRemoveItem]);
 
-  // ── Save for later ────────────────────────────────────────────
   const handleSaveForLater = useCallback(async (item: CartItem) => {
     if (!isAuthenticated) {
       showToast('info', 'Sign In Required', 'Please sign in to save items to your wishlist.');
       return;
     }
-
     try {
       setSavingItems(prev => ({ ...prev, [item.id]: true }));
       const productId = String(item.productId).trim();
-
       if (!productId) {
         showToast('error', 'Error', 'Product ID is missing.');
         return;
       }
-
       if (!isValidUUID(productId)) {
         const uuidMatch = productId.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
         if (uuidMatch) {
@@ -346,7 +331,6 @@ export default function CartScreen() {
         }
         return;
       }
-
       await saveToWishlistWithId(item.id, item, productId);
     } catch {
       showToast('error', 'Error', 'Failed to save item to wishlist.');
@@ -355,7 +339,7 @@ export default function CartScreen() {
     }
   }, [isAuthenticated, saveToWishlistWithId]);
 
-  // ── Empty cart view ───────────────────────────────────────────
+  // ── Empty cart ────────────────────────────────────────────────
   if (cartItems.length === 0) {
     return (
       <SafeAreaView className="flex-1 bg-white">
@@ -402,7 +386,7 @@ export default function CartScreen() {
     );
   }
 
-  // ── Main cart view ────────────────────────────────────────────
+  // ── Main cart ─────────────────────────────────────────────────
   return (
     <SafeAreaView className="flex-1 bg-gray-50 pt-6">
       <View className="flex-1">
@@ -572,7 +556,7 @@ export default function CartScreen() {
             );
           })}
 
-          {/* ── Shipping Calculator ─────────────────────────────── */}
+          {/* Shipping Calculator */}
           <View className="bg-white rounded-2xl p-5 mb-4 border border-gray-100">
             <TouchableOpacity
               className="flex-row justify-between items-center"
@@ -581,6 +565,12 @@ export default function CartScreen() {
               <View className="flex-row items-center">
                 <Ionicons name="car-outline" size={20} color="#DC2626" />
                 <Text className="text-base font-bold text-gray-900 ml-2">Shipping Calculator</Text>
+                {/* ✅ Required badge */}
+                {!selectedShipping && (
+                  <View className="ml-2 bg-amber-100 px-2 py-0.5 rounded-full">
+                    <Text className="text-amber-600 text-[10px] font-semibold">REQUIRED</Text>
+                  </View>
+                )}
               </View>
               <Ionicons name={addressExpanded ? "chevron-up" : "chevron-down"} size={18} color="#6b7280" />
             </TouchableOpacity>
@@ -668,7 +658,7 @@ export default function CartScreen() {
             )}
           </View>
 
-          {/* ── Order Summary ───────────────────────────────────── */}
+          {/* Order Summary */}
           <View className="bg-white rounded-2xl p-5 mb-8 border border-gray-100">
             <Text className="text-lg font-bold text-gray-900 mb-4">
               {t('order_summary') || 'Order Summary'}
@@ -706,16 +696,44 @@ export default function CartScreen() {
               <Text className="text-2xl font-bold text-red-600">{formatPrice(total)}</Text>
             </View>
 
+            {/* ✅ Shipping required warning — tappable to open the calculator */}
+            {!selectedShipping && (
+              <TouchableOpacity
+                onPress={() => {
+                  setAddressExpanded(true);
+                  // scroll hint via toast
+                  showToast('info', 'Shipping Required', 'Enter your address to calculate shipping.');
+                }}
+                className="flex-row items-center bg-amber-50 border border-amber-200 rounded-xl py-3 px-4 mb-3"
+              >
+                <Ionicons name="alert-circle-outline" size={16} color="#D97706" />
+                <Text className="text-amber-700 text-sm font-medium ml-2 flex-1">
+                  Select a shipping method above to continue
+                </Text>
+                <Ionicons name="chevron-up" size={14} color="#D97706" />
+              </TouchableOpacity>
+            )}
+
+            {/* ✅ Checkout button — locked until shipping selected */}
             <TouchableOpacity
               onPress={handleCheckout}
-              className={`rounded-2xl py-4 items-center ${(cartSyncing || wishlistSyncing) ? 'bg-gray-400' : 'bg-red-600'}`}
-              disabled={cartSyncing || wishlistSyncing}
+              disabled={!canCheckout}
+              className={`rounded-2xl py-4 items-center ${
+                !canCheckout ? 'bg-gray-200' : 'bg-red-600'
+              }`}
             >
-              {(cartSyncing || wishlistSyncing) ? (
+              {cartSyncing || wishlistSyncing ? (
                 <View className="flex-row items-center">
                   <ActivityIndicator size="small" color="white" />
                   <Text className="text-white font-bold text-lg ml-2">
                     {cartSyncing ? 'Updating Cart' : 'Processing'}
+                  </Text>
+                </View>
+              ) : !selectedShipping ? (
+                <View className="flex-row items-center">
+                  <Ionicons name="lock-closed-outline" size={18} color="#9CA3AF" />
+                  <Text className="text-gray-400 font-bold text-lg ml-2">
+                    Select Shipping to Continue
                   </Text>
                 </View>
               ) : (
@@ -728,7 +746,7 @@ export default function CartScreen() {
         </ScrollView>
       </View>
 
-      {/* ── Shipping Options Modal ──────────────────────────────── */}
+      {/* Shipping Options Modal */}
       <Modal
         visible={shippingModalVisible}
         animationType="slide"
@@ -783,7 +801,6 @@ export default function CartScreen() {
         </View>
       </Modal>
 
-      {/* Toast — must be at root level */}
       <Toast />
     </SafeAreaView>
   );
