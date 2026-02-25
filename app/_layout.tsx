@@ -7,11 +7,18 @@ import { CategorySearchProvider } from "@/context/CategorySearchContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import "@/lib/i18n";
 import "../global.css";
-import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
+import Toast, { BaseToast, ErrorToast } from "react-native-toast-message";
 import { SetupProvider } from "@/context/VendorApplicationContext";
-import { WishlistProvider } from '@/context/WishlistContext';
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, LogBox } from 'react-native';
+import { WishlistProvider } from "@/context/WishlistContext";
+import React from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  LogBox,
+  Platform,
+} from "react-native";
 
 // Never hide errors in development
 if (__DEV__) {
@@ -34,14 +41,16 @@ class ErrorBoundary extends React.Component<
     errorInfo: null,
   };
 
-  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
+  static getDerivedStateFromError(
+    error: Error
+  ): Partial<ErrorBoundaryState> {
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     this.setState({ errorInfo });
-    console.error('ErrorBoundary caught:', error);
-    console.error('Component stack:', errorInfo.componentStack);
+    console.error("ErrorBoundary caught:", error);
+    console.error("Component stack:", errorInfo.componentStack);
   }
 
   handleReset = () => {
@@ -103,66 +112,67 @@ const toastConfig = {
     <BaseToast
       {...props}
       style={{
-        borderLeftColor: '#4CAF50',
-        backgroundColor: '#E8F5E9',
+        borderLeftColor: "#4CAF50",
+        backgroundColor: "#E8F5E9",
         marginTop: 10,
         marginHorizontal: 20,
         borderRadius: 8,
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 3,
         elevation: 3,
       }}
       contentContainerStyle={{ paddingHorizontal: 15 }}
-      text1Style={{ fontSize: 16, fontWeight: '600', color: '#2E7D32' }}
-      text2Style={{ fontSize: 14, color: '#388E3C' }}
+      text1Style={{ fontSize: 16, fontWeight: "600", color: "#2E7D32" }}
+      text2Style={{ fontSize: 14, color: "#388E3C" }}
     />
   ),
   error: (props: any) => (
     <ErrorToast
       {...props}
       style={{
-        borderLeftColor: '#F44336',
-        backgroundColor: '#FFEBEE',
+        borderLeftColor: "#F44336",
+        backgroundColor: "#FFEBEE",
         marginTop: 10,
         marginHorizontal: 20,
         borderRadius: 8,
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 3,
         elevation: 3,
       }}
       contentContainerStyle={{ paddingHorizontal: 15 }}
-      text1Style={{ fontSize: 16, fontWeight: '600', color: '#C62828' }}
-      text2Style={{ fontSize: 14, color: '#D32F2F' }}
+      text1Style={{ fontSize: 16, fontWeight: "600", color: "#C62828" }}
+      text2Style={{ fontSize: 14, color: "#D32F2F" }}
     />
   ),
   info: (props: any) => (
     <BaseToast
       {...props}
       style={{
-        borderLeftColor: '#2196F3',
-        backgroundColor: '#E3F2FD',
+        borderLeftColor: "#2196F3",
+        backgroundColor: "#E3F2FD",
         marginTop: 10,
         marginHorizontal: 20,
         borderRadius: 8,
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 3,
         elevation: 3,
       }}
       contentContainerStyle={{ paddingHorizontal: 15 }}
-      text1Style={{ fontSize: 16, fontWeight: '600', color: '#1565C0' }}
-      text2Style={{ fontSize: 14, color: '#1976D2' }}
+      text1Style={{ fontSize: 16, fontWeight: "600", color: "#1565C0" }}
+      text2Style={{ fontSize: 14, color: "#1976D2" }}
     />
   ),
 };
 
-
 export default function RootLayout() {
+  const isWeb = Platform.OS === "web";
+
   return (
     <ErrorBoundary>
       <ThemeProvider>
@@ -173,16 +183,42 @@ export default function RootLayout() {
                 <SetupProvider>
                   <ExploreSearchProvider>
                     <CategorySearchProvider>
-                      <Stack screenOptions={{ headerShown: false }}>
-                        <Stack.Screen name="(Onboarding)" />
-                        <Stack.Screen name="(customer)" />
-                        <Stack.Screen name="(vendor)" />
-                        <Stack.Screen name="(admin)" />
-                      </Stack>
-                      <Toast
-                        config={toastConfig}
-                        topOffset={50}
-                      />
+
+                      {/* Responsive Wrapper */}
+                      <View
+                        style={
+                          isWeb
+                            ? {
+                                flex: 1,
+                                width: "100%",
+                                alignItems: "center",
+                                backgroundColor: "#f9fafb",
+                              }
+                            : { flex: 1 }
+                        }
+                      >
+                        <View
+                          style={
+                            isWeb
+                              ? {
+                                  flex: 1,
+                                  width: "100%",
+                                  maxWidth: 1200,
+                                }
+                              : { flex: 1 }
+                          }
+                        >
+                          <Stack screenOptions={{ headerShown: false }}>
+                            <Stack.Screen name="(Onboarding)" />
+                            <Stack.Screen name="(customer)" />
+                            <Stack.Screen name="(vendor)" />
+                            <Stack.Screen name="(admin)" />
+                          </Stack>
+
+                          <Toast config={toastConfig} topOffset={50} />
+                        </View>
+                      </View>
+
                     </CategorySearchProvider>
                   </ExploreSearchProvider>
                 </SetupProvider>
